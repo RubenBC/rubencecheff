@@ -3,8 +3,8 @@
 // ═══════════════════════════════════════
 const { createClient } = supabase;
 const sb = createClient(
-  'https://zxkwjhathanytpjqzcwq.supabase.co',
-  'sb_publishable_ZGiRIja1xyuJ74EzMnBT9w_b9GIVFUi'
+  'https://ctvqzgshoarjvjeoymdl.supabase.co',
+  'sb_publishable_P9IGn-dQ_sOH9NL2i6KNHw_21gjJ_kK'
 );
 
 // ═══════════════════════════════════════
@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 const ADMIN_PASSWORD = 'chef2024';
 
-const CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas'];
+const CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas', 'Guarniciones'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -20,6 +20,7 @@ const CAT_TAG = {
   'Postres':         'tag-postres',
   'Salsas y fondos': 'tag-salsas',
   'Ensaladas':       'tag-ensaladas',
+  'Guarniciones':    'tag-guarniciones',
 };
 
 const DIFF_TAG = {
