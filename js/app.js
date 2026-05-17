@@ -1,4 +1,13 @@
 // ═══════════════════════════════════════
+//   SUPABASE
+// ═══════════════════════════════════════
+const { createClient } = supabase;
+const sb = createClient(
+  'https://zxkwjhathanytpjqzcwq.supabase.co',
+  'sb_publishable_ZGiRIja1xyuJ74EzMnBT9w_b9GIVFUi'
+);
+
+// ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
 const ADMIN_PASSWORD = 'chef2024';
@@ -20,148 +29,46 @@ const DIFF_TAG = {
 };
 
 // ═══════════════════════════════════════
-//   DATOS DE EJEMPLO
-// ═══════════════════════════════════════
-const INITIAL_RECIPES = [
-  {
-    id: 'r1', name: 'Solomillo al Pedro Ximénez',
-    category: 'Carnes', servings: 4, time: 35, difficulty: 'Media',
-    photo: '', // URL de foto (Supabase Storage cuando esté listo)
-    description: 'Solomillo de ternera con reducción de vino dulce y guarnición de patata panadera.',
-    ingredients: [
-      { id: 'i1', name: 'Solomillo de ternera',      amount: 800, unit: 'g'   },
-      { id: 'i2', name: 'Pedro Ximénez',             amount: 200, unit: 'ml'  },
-      { id: 'i3', name: 'Caldo de carne',            amount: 300, unit: 'ml'  },
-      { id: 'i4', name: 'Mantequilla',               amount: 40,  unit: 'g'   },
-      { id: 'i5', name: 'Chalota',                   amount: 3,   unit: 'uds' },
-      { id: 'i6', name: 'Aceite de oliva',           amount: 30,  unit: 'ml'  },
-    ],
-    steps: [
-      'Salpimentar el solomillo y marcar en plancha muy caliente 2 min por cada lado.',
-      'Pochar la chalota finamente picada hasta que esté transparente.',
-      'Añadir el Pedro Ximénez y reducir a la mitad a fuego medio.',
-      'Incorporar el caldo de carne y reducir hasta conseguir una salsa napante.',
-      'Montar la salsa fuera del fuego añadiendo la mantequilla fría en dados.',
-      'Terminar el solomillo en horno a 180°C durante 8 minutos (punto medio).',
-      'Reposar 3 minutos antes de cortar y emplatar con la salsa.',
-    ],
-  },
-  {
-    id: 'r2', name: 'Lubina a la sal',
-    category: 'Pescados', servings: 2, time: 45, difficulty: 'Fácil',
-    photo: '',
-    description: 'Lubina entera cocida en costra de sal con aceite de hierbas.',
-    ingredients: [
-      { id: 'i1', name: 'Lubina entera (limpia)',          amount: 1,    unit: 'uds'  },
-      { id: 'i2', name: 'Sal gorda',                       amount: 1500, unit: 'g'    },
-      { id: 'i3', name: 'Clara de huevo',                  amount: 2,    unit: 'uds'  },
-      { id: 'i4', name: 'Aceite de oliva virgen extra',    amount: 50,   unit: 'ml'   },
-      { id: 'i5', name: 'Tomillo fresco',                  amount: 3,    unit: 'ramas'},
-      { id: 'i6', name: 'Limón',                           amount: 1,    unit: 'uds'  },
-    ],
-    steps: [
-      'Mezclar la sal gorda con las claras hasta obtener una masa húmeda.',
-      'Cubrir la base de la bandeja con una capa de sal de 1 cm.',
-      'Colocar la lubina con el tomillo en el interior.',
-      'Cubrir completamente con el resto de la sal.',
-      'Hornear a 200°C durante 25 minutos.',
-      'Romper la costra en mesa y retirar la piel.',
-      'Aliñar con aceite de oliva y unas gotas de limón.',
-    ],
-  },
-  {
-    id: 'r3', name: 'Crema Catalana',
-    category: 'Postres', servings: 6, time: 40, difficulty: 'Fácil',
-    photo: '',
-    description: 'Crema pastelera especiada con costra de azúcar caramelizada.',
-    ingredients: [
-      { id: 'i1', name: 'Leche entera',       amount: 1000, unit: 'ml'  },
-      { id: 'i2', name: 'Yemas de huevo',     amount: 8,    unit: 'uds' },
-      { id: 'i3', name: 'Azúcar',             amount: 200,  unit: 'g'   },
-      { id: 'i4', name: 'Maicena',            amount: 40,   unit: 'g'   },
-      { id: 'i5', name: 'Piel de limón',      amount: 1,    unit: 'uds' },
-      { id: 'i6', name: 'Rama de canela',     amount: 1,    unit: 'uds' },
-      { id: 'i7', name: 'Azúcar para quemar', amount: 60,   unit: 'g'   },
-    ],
-    steps: [
-      'Calentar la leche con la piel de limón y la canela, retirar antes de hervir.',
-      'Batir las yemas con el azúcar hasta blanquear y añadir la maicena tamizada.',
-      'Incorporar la leche colada sobre la mezcla de yemas poco a poco.',
-      'Cocinar a fuego medio sin dejar de remover hasta que espese (82°C).',
-      'Distribuir en cazuelitas y enfriar mínimo 2 horas en nevera.',
-      'Espolvorear azúcar y quemar con soplete justo antes de servir.',
-    ],
-  },
-  {
-    id: 'r4', name: 'Fondo Oscuro de Ternera',
-    category: 'Salsas y fondos', servings: 10, time: 240, difficulty: 'Alta',
-    photo: '',
-    description: 'Base esencial de cocina, fondo oscuro concentrado para salsas y estofados.',
-    ingredients: [
-      { id: 'i1', name: 'Huesos de ternera',    amount: 2000, unit: 'g'   },
-      { id: 'i2', name: 'Cebolla',              amount: 300,  unit: 'g'   },
-      { id: 'i3', name: 'Zanahoria',            amount: 200,  unit: 'g'   },
-      { id: 'i4', name: 'Apio',                 amount: 100,  unit: 'g'   },
-      { id: 'i5', name: 'Tomate concentrado',   amount: 50,   unit: 'g'   },
-      { id: 'i6', name: 'Vino tinto',           amount: 300,  unit: 'ml'  },
-      { id: 'i7', name: 'Bouquet garni',        amount: 1,    unit: 'uds' },
-      { id: 'i8', name: 'Agua fría',            amount: 3000, unit: 'ml'  },
-    ],
-    steps: [
-      'Rustir los huesos en horno a 220°C hasta que estén bien dorados (45 min).',
-      'Dorar la verdura cortada en mirepoix con aceite.',
-      'Añadir el tomate concentrado y cocinar 5 min hasta que caramelice.',
-      'Incorporar los huesos y desglasar con el vino tinto.',
-      'Cubrir con agua fría y llevar a ebullición retirando impurezas.',
-      'Añadir el bouquet garni y cocinar a fuego mínimo 4 horas.',
-      'Colar, desengrasar en frío y reducir hasta la consistencia deseada.',
-    ],
-  },
-  {
-    id: 'r5', name: 'Ensalada Niçoise',
-    category: 'Ensaladas', servings: 4, time: 25, difficulty: 'Fácil',
-    photo: '',
-    description: 'Ensalada clásica francesa con atún, huevo y anchoas sobre base de judías verdes.',
-    ingredients: [
-      { id: 'i1', name: 'Atún en aceite de oliva',      amount: 240, unit: 'g'      },
-      { id: 'i2', name: 'Judías verdes',                amount: 300, unit: 'g'      },
-      { id: 'i3', name: 'Huevos',                       amount: 4,   unit: 'uds'   },
-      { id: 'i4', name: 'Tomates cherry',               amount: 200, unit: 'g'      },
-      { id: 'i5', name: 'Anchoas en salazón',           amount: 8,   unit: 'filetes'},
-      { id: 'i6', name: 'Aceitunas negras',             amount: 80,  unit: 'g'      },
-      { id: 'i7', name: 'Mostaza de Dijon',             amount: 10,  unit: 'g'      },
-      { id: 'i8', name: 'Vinagre de vino blanco',       amount: 20,  unit: 'ml'     },
-      { id: 'i9', name: 'Aceite de oliva virgen extra', amount: 60,  unit: 'ml'     },
-    ],
-    steps: [
-      'Cocer las judías en agua salada 4 minutos y enfriar en agua con hielo.',
-      'Cocer los huevos 9 minutos, pelar y cortar en cuartos.',
-      'Emulsionar la mostaza con el vinagre y añadir el aceite en hilo.',
-      'Disponer las judías como base en la fuente de servicio.',
-      'Colocar el atún desmenuzado, huevos, cherry y aceitunas.',
-      'Decorar con anchoas y aliñar con la vinagreta al final.',
-    ],
-  },
-];
-
-// ═══════════════════════════════════════
 //   ESTADO
 // ═══════════════════════════════════════
-let recipes  = JSON.parse(localStorage.getItem('cb_recipes')  || 'null') || INITIAL_RECIPES;
-let comments = JSON.parse(localStorage.getItem('cb_comments') || '[]');
+let recipes  = [];
+let comments = [];
 let isAdmin  = false;
 let currentFilter     = 'Todas';
 let currentPage       = 'recipes';
 let currentRecipeId   = null;
 let currentMultiplier = 1;
-let editorMode        = null; // 'add' | 'edit'
+let editorMode        = null;
 let editorData        = null;
 let commentRecipeId   = null;
 
-// ─── Persistencia local ───────────────
-function save() {
-  localStorage.setItem('cb_recipes',  JSON.stringify(recipes));
-  localStorage.setItem('cb_comments', JSON.stringify(comments));
+// ═══════════════════════════════════════
+//   CARGA INICIAL DESDE SUPABASE
+// ═══════════════════════════════════════
+async function loadData() {
+  try {
+    const [{ data: rData, error: rErr }, { data: cData, error: cErr }] = await Promise.all([
+      sb.from('recipes').select('*').order('created_at', { ascending: true }),
+      sb.from('comments').select('*').order('created_at', { ascending: true }),
+    ]);
+
+    if (rErr) throw rErr;
+    if (cErr) throw cErr;
+
+    recipes  = rData  || [];
+    comments = cData  || [];
+
+    renderRecipes();
+    updateBadges();
+
+  } catch (err) {
+    console.error('Error cargando datos:', err);
+    document.getElementById('recipeList').innerHTML = `
+      <div class="empty-state">
+        <span class="material-symbols-outlined">wifi_off</span>
+        Error al conectar con la base de datos
+      </div>`;
+  }
 }
 
 // ═══════════════════════════════════════
@@ -304,9 +211,7 @@ function renderDetail() {
 
   const photoHtml = r.photo
     ? `<img class="detail-img" src="${r.photo}" alt="${r.name}">`
-    : `<div class="detail-img-placeholder">
-         <span class="material-symbols-outlined">restaurant</span>
-       </div>`;
+    : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
 
   document.getElementById('detailPage').innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
@@ -320,9 +225,7 @@ function renderDetail() {
         ${adminBtns}
       </div>
     </div>
-
     ${photoHtml}
-
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
@@ -341,31 +244,22 @@ function renderDetail() {
         </div>
       </div>
     </div>
-
     <div class="multiplier-card">
       <div class="multiplier-label">
-        <span class="material-symbols-outlined">scale</span>
-        Ajustar cantidades
+        <span class="material-symbols-outlined">scale</span> Ajustar cantidades
         ${m !== 1 ? `<span style="font-size:13px; color:var(--primary)">(×${m})</span>` : ''}
       </div>
       <div class="multiplier-row">
         ${mBtns}
-        <input type="number" min="0.1" step="0.5" value="${m}"
-          onchange="setMultiplier(parseFloat(this.value) || 1)">
+        <input type="number" min="0.1" step="0.5" value="${m}" onchange="setMultiplier(parseFloat(this.value) || 1)">
       </div>
     </div>
-
     <div class="card">
-      <div class="section-title">
-        <span class="material-symbols-outlined">grocery</span> Ingredientes
-      </div>
+      <div class="section-title"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
       ${ings}
     </div>
-
     <div class="card">
-      <div class="section-title">
-        <span class="material-symbols-outlined">format_list_numbered</span> Elaboración
-      </div>
+      <div class="section-title"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
       ${steps}
     </div>
   `;
@@ -388,19 +282,24 @@ function openCommentModal(id, name) {
   document.getElementById('commentModal').style.display    = 'flex';
 }
 
-function sendComment() {
+async function sendComment() {
   const text = document.getElementById('commentInput').value.trim();
   if (!text) return;
+
   const r = recipes.find(x => x.id === commentRecipeId);
-  comments.push({
-    id:         Date.now().toString(),
-    recipeId:   commentRecipeId,
-    recipeName: r ? r.name : '',
+  const newComment = {
+    id:          Date.now().toString(),
+    recipe_id:   commentRecipeId,
+    recipe_name: r ? r.name : '',
     text,
-    date:       new Date().toLocaleDateString('es-ES'),
-    resolved:   false,
-  });
-  save();
+    date:        new Date().toLocaleDateString('es-ES'),
+    resolved:    false,
+  };
+
+  const { error } = await sb.from('comments').insert(newComment);
+  if (error) { showToast('Error al enviar comentario'); return; }
+
+  comments.push(newComment);
   updateBadges();
   document.getElementById('commentFormArea').style.display = 'none';
   document.getElementById('commentSuccess').style.display  = '';
@@ -462,8 +361,7 @@ function renderAdmin() {
   `;
 
   document.getElementById('pendingTitle').innerHTML =
-    `<span class="material-symbols-outlined">inbox</span>
-     Comentarios pendientes
+    `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
      ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}`;
 
   document.getElementById('commentsList').innerHTML = pending.length === 0
@@ -474,7 +372,7 @@ function renderAdmin() {
     : pending.map(c => `
         <div class="comment-card">
           <div style="flex:1;">
-            <div class="comment-recipe">${c.recipeName}</div>
+            <div class="comment-recipe">${c.recipe_name}</div>
             <div class="comment-text">${c.text}</div>
             <div class="comment-date">${c.date}</div>
           </div>
@@ -490,22 +388,23 @@ function renderAdmin() {
     ${resolved.map(c => `
       <div class="comment-card" style="opacity:0.55;">
         <div>
-          <div class="comment-recipe">${c.recipeName} ✓</div>
+          <div class="comment-recipe">${c.recipe_name} ✓</div>
           <div class="comment-text" style="font-size:13px;">${c.text}</div>
         </div>
       </div>`).join('')}
   `;
 }
 
-function resolveComment(id) {
+async function resolveComment(id) {
+  const { error } = await sb.from('comments').update({ resolved: true }).eq('id', id);
+  if (error) { showToast('Error al resolver comentario'); return; }
   comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
-  save();
   updateBadges();
   renderAdmin();
 }
 
 function updateBadges() {
-  const n = comments.filter(c => !c.resolved).length;
+  const n  = comments.filter(c => !c.resolved).length;
   const nb = document.getElementById('navBadge');
   const tb = document.getElementById('commentBadgeTop');
   if (n > 0) {
@@ -567,7 +466,7 @@ function renderEditor() {
       <div class="form-group" style="margin-top:8px; margin-bottom:0;">
         <div class="form-label">O pega una URL de imagen</div>
         <input class="form-input" placeholder="https://..." value="${r.photo}"
-          oninput="editorData.photo=this.value; updatePhotoPreview(this.value)">
+          oninput="editorData.photo=this.value">
       </div>
     </div>
   `;
@@ -600,9 +499,8 @@ function renderEditor() {
         <span class="material-symbols-outlined">close</span> Cancelar
       </button>
       <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva receta' : 'Editar receta'}</span>
-      <button class="btn-pill filled" onclick="saveEditor()">Guardar</button>
+      <button class="btn-pill filled" id="saveBtn" onclick="saveEditor()">Guardar</button>
     </div>
-
     <div class="card">
       ${photoSection}
       <div class="form-group">
@@ -642,7 +540,6 @@ function renderEditor() {
           oninput="editorData.description=this.value">${r.description}</textarea>
       </div>
     </div>
-
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div class="section-title" style="margin-bottom:0;">
@@ -654,7 +551,6 @@ function renderEditor() {
       </div>
       <div id="ingList">${ings}</div>
     </div>
-
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div class="section-title" style="margin-bottom:0;">
@@ -669,25 +565,30 @@ function renderEditor() {
   `;
 }
 
-// ─── Foto helpers ─────────────────────
-function handlePhotoUpload(event) {
+// ─── Foto ────────────────────────────
+async function handlePhotoUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    editorData.photo = e.target.result;
+
+  showToast('Subiendo foto...');
+  try {
+    const ext      = file.name.split('.').pop();
+    const filename = `${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage.from('recipe-photos').upload(filename, file);
+    if (upErr) throw upErr;
+    const { data } = sb.storage.from('recipe-photos').getPublicUrl(filename);
+    editorData.photo = data.publicUrl;
     renderEditor();
-  };
-  reader.readAsDataURL(file);
+    showToast('Foto subida ✓');
+  } catch (err) {
+    console.error(err);
+    showToast('Error al subir la foto');
+  }
 }
 
 function removePhoto() {
   editorData.photo = '';
   renderEditor();
-}
-
-function updatePhotoPreview(url) {
-  // Se actualizará al guardar; aquí podría añadirse un preview en tiempo real
 }
 
 // ─── Ingredientes / Pasos ─────────────
@@ -701,23 +602,42 @@ function removeIngredient(i) {
   renderEditor();
 }
 
-function addStep() {
-  editorData.steps.push('');
-  renderEditor();
-}
-
-function removeStep(i) {
-  editorData.steps.splice(i, 1);
-  renderEditor();
-}
+function addStep()     { editorData.steps.push(''); renderEditor(); }
+function removeStep(i) { editorData.steps.splice(i, 1); renderEditor(); }
 
 // ─── Guardar / Cancelar ───────────────
-function saveEditor() {
+async function saveEditor() {
   if (!editorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
-  if (editorMode === 'add') recipes.push(editorData);
-  else recipes = recipes.map(r => r.id === editorData.id ? editorData : r);
-  currentRecipeId = editorData.id;
-  save();
+
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = 'Guardando...';
+  btn.disabled = true;
+
+  const payload = {
+    id:          editorData.id,
+    name:        editorData.name,
+    category:    editorData.category,
+    servings:    editorData.servings,
+    time:        editorData.time,
+    difficulty:  editorData.difficulty,
+    description: editorData.description,
+    photo:       editorData.photo,
+    ingredients: editorData.ingredients,
+    steps:       editorData.steps,
+  };
+
+  const { error } = await sb.from('recipes').upsert(payload);
+  if (error) {
+    showToast('Error al guardar');
+    btn.textContent = 'Guardar';
+    btn.disabled = false;
+    return;
+  }
+
+  if (editorMode === 'add') recipes.push(payload);
+  else recipes = recipes.map(r => r.id === payload.id ? payload : r);
+
+  currentRecipeId = payload.id;
   showToast('Receta guardada ✓');
   exitEditor();
 }
@@ -732,35 +652,29 @@ function exitEditor() {
     renderDetail();
   } else {
     backToRecipes();
+    renderRecipes();
   }
   editorMode = null;
   editorData = null;
 }
 
-function deleteRecipe(id) {
+async function deleteRecipe(id) {
   if (!confirm('¿Eliminar esta receta?')) return;
+  const { error } = await sb.from('recipes').delete().eq('id', id);
+  if (error) { showToast('Error al eliminar'); return; }
   recipes = recipes.filter(r => r.id !== id);
-  save();
   showToast('Receta eliminada');
   backToRecipes();
+  renderRecipes();
 }
 
 // ═══════════════════════════════════════
 //   CONVERSOR
 // ═══════════════════════════════════════
 const CONV_TYPES = {
-  Peso: {
-    units: ['g', 'kg', 'oz', 'lb'],
-    toBase: { g: 1, kg: 1000, oz: 28.3495, lb: 453.592 },
-  },
-  Volumen: {
-    units: ['ml', 'L', 'taza', 'fl oz', 'tbsp', 'tsp'],
-    toBase: { ml: 1, L: 1000, taza: 236.588, 'fl oz': 29.5735, tbsp: 14.7868, tsp: 4.92892 },
-  },
-  Temperatura: {
-    units: ['°C', '°F'],
-    toBase: null,
-  },
+  Peso:        { units: ['g','kg','oz','lb'],                   toBase: { g:1, kg:1000, oz:28.3495, lb:453.592 } },
+  Volumen:     { units: ['ml','L','taza','fl oz','tbsp','tsp'], toBase: { ml:1, L:1000, taza:236.588, 'fl oz':29.5735, tbsp:14.7868, tsp:4.92892 } },
+  Temperatura: { units: ['°C','°F'], toBase: null },
 };
 
 let convType = 'Peso';
@@ -771,22 +685,18 @@ function initConverter() {
   ).join('');
 
   const units = CONV_TYPES[convType].units;
-  ['convFrom', 'convTo'].forEach((id, i) => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = units.map(u => `<option>${u}</option>`).join('');
-    sel.value = units[i === 0 ? 0 : 1];
+  ['convFrom','convTo'].forEach((id, i) => {
+    const s = document.getElementById(id);
+    s.innerHTML = units.map(u => `<option>${u}</option>`).join('');
+    s.value = units[i === 0 ? 0 : 1];
   });
 
   updateConverter();
 
   document.getElementById('tempRef').innerHTML = [
-    ['Bajo',      '150°C', '300°F'],
-    ['Medio',     '180°C', '356°F'],
-    ['Fuerte',    '200°C', '392°F'],
-    ['Muy fuerte','220°C', '428°F'],
-    ['Brasa',     '240°C', '464°F'],
-    ['Máximo',    '260°C', '500°F'],
-  ].map(([l, c, f]) =>
+    ['Bajo','150°C','300°F'], ['Medio','180°C','356°F'], ['Fuerte','200°C','392°F'],
+    ['Muy fuerte','220°C','428°F'], ['Brasa','240°C','464°F'], ['Máximo','260°C','500°F'],
+  ].map(([l,c,f]) =>
     `<div class="ref-cell">
        <div class="ref-cell-lbl">${l}</div>
        <div class="ref-cell-val">${c}</div>
@@ -795,10 +705,7 @@ function initConverter() {
   ).join('');
 }
 
-function setConvType(t) {
-  convType = t;
-  initConverter();
-}
+function setConvType(t) { convType = t; initConverter(); }
 
 function updateConverter() {
   const val  = parseFloat(document.getElementById('convValue').value);
@@ -808,23 +715,21 @@ function updateConverter() {
 
   let result;
   if (convType === 'Temperatura') {
-    result = from === to ? val : from === '°C' ? val * 9 / 5 + 32 : (val - 32) * 5 / 9;
+    result = from === to ? val : from === '°C' ? val * 9/5 + 32 : (val - 32) * 5/9;
   } else {
     const b = CONV_TYPES[convType].toBase;
     result = val * b[from] / b[to];
   }
 
   const d = Number.isInteger(result) ? result : parseFloat(result.toFixed(4));
-  document.getElementById('convResult').textContent    = d + ' ' + to;
+  document.getElementById('convResult').textContent     = d + ' ' + to;
   document.getElementById('convResultLabel').textContent = `${val} ${from} = ${d} ${to}`;
 }
 
 // ═══════════════════════════════════════
 //   UTILIDADES
 // ═══════════════════════════════════════
-function closeModal(id) {
-  document.getElementById(id).style.display = 'none';
-}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 let toastTimer = null;
 function showToast(msg) {
@@ -841,5 +746,4 @@ function showToast(msg) {
 //   INIT
 // ═══════════════════════════════════════
 initChips();
-renderRecipes();
-updateBadges();
+loadData();
