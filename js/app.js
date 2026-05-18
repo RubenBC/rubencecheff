@@ -29,9 +29,22 @@ const CAT_TAG = {
   'Vinagreta':       'tag-vinagreta',
 };
 
-// ═══════════════════════════════════════
-//   ESTADO
-// ═══════════════════════════════════════
+const ALLERGENS = [
+  { id: 'gluten',     label: 'Gluten',           emoji: '🌾' },
+  { id: 'crustaceos', label: 'Crustáceos',        emoji: '🦐' },
+  { id: 'huevo',      label: 'Huevo',             emoji: '🥚' },
+  { id: 'pescado',    label: 'Pescado',            emoji: '🐟' },
+  { id: 'cacahuetes', label: 'Cacahuetes',         emoji: '🥜' },
+  { id: 'soja',       label: 'Soja',              emoji: '🫘' },
+  { id: 'lacteos',    label: 'Lácteos',           emoji: '🥛' },
+  { id: 'frutoscas',  label: 'Frutos de cáscara', emoji: '🌰' },
+  { id: 'apio',       label: 'Apio',              emoji: '🌿' },
+  { id: 'mostaza',    label: 'Mostaza',           emoji: '🟡' },
+  { id: 'sesamo',     label: 'Sésamo',            emoji: '🌱' },
+  { id: 'sulfitos',   label: 'Sulfitos',          emoji: '🍷' },
+  { id: 'altramuces', label: 'Altramuces',        emoji: '🫛' },
+  { id: 'moluscos',   label: 'Moluscos',          emoji: '🐚' },
+];
 let recipes              = [];
 let productions          = [];
 let recipeProductions    = [];
@@ -159,6 +172,38 @@ function initChips(cats, active, setter) {
 
 function setRecipeFilter(cat) { recipeFilter = cat; initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
 function setProdFilter(cat)   { prodFilter = cat; const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
+
+// ═══════════════════════════════════════
+//   ALÉRGENOS HELPERS
+// ═══════════════════════════════════════
+function renderAllergenBadges(allergens) {
+  if (!allergens || allergens.length === 0)
+    return '<p style="font-size:13px; color:var(--text2);">Sin alérgenos declarados</p>';
+  return `<div class="allergen-grid">${allergens.map(id => {
+    const a = ALLERGENS.find(x => x.id === id);
+    return a ? `<div class="allergen-badge"><span class="allergen-emoji">${a.emoji}</span><span class="allergen-label">${a.label}</span></div>` : '';
+  }).join('')}</div>`;
+}
+
+function renderAllergenSelector(selectedIds, onToggleFn) {
+  return `<div class="allergen-selector">${ALLERGENS.map(a => `
+    <div class="allergen-option ${selectedIds.includes(a.id) ? 'selected' : ''}" onclick="${onToggleFn}('${a.id}')">
+      <span class="allergen-emoji">${a.emoji}</span>
+      <span class="allergen-label">${a.label}</span>
+    </div>`).join('')}</div>`;
+}
+
+function toggleRecipeAllergen(id) {
+  const arr = recipeEditorData.allergens || [];
+  recipeEditorData.allergens = arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id];
+  renderRecipeEditor();
+}
+
+function toggleProdAllergen(id) {
+  const arr = prodEditorData.allergens || [];
+  prodEditorData.allergens = arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id];
+  renderProdEditor();
+}
 
 // ═══════════════════════════════════════
 //   RECETAS — LISTA
@@ -291,6 +336,10 @@ function renderRecipeDetail() {
       <div class="section-title"><span class="material-symbols-outlined">blender</span> Producciones</div>
       ${prodsHtml}
     </div>
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${renderAllergenBadges(r.allergens)}
+    </div>
   `;
 }
 
@@ -408,6 +457,10 @@ function renderRecipeEditor() {
         <div class="form-label">Descripción del montaje</div>
         <textarea class="form-textarea" rows="3" placeholder="Cómo emplatar el plato..." oninput="recipeEditorData.plating=this.value">${r.plating || ''}</textarea>
       </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${renderAllergenSelector(r.allergens || [], 'toggleRecipeAllergen')}
     </div>
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -644,6 +697,10 @@ function renderProdDetail(fromPage) {
     <div class="card">
       <div class="section-title"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
       ${steps}
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${renderAllergenBadges(p.allergens)}
     </div>`;
 }
 
@@ -717,6 +774,10 @@ function renderProdEditor() {
         <div class="form-label">Descripción (opcional)</div>
         <textarea class="form-textarea" rows="2" oninput="prodEditorData.description=this.value">${p.description || ''}</textarea>
       </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${renderAllergenSelector(p.allergens || [], 'toggleProdAllergen')}
     </div>
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
