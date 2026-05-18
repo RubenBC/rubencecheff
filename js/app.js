@@ -842,6 +842,7 @@ function doLogin() {
     showToast('Bienvenido, Chef 👨‍🍳');
     if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
+    if (currentPage === 'admin') renderAdmin();
   } else {
     document.getElementById('loginError').style.display = '';
   }
