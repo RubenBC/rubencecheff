@@ -114,6 +114,38 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .tag-postres   { background: #FFF8E1; color: #F57F17; }
 .tag-salsas    { background: #E8F5E9; color: #1B5E20; }
 .tag-ensaladas { background: #F3E5F5; color: #4A148C; }
+.tag-guarniciones { background: #FBE9E7; color: #BF360C; }
+.tag-plato        { background: #E8F4FD; color: #006064; }
+
+/* ═══════════════════════════════════════
+   FICHAS
+═══════════════════════════════════════ */
+.ficha-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--outline-light);
+}
+.ficha-row:last-child { border-bottom: none; }
+.ficha-name { font-size: 14px; font-weight: 600; }
+.ficha-note { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.ficha-category {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--outline-light);
+  margin-bottom: 2px;
+}
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
 .tag-facil     { background: #E8F5E9; color: #2E7D32; }
 .tag-media     { background: #FFF3E0; color: #E65100; }
 .tag-alta      { background: #FDECEA; color: #B71C1C; }
