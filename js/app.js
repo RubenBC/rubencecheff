@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 const ADMIN_PASSWORD = 'chef2024';
 
-const CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas', 'Guarniciones'];
+const CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas', 'Guarniciones', 'Plato del día'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -21,13 +21,10 @@ const CAT_TAG = {
   'Salsas y fondos': 'tag-salsas',
   'Ensaladas':       'tag-ensaladas',
   'Guarniciones':    'tag-guarniciones',
+  'Plato del día':   'tag-plato',
 };
 
-const DIFF_TAG = {
-  'Fácil': 'tag-facil',
-  'Media': 'tag-media',
-  'Alta':  'tag-alta',
-};
+
 
 // ═══════════════════════════════════════
 //   ESTADO
@@ -161,12 +158,10 @@ function renderRecipes() {
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
           <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
-          <span class="tag ${DIFF_TAG[r.difficulty] || ''}">${r.difficulty}</span>
         </div>
         <h3>${r.name}</h3>
         <p>${r.description}</p>
         <div class="recipe-card-footer">
-          <span><span class="material-symbols-outlined">timer</span>${r.time} min</span>
           <span><span class="material-symbols-outlined">group</span>${r.servings} raciones</span>
         </div>
       </div>
@@ -230,15 +225,10 @@ function renderDetail() {
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
-        <span class="tag ${DIFF_TAG[r.difficulty] || ''}">${r.difficulty}</span>
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${r.name}</h2>
       <p style="font-size:14px; color:var(--text2); line-height:1.5;">${r.description}</p>
       <div class="stat-row">
-        <div class="stat-item">
-          <span class="material-symbols-outlined">timer</span>
-          <div><div class="stat-item-val">${r.time} min</div><div class="stat-item-lbl">Tiempo</div></div>
-        </div>
         <div class="stat-item">
           <span class="material-symbols-outlined">group</span>
           <div><div class="stat-item-val">${r.servings * m}</div><div class="stat-item-lbl">Raciones</div></div>
@@ -423,8 +413,7 @@ function openAddRecipe() {
   editorMode = 'add';
   editorData = {
     id: Date.now().toString(), name: '', category: 'Carnes',
-    servings: 4, time: 30, difficulty: 'Media',
-    photo: '', description: '', ingredients: [], steps: [],
+    servings: 4, photo: '', description: '', ingredients: [], steps: [],
   };
   renderEditor();
   enterEditor();
@@ -512,28 +501,14 @@ function renderEditor() {
       <div class="form-group">
         <div class="form-label">Categoría</div>
         <select class="form-select" onchange="editorData.category=this.value">
-          ${['Carnes','Pescados','Postres','Salsas y fondos','Ensaladas'].map(c =>
+          ${['Carnes','Pescados','Postres','Salsas y fondos','Ensaladas','Guarniciones','Plato del día'].map(c =>
             `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
         </select>
       </div>
-      <div class="form-grid3">
-        <div class="form-group">
-          <div class="form-label">Raciones</div>
-          <input class="form-input" type="number" value="${r.servings}"
-            oninput="editorData.servings=parseInt(this.value)||1">
-        </div>
-        <div class="form-group">
-          <div class="form-label">Tiempo (min)</div>
-          <input class="form-input" type="number" value="${r.time}"
-            oninput="editorData.time=parseInt(this.value)||0">
-        </div>
-        <div class="form-group">
-          <div class="form-label">Dificultad</div>
-          <select class="form-select" onchange="editorData.difficulty=this.value">
-            ${['Fácil','Media','Alta'].map(d =>
-              `<option ${r.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}
-          </select>
-        </div>
+      <div class="form-group">
+        <div class="form-label">Raciones</div>
+        <input class="form-input" type="number" value="${r.servings}"
+          oninput="editorData.servings=parseInt(this.value)||1">
       </div>
       <div class="form-group">
         <div class="form-label">Descripción</div>
@@ -619,8 +594,6 @@ async function saveEditor() {
     name:        editorData.name,
     category:    editorData.category,
     servings:    editorData.servings,
-    time:        editorData.time,
-    difficulty:  editorData.difficulty,
     description: editorData.description,
     photo:       editorData.photo,
     ingredients: editorData.ingredients,
