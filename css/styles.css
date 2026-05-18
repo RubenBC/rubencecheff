@@ -247,8 +247,53 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
 /* ═══════════════════════════════════════
-   LOADING + EMPTY
+   ALÉRGENOS
 ═══════════════════════════════════════ */
+.allergen-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.allergen-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #FFF3E0;
+  border: 1.5px solid #FFE0B2;
+  border-radius: var(--shape-full);
+  padding: 4px 12px;
+}
+
+.allergen-emoji { font-size: 16px; }
+.allergen-label { font-size: 12px; font-weight: 700; color: #E65100; }
+
+.allergen-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.allergen-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--outline-light);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface);
+}
+
+.allergen-option.selected {
+  background: #FFF3E0;
+  border-color: #FFB74D;
+}
+
+.allergen-option .allergen-emoji { font-size: 18px; }
+.allergen-option .allergen-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.allergen-option.selected .allergen-label { color: #E65100; }
 .loading-state { text-align: center; padding: 48px 16px; color: var(--text2); }
 .loading-state .material-symbols-outlined { font-size: 48px; color: var(--primary); display: block; margin-bottom: 12px; }
 .empty-state { text-align: center; padding: 48px 16px; color: var(--text2); }
