@@ -105,6 +105,7 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .tag-plato     { background: #E8F4FD; color: #006064; }
 .tag-coulis    { background: #FCE4EC; color: #880E4F; }
 .tag-vinagreta { background: #FFFDE7; color: #F57F17; }
+.tag-vegetariano { background: #F1F8E9; color: #33691E; }
 
 /* ═══════════════════════════════════════
    DETALLE
