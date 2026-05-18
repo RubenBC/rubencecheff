@@ -13,7 +13,6 @@ const sb = createClient(
 const ADMIN_PASSWORD = 'chef2024';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas', 'Guarniciones', 'Plato del día'];
-const PROD_CATEGORIES   = ['Todas', 'Salsas', 'Guarniciones', 'Coulis', 'Vinagreta'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -23,7 +22,9 @@ const CAT_TAG = {
   'Ensaladas':       'tag-ensaladas',
   'Guarniciones':    'tag-guarniciones',
   'Plato del día':   'tag-plato',
-  'Salsas':          'tag-salsas',
+  'Sopas y salsas':  'tag-salsas',
+  'Carnes':          'tag-carnes',
+  'Vegetariano':     'tag-vegetariano',
   'Coulis':          'tag-coulis',
   'Vinagreta':       'tag-vinagreta',
 };
@@ -31,12 +32,13 @@ const CAT_TAG = {
 // ═══════════════════════════════════════
 //   ESTADO
 // ═══════════════════════════════════════
-let recipes     = [];
-let productions = [];
-let recipeProductions = [];
-let comments    = [];
-let weights     = [];
-let brines      = [];
+let recipes              = [];
+let productions          = [];
+let recipeProductions    = [];
+let comments             = [];
+let weights              = [];
+let brines               = [];
+let productionCategories = [];
 let isAdmin     = false;
 let currentPage = 'recipes';
 
@@ -76,6 +78,7 @@ async function loadData() {
       { data: cData },
       { data: wData },
       { data: bData },
+      { data: pcData },
     ] = await Promise.all([
       sb.from('recipes').select('*').order('name'),
       sb.from('productions').select('*').order('name'),
@@ -83,14 +86,16 @@ async function loadData() {
       sb.from('comments').select('*').order('created_at', { ascending: false }),
       sb.from('weights').select('*').order('name'),
       sb.from('brines').select('*').order('category'),
+      sb.from('production_categories').select('*').order('sort_order'),
     ]);
 
-    recipes          = rData  || [];
-    productions      = pData  || [];
-    recipeProductions = rpData || [];
-    comments         = cData  || [];
-    weights          = wData  || [];
-    brines           = bData  || [];
+    recipes              = rData  || [];
+    productions          = pData  || [];
+    recipeProductions    = rpData || [];
+    comments             = cData  || [];
+    weights              = wData  || [];
+    brines               = bData  || [];
+    productionCategories = pcData || [];
 
     renderRecipes();
     updateBadges();
@@ -124,7 +129,7 @@ function showPage(page, btn) {
   document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
 
   if (isRecipes) { initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
-  if (isProd)    { initChips(PROD_CATEGORIES,   prodFilter,   setProdFilter);   renderProductions(); }
+  if (isProd)    { const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
   if (page === 'fichas')    renderFichas();
   if (page === 'converter') initConverter();
   if (page === 'admin')     renderAdmin();
@@ -153,7 +158,7 @@ function initChips(cats, active, setter) {
 }
 
 function setRecipeFilter(cat) { recipeFilter = cat; initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
-function setProdFilter(cat)   { prodFilter   = cat; initChips(PROD_CATEGORIES,   prodFilter,   setProdFilter);   renderProductions(); }
+function setProdFilter(cat)   { prodFilter = cat; const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
 
 // ═══════════════════════════════════════
 //   RECETAS — LISTA
@@ -184,9 +189,6 @@ function renderRecipes() {
         </div>
         <h3>${r.name}</h3>
         <p>${r.description}</p>
-        <div class="recipe-card-footer">
-          <span><span class="material-symbols-outlined">group</span>${r.servings} raciones</span>
-        </div>
       </div>
     </div>`).join('');
 }
@@ -269,12 +271,6 @@ function renderRecipeDetail() {
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${r.name}</h2>
       <p style="font-size:14px; color:var(--text2); line-height:1.5;">${r.description}</p>
-      <div class="stat-row">
-        <div class="stat-item">
-          <span class="material-symbols-outlined">group</span>
-          <div><div class="stat-item-val">${r.servings}</div><div class="stat-item-lbl">Raciones</div></div>
-        </div>
-      </div>
     </div>
     ${r.ingredients.length > 0 ? `
     <div class="card">
@@ -403,10 +399,6 @@ function renderRecipeEditor() {
           ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
             `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
         </select>
-      </div>
-      <div class="form-group">
-        <div class="form-label">Raciones</div>
-        <input class="form-input" type="number" value="${r.servings}" oninput="recipeEditorData.servings=parseInt(this.value)||1">
       </div>
       <div class="form-group">
         <div class="form-label">Descripción</div>
@@ -563,9 +555,6 @@ function renderProductions() {
         </div>
         <h3>${p.name}</h3>
         <p>${p.description || ''}</p>
-        <div class="recipe-card-footer">
-          <span><span class="material-symbols-outlined">group</span>${p.servings} raciones</span>
-        </div>
       </div>
     </div>`).join('');
 }
@@ -637,12 +626,6 @@ function renderProdDetail(fromPage) {
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${p.name}</h2>
       ${p.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${p.description}</p>` : ''}
-      <div class="stat-row">
-        <div class="stat-item">
-          <span class="material-symbols-outlined">group</span>
-          <div><div class="stat-item-val">${p.servings * m}</div><div class="stat-item-lbl">Raciones</div></div>
-        </div>
-      </div>
     </div>
     <div class="multiplier-card">
       <div class="multiplier-label">
@@ -674,7 +657,8 @@ function setProdMultiplier(m, fromPage) {
 // ═══════════════════════════════════════
 function openAddProduction() {
   prodEditorMode = 'add';
-  prodEditorData = { id: Date.now().toString(), name: '', category: 'Salsas', servings: 4, description: '', ingredients: [], steps: [] };
+  const defaultCat = productionCategories.length > 0 ? productionCategories[0].name : '';
+  prodEditorData = { id: Date.now().toString(), name: '', category: defaultCat, description: '', ingredients: [], steps: [] };
   renderProdEditor();
   enterEditor('productionEditorPage');
 }
@@ -725,13 +709,9 @@ function renderProdEditor() {
       <div class="form-group">
         <div class="form-label">Categoría</div>
         <select class="form-select" onchange="prodEditorData.category=this.value">
-          ${PROD_CATEGORIES.filter(c => c !== 'Todas').map(c =>
-            `<option ${p.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+          ${productionCategories.map(c =>
+            `<option ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
         </select>
-      </div>
-      <div class="form-group">
-        <div class="form-label">Raciones</div>
-        <input class="form-input" type="number" value="${p.servings}" oninput="prodEditorData.servings=parseInt(this.value)||1">
       </div>
       <div class="form-group">
         <div class="form-label">Descripción (opcional)</div>
@@ -903,12 +883,75 @@ function renderAdmin() {
       <div class="comment-card" style="opacity:0.55;">
         <div><div class="comment-recipe">${c.section_name} ✓</div><div class="comment-text" style="font-size:13px;">${c.text}</div></div>
       </div>`).join('')}`;
+
+  // Categorías de producción
+  const catHtml = productionCategories.map(c => `
+    <div class="ficha-row">
+      <div class="ficha-name">${c.name}</div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-icon" onclick="renameProdCategory('${c.id}','${c.name}')">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+        </button>
+        <button class="btn-icon" onclick="deleteProdCategory('${c.id}')">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('resolvedSection').innerHTML += `
+    <div class="section-title" style="margin-top:16px;">
+      <span class="material-symbols-outlined">label</span> Categorías de producción
+    </div>
+    <div class="card">
+      ${catHtml}
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <input class="form-input" id="newCatInput" placeholder="Nueva categoría..." style="flex:1;">
+        <button class="btn-pill filled" onclick="addProdCategory()">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+        </button>
+      </div>
+    </div>`;
 }
 
 async function resolveComment(id) {
   await sb.from('comments').update({ resolved: true }).eq('id', id);
   comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
   updateBadges(); renderAdmin();
+}
+
+// ─── Categorías de producción ─────────
+async function addProdCategory() {
+  const input = document.getElementById('newCatInput');
+  const name = input?.value.trim();
+  if (!name) return;
+  const newCat = { id: Date.now().toString(), name, sort_order: productionCategories.length + 1 };
+  const { error } = await sb.from('production_categories').insert(newCat);
+  if (error) { showToast('Error al añadir'); return; }
+  productionCategories.push(newCat);
+  showToast('Categoría añadida ✓');
+  renderAdmin();
+}
+
+async function renameProdCategory(id, currentName) {
+  const newName = prompt('Nuevo nombre para la categoría:', currentName);
+  if (!newName || newName === currentName) return;
+  const { error } = await sb.from('production_categories').update({ name: newName }).eq('id', id);
+  if (error) { showToast('Error al renombrar'); return; }
+  productionCategories = productionCategories.map(c => c.id === id ? { ...c, name: newName } : c);
+  productions = productions.map(p => p.category === currentName ? { ...p, category: newName } : p);
+  showToast('Categoría renombrada ✓');
+  renderAdmin();
+}
+
+async function deleteProdCategory(id) {
+  const cat = productionCategories.find(c => c.id === id);
+  if (!cat) return;
+  if (!confirm(`¿Eliminar la categoría "${cat.name}"?`)) return;
+  const { error } = await sb.from('production_categories').delete().eq('id', id);
+  if (error) { showToast('Error al eliminar'); return; }
+  productionCategories = productionCategories.filter(c => c.id !== id);
+  showToast('Categoría eliminada');
+  renderAdmin();
 }
 
 function updateBadges() {
