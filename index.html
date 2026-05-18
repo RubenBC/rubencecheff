@@ -88,6 +88,51 @@
     <div id="commentsList"></div>
     <div id="resolvedSection"></div>
   </div>
+  <div id="fichasPage" class="page">
+    <h2 style="margin-bottom:16px;"><span class="material-symbols-outlined">description</span> Fichas</h2>
+
+    <!-- PESOS -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div class="section-title" style="margin-bottom:0;">
+        <span class="material-symbols-outlined">monitor_weight</span> Pesos de ración
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-pill ghost" onclick="openFichaComment('pesos')">
+          <span class="material-symbols-outlined" style="font-size:15px;">report</span> Error
+        </button>
+        <button class="btn-pill" id="addWeightBtn" style="display:none;" onclick="openAddWeight()">
+          <span class="material-symbols-outlined" style="font-size:15px;">add</span> Añadir
+        </button>
+      </div>
+    </div>
+    <div class="card" id="weightsList">
+      <div class="loading-state">
+        <span class="material-symbols-outlined spin">progress_activity</span>
+        <p>Cargando...</p>
+      </div>
+    </div>
+
+    <!-- SALMUERAS -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; margin-top:8px;">
+      <div class="section-title" style="margin-bottom:0;">
+        <span class="material-symbols-outlined">water_drop</span> Salmueras al 10%
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-pill ghost" onclick="openFichaComment('salmueras')">
+          <span class="material-symbols-outlined" style="font-size:15px;">report</span> Error
+        </button>
+        <button class="btn-pill" id="addBrineBtn" style="display:none;" onclick="openAddBrine()">
+          <span class="material-symbols-outlined" style="font-size:15px;">add</span> Añadir
+        </button>
+      </div>
+    </div>
+    <div class="card" id="brinesList">
+      <div class="loading-state">
+        <span class="material-symbols-outlined spin">progress_activity</span>
+        <p>Cargando...</p>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -95,6 +140,9 @@
 <nav class="bottom-nav" id="mainNav">
   <button class="nav-btn active" id="nav-recipes"   onclick="showPage('recipes',this)">
     <span class="material-symbols-outlined">menu_book</span><span>Recetas</span>
+  </button>
+  <button class="nav-btn"        id="nav-fichas"    onclick="showPage('fichas',this)">
+    <span class="material-symbols-outlined">description</span><span>Fichas</span>
   </button>
   <button class="nav-btn"        id="nav-converter" onclick="showPage('converter',this)">
     <span class="material-symbols-outlined">swap_horiz</span><span>Conversión</span>
@@ -147,6 +195,85 @@
       <p style="font-weight:800; color:var(--primary); margin-top:8px;">¡Comentario enviado!</p>
       <p style="color:var(--text2); font-size:13px;">El chef revisará tu sugerencia.</p>
     </div>
+  </div>
+</div>
+
+<!-- MODAL COMENTARIO FICHAS -->
+<div class="modal-overlay" id="fichaCommentModal" style="display:none;" onclick="closeModal('fichaCommentModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Reportar un error</span>
+      <button class="modal-close" onclick="closeModal('fichaCommentModal')">✕</button>
+    </div>
+    <p style="font-size:14px; color:var(--text2); margin-bottom:14px;">Sección: <strong id="fichaCommentSection"></strong></p>
+    <div id="fichaCommentFormArea">
+      <div class="form-group">
+        <div class="form-label">Descripción del error o sugerencia</div>
+        <textarea class="form-textarea" id="fichaCommentInput" rows="4" placeholder="Ej: El peso del salmón no es correcto..."></textarea>
+      </div>
+      <button class="btn-action" onclick="sendFichaComment()">
+        <span class="material-symbols-outlined" style="vertical-align:middle; font-size:18px;">send</span> Enviar comentario
+      </button>
+    </div>
+    <div id="fichaCommentSuccess" style="display:none; text-align:center; padding:20px 0;">
+      <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">check_circle</span>
+      <p style="font-weight:800; color:var(--primary); margin-top:8px;">¡Comentario enviado!</p>
+      <p style="color:var(--text2); font-size:13px;">El chef revisará tu sugerencia.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PESO (add/edit) -->
+<div class="modal-overlay" id="weightModal" style="display:none;" onclick="closeModal('weightModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="weightModalTitle">Nuevo peso</span>
+      <button class="modal-close" onclick="closeModal('weightModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Elaboración</div>
+      <input class="form-input" id="weightName" placeholder="Ej: Solomillo ternera">
+    </div>
+    <div class="form-group">
+      <div class="form-label">Gramos por ración</div>
+      <input class="form-input" type="number" id="weightGrams" placeholder="Ej: 200">
+    </div>
+    <div class="form-group">
+      <div class="form-label">Notas (opcional)</div>
+      <input class="form-input" id="weightNotes" placeholder="Ej: Peso neto">
+    </div>
+    <button class="btn-action" onclick="saveWeight()">Guardar</button>
+  </div>
+</div>
+
+<!-- MODAL SALMUERA (add/edit) -->
+<div class="modal-overlay" id="brineModal" style="display:none;" onclick="closeModal('brineModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="brineModalTitle">Nueva salmuera</span>
+      <button class="modal-close" onclick="closeModal('brineModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Producto</div>
+      <input class="form-input" id="brineName" placeholder="Ej: Salmón">
+    </div>
+    <div class="form-group">
+      <div class="form-label">Categoría</div>
+      <select class="form-select" id="brineCategory">
+        <option>Aves</option>
+        <option>Cerdo</option>
+        <option>Pescado</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Tiempo (minutos)</div>
+      <input class="form-input" type="number" id="brineMinutes" placeholder="Ej: 15">
+    </div>
+    <div class="form-group">
+      <div class="form-label">Notas (opcional)</div>
+      <input class="form-input" id="brineNotes" placeholder="Ej: Según tamaño">
+    </div>
+    <button class="btn-action" onclick="saveBrine()">Guardar</button>
   </div>
 </div>
 
