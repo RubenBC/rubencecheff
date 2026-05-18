@@ -304,7 +304,7 @@ function renderRecipeDetail() {
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn-pill ghost" onclick="openCommentModal('${r.name}','recipe','${r.id}')">
-          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error en la receta
         </button>
         ${adminBtns}
       </div>
@@ -673,7 +673,7 @@ function renderProdDetail(fromPage) {
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn-pill ghost" onclick="openCommentModal('${p.name}','production','${p.id}')">
-          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error en la receta
         </button>
         ${adminBtns}
       </div>
