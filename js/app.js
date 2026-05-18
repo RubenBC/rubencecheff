@@ -3,8 +3,8 @@
 // ═══════════════════════════════════════
 const { createClient } = supabase;
 const sb = createClient(
-  'https://ctvqzgshoarjvjeoymdl.supabase.co',
-  'sb_publishable_P9IGn-dQ_sOH9NL2i6KNHw_21gjJ_kK'
+  'https://rswzirygkeyainerfzjx.supabase.co',
+  'sb_publishable_Uno7xmeQJLmvtcyZvtZfQw_IkpEth_y'
 );
 
 // ═══════════════════════════════════════
@@ -12,7 +12,8 @@ const sb = createClient(
 // ═══════════════════════════════════════
 const ADMIN_PASSWORD = 'chef2024';
 
-const CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas', 'Guarniciones', 'Plato del día'];
+const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas', 'Guarniciones', 'Plato del día'];
+const PROD_CATEGORIES   = ['Todas', 'Salsas', 'Guarniciones', 'Coulis', 'Vinagreta'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -22,39 +23,74 @@ const CAT_TAG = {
   'Ensaladas':       'tag-ensaladas',
   'Guarniciones':    'tag-guarniciones',
   'Plato del día':   'tag-plato',
+  'Salsas':          'tag-salsas',
+  'Coulis':          'tag-coulis',
+  'Vinagreta':       'tag-vinagreta',
 };
-
-
 
 // ═══════════════════════════════════════
 //   ESTADO
 // ═══════════════════════════════════════
-let recipes  = [];
-let comments = [];
-let isAdmin  = false;
-let currentFilter     = 'Todas';
-let currentPage       = 'recipes';
-let currentRecipeId   = null;
-let currentMultiplier = 1;
-let editorMode        = null;
-let editorData        = null;
-let commentRecipeId   = null;
+let recipes     = [];
+let productions = [];
+let recipeProductions = [];
+let comments    = [];
+let weights     = [];
+let brines      = [];
+let isAdmin     = false;
+let currentPage = 'recipes';
+
+// Recetas
+let recipeFilter       = 'Todas';
+let currentRecipeId    = null;
+let recipeEditorMode   = null;
+let recipeEditorData   = null;
+
+// Producciones
+let prodFilter         = 'Todas';
+let currentProdId      = null;
+let prodEditorMode     = null;
+let prodEditorData     = null;
+let currentMultiplier  = 1;
+
+// Comentarios
+let commentContext     = { name: '', section: '', id: null };
+
+// Fichas
+let editingWeightId    = null;
+let editingBrineId     = null;
+
+// Link producciones
+let linkingRecipeId    = null;
+let selectedProdIds    = [];
 
 // ═══════════════════════════════════════
-//   CARGA INICIAL DESDE SUPABASE
+//   CARGA INICIAL
 // ═══════════════════════════════════════
 async function loadData() {
   try {
-    const [{ data: rData, error: rErr }, { data: cData, error: cErr }] = await Promise.all([
-      sb.from('recipes').select('*').order('created_at', { ascending: true }),
-      sb.from('comments').select('*').order('created_at', { ascending: true }),
+    const [
+      { data: rData },
+      { data: pData },
+      { data: rpData },
+      { data: cData },
+      { data: wData },
+      { data: bData },
+    ] = await Promise.all([
+      sb.from('recipes').select('*').order('name'),
+      sb.from('productions').select('*').order('name'),
+      sb.from('recipe_productions').select('*'),
+      sb.from('comments').select('*').order('created_at', { ascending: false }),
+      sb.from('weights').select('*').order('name'),
+      sb.from('brines').select('*').order('category'),
     ]);
 
-    if (rErr) throw rErr;
-    if (cErr) throw cErr;
-
-    recipes  = rData  || [];
-    comments = cData  || [];
+    recipes          = rData  || [];
+    productions      = pData  || [];
+    recipeProductions = rpData || [];
+    comments         = cData  || [];
+    weights          = wData  || [];
+    brines           = bData  || [];
 
     renderRecipes();
     updateBadges();
@@ -80,22 +116,18 @@ function showPage(page, btn) {
   if (btn) btn.classList.add('active');
   else document.getElementById('nav-' + page)?.classList.add('active');
   currentPage = page;
-  document.getElementById('searchSection').style.display = page === 'recipes' ? '' : 'none';
-  document.getElementById('adminAddRow').style.display   = (page === 'recipes' && isAdmin) ? '' : 'none';
+
+  const isRecipes = page === 'recipes';
+  const isProd    = page === 'productions';
+  document.getElementById('searchSection').style.display = (isRecipes || isProd) ? '' : 'none';
+  document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
+  document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
+
+  if (isRecipes) { initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
+  if (isProd)    { initChips(PROD_CATEGORIES,   prodFilter,   setProdFilter);   renderProductions(); }
+  if (page === 'fichas')    renderFichas();
   if (page === 'converter') initConverter();
   if (page === 'admin')     renderAdmin();
-  if (page === 'fichas')    loadFichas();
-}
-
-function showDetail(id) {
-  currentRecipeId = id;
-  currentMultiplier = 1;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('detailPage').classList.add('active');
-  document.getElementById('searchSection').style.display = 'none';
-  document.getElementById('adminAddRow').style.display   = 'none';
-  document.getElementById('mainNav').style.display       = 'none';
-  renderDetail();
 }
 
 function exitInnerView() {
@@ -103,59 +135,49 @@ function exitInnerView() {
   document.getElementById('searchSection').style.display = '';
 }
 
-function backToRecipes() {
-  exitInnerView();
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('recipesPage').classList.add('active');
-  document.getElementById('nav-recipes').classList.add('active');
-  document.getElementById('adminAddRow').style.display = isAdmin ? '' : 'none';
-  currentPage = 'recipes';
+// ═══════════════════════════════════════
+//   SEARCH
+// ═══════════════════════════════════════
+function onSearch() {
+  if (currentPage === 'recipes')     renderRecipes();
+  if (currentPage === 'productions') renderProductions();
 }
 
 // ═══════════════════════════════════════
-//   CHIPS / FILTROS
+//   CHIPS
 // ═══════════════════════════════════════
-function initChips() {
-  document.getElementById('chipsRow').innerHTML = CATEGORIES.map(c =>
-    `<button class="chip ${c === currentFilter ? 'active' : ''}" onclick="setFilter('${c}')">${c}</button>`
+function initChips(cats, active, setter) {
+  document.getElementById('chipsRow').innerHTML = cats.map(c =>
+    `<button class="chip ${c === active ? 'active' : ''}" onclick="${setter.name}('${c}')">${c}</button>`
   ).join('');
 }
 
-function setFilter(cat) {
-  currentFilter = cat;
-  initChips();
-  renderRecipes();
-}
+function setRecipeFilter(cat) { recipeFilter = cat; initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
+function setProdFilter(cat)   { prodFilter   = cat; initChips(PROD_CATEGORIES,   prodFilter,   setProdFilter);   renderProductions(); }
 
 // ═══════════════════════════════════════
-//   LISTA DE RECETAS
+//   RECETAS — LISTA
 // ═══════════════════════════════════════
 function renderRecipes() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   const filtered = recipes.filter(r =>
-    (currentFilter === 'Todas' || r.category === currentFilter) &&
+    (recipeFilter === 'Todas' || r.category === recipeFilter) &&
     r.name.toLowerCase().includes(q)
   );
 
   const list = document.getElementById('recipeList');
+  if (!list) return;
 
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state">
-      <span class="material-symbols-outlined">search_off</span>
-      No se encontraron recetas
-    </div>`;
+    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">search_off</span>No se encontraron recetas</div>`;
     return;
   }
 
   list.innerHTML = filtered.map(r => `
-    <div class="recipe-card" onclick="showDetail('${r.id}')">
+    <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
       ${r.photo
         ? `<img class="recipe-card-img" src="${r.photo}" alt="${r.name}" loading="lazy">`
-        : `<div class="recipe-card-img-placeholder">
-             <span class="material-symbols-outlined">restaurant</span>
-           </div>`
-      }
+        : `<div class="recipe-card-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`}
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
           <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
@@ -166,58 +188,76 @@ function renderRecipes() {
           <span><span class="material-symbols-outlined">group</span>${r.servings} raciones</span>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 // ═══════════════════════════════════════
-//   DETALLE DE RECETA
+//   RECETAS — DETALLE
 // ═══════════════════════════════════════
-function renderDetail() {
+function showRecipeDetail(id) {
+  currentRecipeId = id;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('detailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderRecipeDetail();
+}
+
+function renderRecipeDetail() {
   const r = recipes.find(x => x.id === currentRecipeId);
   if (!r) return;
-  const m = currentMultiplier;
 
-  const mBtns = [0.5, 1, 2, 3, 4].map(x =>
-    `<button class="chip ${m === x ? 'active' : ''}" onclick="setMultiplier(${x})">${x === 0.5 ? '½' : '×' + x}</button>`
-  ).join('');
+  // Producciones vinculadas
+  const linkedIds = recipeProductions.filter(rp => rp.recipe_id === r.id).map(rp => rp.production_id);
+  const linkedProds = productions.filter(p => linkedIds.includes(p.id));
 
-  const ings = r.ingredients.map(ing => {
-    const v = ing.amount * m;
-    return `<div class="ing-row">
+  const prodsHtml = linkedProds.length > 0
+    ? linkedProds.map(p => `
+        <div class="prod-link-row" onclick="showProdDetail('${p.id}')">
+          <div>
+            <div class="prod-link-name">${p.name}</div>
+            <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+          </div>
+          <span class="material-symbols-outlined" style="color:var(--outline);">chevron_right</span>
+        </div>`).join('')
+    : `<p style="font-size:13px; color:var(--text2); padding:8px 0;">Sin producciones vinculadas</p>`;
+
+  const ings = r.ingredients.map(ing =>
+    `<div class="ing-row">
       <span class="ing-name">${ing.name}</span>
-      <span class="ing-amount">${v % 1 === 0 ? v : v.toFixed(1)} ${ing.unit}</span>
-    </div>`;
-  }).join('');
+      <span class="ing-amount">${ing.amount} ${ing.unit}</span>
+    </div>`).join('');
 
   const steps = r.steps.map((s, i) =>
     `<div class="step-row">
       <div class="step-num">${i + 1}</div>
       <div class="step-text">${s}</div>
-    </div>`
-  ).join('');
-
-  const adminBtns = isAdmin ? `
-    <button class="btn-pill" onclick="openEditRecipe()">
-      <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Editar
-    </button>
-    <button class="btn-pill danger" onclick="deleteRecipe('${r.id}')">
-      <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
-    </button>
-  ` : '';
+    </div>`).join('');
 
   const photoHtml = r.photo
     ? `<img class="detail-img" src="${r.photo}" alt="${r.name}">`
     : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
 
+  const adminBtns = isAdmin ? `
+    <button class="btn-pill" onclick="openEditRecipe()">
+      <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Editar
+    </button>
+    <button class="btn-pill" onclick="openLinkModal('${r.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">link</span> Vincular
+    </button>
+    <button class="btn-pill danger" onclick="deleteRecipe('${r.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+    </button>` : '';
+
   document.getElementById('detailPage').innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
-      <button class="back-btn" onclick="backToRecipes()">
+      <button class="back-btn" onclick="backTo('recipes')">
         <span class="material-symbols-outlined">arrow_back</span> Volver
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
-        <button class="btn-pill ghost" onclick="openCommentModal('${r.id}','${r.name.replace(/'/g, "\\'")}')">
-          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar error
+        <button class="btn-pill ghost" onclick="openCommentModal('${r.name}','recipe','${r.id}')">
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
         </button>
         ${adminBtns}
       </div>
@@ -232,7 +272,375 @@ function renderDetail() {
       <div class="stat-row">
         <div class="stat-item">
           <span class="material-symbols-outlined">group</span>
-          <div><div class="stat-item-val">${r.servings * m}</div><div class="stat-item-lbl">Raciones</div></div>
+          <div><div class="stat-item-val">${r.servings}</div><div class="stat-item-lbl">Raciones</div></div>
+        </div>
+      </div>
+    </div>
+    ${r.ingredients.length > 0 ? `
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
+      ${ings}
+    </div>` : ''}
+    ${r.steps.length > 0 ? `
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
+      ${steps}
+    </div>` : ''}
+    ${r.plating ? `
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">restaurant</span> Montaje</div>
+      <p style="font-size:14px; line-height:1.6;">${r.plating}</p>
+    </div>` : ''}
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">blender</span> Producciones</div>
+      ${prodsHtml}
+    </div>
+  `;
+}
+
+function backTo(page) {
+  exitInnerView();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(page + 'Page').classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+  currentPage = page;
+  if (page === 'recipes') {
+    document.getElementById('adminAddRecipeRow').style.display = isAdmin ? '' : 'none';
+    initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
+  }
+  if (page === 'productions') {
+    document.getElementById('adminAddProductionRow').style.display = isAdmin ? '' : 'none';
+    initChips(PROD_CATEGORIES, prodFilter, setProdFilter);
+  }
+}
+
+// ═══════════════════════════════════════
+//   RECETAS — EDITOR
+// ═══════════════════════════════════════
+function openAddRecipe() {
+  recipeEditorMode = 'add';
+  recipeEditorData = { id: Date.now().toString(), name: '', category: 'Carnes', servings: 4, description: '', photo: '', plating: '', ingredients: [], steps: [] };
+  renderRecipeEditor();
+  enterEditor('editorPage');
+}
+
+function openEditRecipe() {
+  recipeEditorMode = 'edit';
+  recipeEditorData = JSON.parse(JSON.stringify(recipes.find(r => r.id === currentRecipeId)));
+  renderRecipeEditor();
+  enterEditor('editorPage');
+}
+
+function enterEditor(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('adminAddProductionRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+}
+
+function renderRecipeEditor() {
+  const r = recipeEditorData;
+  const isNew = recipeEditorMode === 'add';
+
+  const photoSection = `
+    <div class="form-group">
+      <div class="form-label">Foto del plato</div>
+      ${r.photo
+        ? `<img class="photo-preview" src="${r.photo}">
+           <button class="btn-pill danger" onclick="recipeEditorData.photo=''; renderRecipeEditor();" style="margin-bottom:8px;">
+             <span class="material-symbols-outlined" style="font-size:15px;">delete</span> Quitar foto
+           </button>`
+        : `<div class="photo-upload-area" onclick="document.getElementById('recipePhotoInput').click()">
+             <span class="material-symbols-outlined">add_photo_alternate</span>
+             <p>Toca para añadir una foto</p>
+           </div>`}
+      <input type="file" id="recipePhotoInput" accept="image/*" style="display:none;" onchange="handleRecipePhoto(event)">
+      <div class="form-group" style="margin-top:8px; margin-bottom:0;">
+        <div class="form-label">O pega una URL</div>
+        <input class="form-input" placeholder="https://..." value="${r.photo}" oninput="recipeEditorData.photo=this.value">
+      </div>
+    </div>`;
+
+  const ings = r.ingredients.map((ing, i) => `
+    <div class="ing-edit-row">
+      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.value">
+      <input class="ing-edit-amount" type="number" value="${ing.amount}" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
+      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.value">
+      <button class="btn-remove" onclick="recipeEditorData.ingredients.splice(${i},1); renderRecipeEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  const stps = r.steps.map((s, i) => `
+    <div class="step-edit-row">
+      <div class="step-edit-num">${i + 1}</div>
+      <textarea rows="2" oninput="recipeEditorData.steps[${i}]=this.value">${s}</textarea>
+      <button class="btn-remove" onclick="recipeEditorData.steps.splice(${i},1); renderRecipeEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  document.getElementById('editorPage').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <button class="back-btn" onclick="cancelRecipeEditor()">
+        <span class="material-symbols-outlined">close</span> Cancelar
+      </button>
+      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva receta' : 'Editar receta'}</span>
+      <button class="btn-pill filled" id="saveRecipeBtn" onclick="saveRecipe()">Guardar</button>
+    </div>
+    <div class="card">
+      ${photoSection}
+      <div class="form-group">
+        <div class="form-label">Nombre</div>
+        <input class="form-input" value="${r.name}" placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.value">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Categoría</div>
+        <select class="form-select" onchange="recipeEditorData.category=this.value">
+          ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
+            `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Raciones</div>
+        <input class="form-input" type="number" value="${r.servings}" oninput="recipeEditorData.servings=parseInt(this.value)||1">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Descripción</div>
+        <textarea class="form-textarea" rows="2" oninput="recipeEditorData.description=this.value">${r.description}</textarea>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Descripción del montaje</div>
+        <textarea class="form-textarea" rows="3" placeholder="Cómo emplatar el plato..." oninput="recipeEditorData.plating=this.value">${r.plating || ''}</textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
+        <button class="btn-pill" onclick="recipeEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderRecipeEditor();">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
+        </button>
+      </div>
+      <div id="recipeIngList">${ings}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
+        <button class="btn-pill" onclick="recipeEditorData.steps.push(''); renderRecipeEditor();">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
+        </button>
+      </div>
+      <div id="recipeStepList">${stps}</div>
+    </div>`;
+}
+
+async function handleRecipePhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  showToast('Subiendo foto...');
+  try {
+    const filename = `${Date.now()}.${file.name.split('.').pop()}`;
+    await sb.storage.from('recipe-photos').upload(filename, file);
+    const { data } = sb.storage.from('recipe-photos').getPublicUrl(filename);
+    recipeEditorData.photo = data.publicUrl;
+    renderRecipeEditor();
+    showToast('Foto subida ✓');
+  } catch (err) { showToast('Error al subir la foto'); }
+}
+
+async function saveRecipe() {
+  if (!recipeEditorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
+  const btn = document.getElementById('saveRecipeBtn');
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  const { error } = await sb.from('recipes').upsert(recipeEditorData);
+  if (error) { showToast('Error al guardar'); btn.textContent = 'Guardar'; btn.disabled = false; return; }
+  if (recipeEditorMode === 'add') recipes.push(recipeEditorData);
+  else recipes = recipes.map(r => r.id === recipeEditorData.id ? recipeEditorData : r);
+  currentRecipeId = recipeEditorData.id;
+  showToast('Receta guardada ✓');
+  exitRecipeEditor(true);
+}
+
+function cancelRecipeEditor() { exitRecipeEditor(recipeEditorMode === 'edit'); }
+
+function exitRecipeEditor(goToDetail) {
+  exitInnerView();
+  if (goToDetail && currentRecipeId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('detailPage').classList.add('active');
+    renderRecipeDetail();
+  } else {
+    backTo('recipes');
+    renderRecipes();
+  }
+  recipeEditorMode = null; recipeEditorData = null;
+}
+
+async function deleteRecipe(id) {
+  if (!confirm('¿Eliminar esta receta?')) return;
+  await sb.from('recipes').delete().eq('id', id);
+  recipes = recipes.filter(r => r.id !== id);
+  showToast('Receta eliminada');
+  backTo('recipes'); renderRecipes();
+}
+
+// ═══════════════════════════════════════
+//   VINCULAR PRODUCCIONES
+// ═══════════════════════════════════════
+function openLinkModal(recipeId) {
+  linkingRecipeId = recipeId;
+  selectedProdIds = recipeProductions.filter(rp => rp.recipe_id === recipeId).map(rp => rp.production_id);
+  document.getElementById('linkProductionList').innerHTML = productions.length === 0
+    ? '<p style="color:var(--text2); font-size:13px;">No hay producciones creadas aún.</p>'
+    : productions.map(p => `
+        <div class="link-prod-row" onclick="toggleProdLink('${p.id}', this)">
+          <div>
+            <div style="font-size:14px; font-weight:600;">${p.name}</div>
+            <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+          </div>
+          <span class="material-symbols-outlined check-icon" style="color:${selectedProdIds.includes(p.id) ? 'var(--primary)' : 'var(--outline-light)'};">
+            ${selectedProdIds.includes(p.id) ? 'check_circle' : 'radio_button_unchecked'}
+          </span>
+        </div>`).join('');
+  document.getElementById('linkModal').style.display = 'flex';
+}
+
+function toggleProdLink(prodId, row) {
+  if (selectedProdIds.includes(prodId)) {
+    selectedProdIds = selectedProdIds.filter(id => id !== prodId);
+  } else {
+    selectedProdIds.push(prodId);
+  }
+  const icon = row.querySelector('.check-icon');
+  icon.textContent = selectedProdIds.includes(prodId) ? 'check_circle' : 'radio_button_unchecked';
+  icon.style.color = selectedProdIds.includes(prodId) ? 'var(--primary)' : 'var(--outline-light)';
+}
+
+async function saveLinkProductions() {
+  await sb.from('recipe_productions').delete().eq('recipe_id', linkingRecipeId);
+  if (selectedProdIds.length > 0) {
+    const rows = selectedProdIds.map((pid, i) => ({
+      id: `${linkingRecipeId}_${pid}`,
+      recipe_id: linkingRecipeId,
+      production_id: pid,
+      sort_order: i,
+    }));
+    await sb.from('recipe_productions').insert(rows);
+  }
+  recipeProductions = recipeProductions.filter(rp => rp.recipe_id !== linkingRecipeId);
+  selectedProdIds.forEach((pid, i) => recipeProductions.push({ id: `${linkingRecipeId}_${pid}`, recipe_id: linkingRecipeId, production_id: pid, sort_order: i }));
+  closeModal('linkModal');
+  showToast('Producciones vinculadas ✓');
+  renderRecipeDetail();
+}
+
+// ═══════════════════════════════════════
+//   PRODUCCIONES — LISTA
+// ═══════════════════════════════════════
+function renderProductions() {
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const filtered = productions.filter(p =>
+    (prodFilter === 'Todas' || p.category === prodFilter) &&
+    p.name.toLowerCase().includes(q)
+  );
+
+  const list = document.getElementById('productionList');
+  if (!list) return;
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">search_off</span>No se encontraron producciones</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => `
+    <div class="recipe-card" onclick="showProdDetail('${p.id}')">
+      <div class="recipe-card-body">
+        <div class="recipe-card-meta">
+          <span class="tag ${CAT_TAG[p.category] || ''}">${p.category}</span>
+        </div>
+        <h3>${p.name}</h3>
+        <p>${p.description || ''}</p>
+        <div class="recipe-card-footer">
+          <span><span class="material-symbols-outlined">group</span>${p.servings} raciones</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════
+//   PRODUCCIONES — DETALLE
+// ═══════════════════════════════════════
+function showProdDetail(id) {
+  currentProdId = id;
+  currentMultiplier = 1;
+  const fromPage = currentPage;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('productionDetailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddProductionRow').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderProdDetail(fromPage);
+}
+
+function renderProdDetail(fromPage) {
+  const p = productions.find(x => x.id === currentProdId);
+  if (!p) return;
+  const m = currentMultiplier;
+
+  const mBtns = [0.5, 1, 2, 3, 4].map(x =>
+    `<button class="chip ${m === x ? 'active' : ''}" onclick="setProdMultiplier(${x}, '${fromPage || 'productions'}')">${x === 0.5 ? '½' : '×' + x}</button>`
+  ).join('');
+
+  const ings = p.ingredients.map(ing => {
+    const v = ing.amount * m;
+    return `<div class="ing-row">
+      <span class="ing-name">${ing.name}</span>
+      <span class="ing-amount">${v % 1 === 0 ? v : v.toFixed(1)} ${ing.unit}</span>
+    </div>`;
+  }).join('');
+
+  const steps = p.steps.map((s, i) =>
+    `<div class="step-row">
+      <div class="step-num">${i + 1}</div>
+      <div class="step-text">${s}</div>
+    </div>`).join('');
+
+  const adminBtns = isAdmin ? `
+    <button class="btn-pill" onclick="openEditProduction()">
+      <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Editar
+    </button>
+    <button class="btn-pill danger" onclick="deleteProduction('${p.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+    </button>` : '';
+
+  const backPage = fromPage || 'productions';
+
+  document.getElementById('productionDetailPage').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+      <button class="back-btn" onclick="backTo('${backPage}')">
+        <span class="material-symbols-outlined">arrow_back</span> Volver
+      </button>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-pill ghost" onclick="openCommentModal('${p.name}','production','${p.id}')">
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
+        </button>
+        ${adminBtns}
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="tag ${CAT_TAG[p.category] || ''}">${p.category}</span>
+      </div>
+      <h2 style="font-size:22px; margin-bottom:6px;">${p.name}</h2>
+      ${p.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${p.description}</p>` : ''}
+      <div class="stat-row">
+        <div class="stat-item">
+          <span class="material-symbols-outlined">group</span>
+          <div><div class="stat-item-val">${p.servings * m}</div><div class="stat-item-lbl">Raciones</div></div>
         </div>
       </div>
     </div>
@@ -243,7 +651,7 @@ function renderDetail() {
       </div>
       <div class="multiplier-row">
         ${mBtns}
-        <input type="number" min="0.1" step="0.5" value="${m}" onchange="setMultiplier(parseFloat(this.value) || 1)">
+        <input type="number" min="0.1" step="0.5" value="${m}" onchange="setProdMultiplier(parseFloat(this.value)||1,'${backPage}')">
       </div>
     </div>
     <div class="card">
@@ -253,21 +661,145 @@ function renderDetail() {
     <div class="card">
       <div class="section-title"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
       ${steps}
-    </div>
-  `;
+    </div>`;
 }
 
-function setMultiplier(m) {
+function setProdMultiplier(m, fromPage) {
   currentMultiplier = m;
-  renderDetail();
+  renderProdDetail(fromPage);
+}
+
+// ═══════════════════════════════════════
+//   PRODUCCIONES — EDITOR
+// ═══════════════════════════════════════
+function openAddProduction() {
+  prodEditorMode = 'add';
+  prodEditorData = { id: Date.now().toString(), name: '', category: 'Salsas', servings: 4, description: '', ingredients: [], steps: [] };
+  renderProdEditor();
+  enterEditor('productionEditorPage');
+}
+
+function openEditProduction() {
+  prodEditorMode = 'edit';
+  prodEditorData = JSON.parse(JSON.stringify(productions.find(p => p.id === currentProdId)));
+  renderProdEditor();
+  enterEditor('productionEditorPage');
+}
+
+function renderProdEditor() {
+  const p = prodEditorData;
+  const isNew = prodEditorMode === 'add';
+
+  const ings = p.ingredients.map((ing, i) => `
+    <div class="ing-edit-row">
+      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.value">
+      <input class="ing-edit-amount" type="number" value="${ing.amount}" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
+      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.value">
+      <button class="btn-remove" onclick="prodEditorData.ingredients.splice(${i},1); renderProdEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  const stps = p.steps.map((s, i) => `
+    <div class="step-edit-row">
+      <div class="step-edit-num">${i + 1}</div>
+      <textarea rows="2" oninput="prodEditorData.steps[${i}]=this.value">${s}</textarea>
+      <button class="btn-remove" onclick="prodEditorData.steps.splice(${i},1); renderProdEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  document.getElementById('productionEditorPage').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <button class="back-btn" onclick="cancelProdEditor()">
+        <span class="material-symbols-outlined">close</span> Cancelar
+      </button>
+      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva producción' : 'Editar producción'}</span>
+      <button class="btn-pill filled" id="saveProdBtn" onclick="saveProduction()">Guardar</button>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <div class="form-label">Nombre</div>
+        <input class="form-input" value="${p.name}" placeholder="Nombre de la producción..." oninput="prodEditorData.name=this.value">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Categoría</div>
+        <select class="form-select" onchange="prodEditorData.category=this.value">
+          ${PROD_CATEGORIES.filter(c => c !== 'Todas').map(c =>
+            `<option ${p.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Raciones</div>
+        <input class="form-input" type="number" value="${p.servings}" oninput="prodEditorData.servings=parseInt(this.value)||1">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Descripción (opcional)</div>
+        <textarea class="form-textarea" rows="2" oninput="prodEditorData.description=this.value">${p.description || ''}</textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
+        <button class="btn-pill" onclick="prodEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderProdEditor();">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
+        </button>
+      </div>
+      <div>${ings}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
+        <button class="btn-pill" onclick="prodEditorData.steps.push(''); renderProdEditor();">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
+        </button>
+      </div>
+      <div>${stps}</div>
+    </div>`;
+}
+
+async function saveProduction() {
+  if (!prodEditorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
+  const btn = document.getElementById('saveProdBtn');
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  const { error } = await sb.from('productions').upsert(prodEditorData);
+  if (error) { showToast('Error al guardar'); btn.textContent = 'Guardar'; btn.disabled = false; return; }
+  if (prodEditorMode === 'add') productions.push(prodEditorData);
+  else productions = productions.map(p => p.id === prodEditorData.id ? prodEditorData : p);
+  currentProdId = prodEditorData.id;
+  showToast('Producción guardada ✓');
+  exitProdEditor(true);
+}
+
+function cancelProdEditor() { exitProdEditor(prodEditorMode === 'edit'); }
+
+function exitProdEditor(goToDetail) {
+  exitInnerView();
+  if (goToDetail && currentProdId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('productionDetailPage').classList.add('active');
+    renderProdDetail('productions');
+  } else {
+    backTo('productions');
+    renderProductions();
+  }
+  prodEditorMode = null; prodEditorData = null;
+}
+
+async function deleteProduction(id) {
+  if (!confirm('¿Eliminar esta producción?')) return;
+  await sb.from('productions').delete().eq('id', id);
+  productions = productions.filter(p => p.id !== id);
+  showToast('Producción eliminada');
+  backTo('productions'); renderProductions();
 }
 
 // ═══════════════════════════════════════
 //   COMENTARIOS
 // ═══════════════════════════════════════
-function openCommentModal(id, name) {
-  commentRecipeId = id;
-  document.getElementById('commentRecipeName').textContent = name;
+function openCommentModal(name, section, id) {
+  commentContext = { name, section, id };
+  document.getElementById('commentSectionName').textContent = name;
   document.getElementById('commentInput').value = '';
   document.getElementById('commentFormArea').style.display = '';
   document.getElementById('commentSuccess').style.display  = 'none';
@@ -277,21 +809,18 @@ function openCommentModal(id, name) {
 async function sendComment() {
   const text = document.getElementById('commentInput').value.trim();
   if (!text) return;
-
-  const r = recipes.find(x => x.id === commentRecipeId);
   const newComment = {
-    id:          Date.now().toString(),
-    recipe_id:   commentRecipeId,
-    recipe_name: r ? r.name : '',
+    id:           Date.now().toString(),
+    section:      commentContext.section,
+    section_id:   commentContext.id,
+    section_name: commentContext.name,
     text,
-    date:        new Date().toLocaleDateString('es-ES'),
-    resolved:    false,
+    date:         new Date().toLocaleDateString('es-ES'),
+    resolved:     false,
   };
-
   const { error } = await sb.from('comments').insert(newComment);
-  if (error) { showToast('Error al enviar comentario'); return; }
-
-  comments.push(newComment);
+  if (error) { showToast('Error al enviar'); return; }
+  comments.unshift(newComment);
   updateBadges();
   document.getElementById('commentFormArea').style.display = 'none';
   document.getElementById('commentSuccess').style.display  = '';
@@ -304,9 +833,11 @@ async function sendComment() {
 function toggleAdmin() {
   if (isAdmin) {
     isAdmin = false;
-    document.getElementById('adminBtn').innerHTML =
-      `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
-    document.getElementById('adminAddRow').style.display = 'none';
+    document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+    document.getElementById('adminAddRecipeRow').style.display    = 'none';
+    document.getElementById('adminAddProductionRow').style.display = 'none';
+    document.getElementById('addWeightBtn').style.display = 'none';
+    document.getElementById('addBrineBtn').style.display  = 'none';
     showToast('Sesión cerrada');
   } else {
     document.getElementById('loginInput').value = '';
@@ -322,9 +853,15 @@ function doLogin() {
     document.getElementById('adminBtn').innerHTML =
       `<span class="material-symbols-outlined" style="font-size:16px;">person</span> Chef
        <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
-    if (currentPage === 'recipes') document.getElementById('adminAddRow').style.display = '';
+    if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
+    if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
+    if (currentPage === 'fichas') {
+      document.getElementById('addWeightBtn').style.display = '';
+      document.getElementById('addBrineBtn').style.display  = '';
+    }
     showToast('Bienvenido, Chef 👨‍🍳');
-    if (currentRecipeId) renderDetail();
+    if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
+    if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
   } else {
     document.getElementById('loginError').style.display = '';
   }
@@ -335,22 +872,9 @@ function renderAdmin() {
   const resolved = comments.filter(c =>  c.resolved);
 
   document.getElementById('adminStats').innerHTML = `
-    <div class="stat-card">
-      <span class="material-symbols-outlined">menu_book</span>
-      <div class="stat-card-num">${recipes.length}</div>
-      <div class="stat-card-lbl">Recetas</div>
-    </div>
-    <div class="stat-card">
-      <span class="material-symbols-outlined">mark_chat_unread</span>
-      <div class="stat-card-num">${pending.length}</div>
-      <div class="stat-card-lbl">Pendientes</div>
-    </div>
-    <div class="stat-card">
-      <span class="material-symbols-outlined">check_circle</span>
-      <div class="stat-card-num">${resolved.length}</div>
-      <div class="stat-card-lbl">Resueltos</div>
-    </div>
-  `;
+    <div class="stat-card"><span class="material-symbols-outlined">menu_book</span><div class="stat-card-num">${recipes.length}</div><div class="stat-card-lbl">Recetas</div></div>
+    <div class="stat-card"><span class="material-symbols-outlined">blender</span><div class="stat-card-num">${productions.length}</div><div class="stat-card-lbl">Producciones</div></div>
+    <div class="stat-card"><span class="material-symbols-outlined">mark_chat_unread</span><div class="stat-card-num">${pending.length}</div><div class="stat-card-lbl">Pendientes</div></div>`;
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
@@ -364,7 +888,7 @@ function renderAdmin() {
     : pending.map(c => `
         <div class="comment-card">
           <div style="flex:1;">
-            <div class="comment-recipe">${c.recipe_name}</div>
+            <div class="comment-recipe">${c.section_name}</div>
             <div class="comment-text">${c.text}</div>
             <div class="comment-date">${c.date}</div>
           </div>
@@ -374,273 +898,158 @@ function renderAdmin() {
         </div>`).join('');
 
   document.getElementById('resolvedSection').innerHTML = resolved.length === 0 ? '' : `
-    <div class="section-title" style="margin-top:8px;">
-      <span class="material-symbols-outlined">task_alt</span> Resueltos
-    </div>
+    <div class="section-title" style="margin-top:8px;"><span class="material-symbols-outlined">task_alt</span> Resueltos</div>
     ${resolved.map(c => `
       <div class="comment-card" style="opacity:0.55;">
-        <div>
-          <div class="comment-recipe">${c.recipe_name} ✓</div>
-          <div class="comment-text" style="font-size:13px;">${c.text}</div>
-        </div>
-      </div>`).join('')}
-  `;
+        <div><div class="comment-recipe">${c.section_name} ✓</div><div class="comment-text" style="font-size:13px;">${c.text}</div></div>
+      </div>`).join('')}`;
 }
 
 async function resolveComment(id) {
-  const { error } = await sb.from('comments').update({ resolved: true }).eq('id', id);
-  if (error) { showToast('Error al resolver comentario'); return; }
+  await sb.from('comments').update({ resolved: true }).eq('id', id);
   comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
-  updateBadges();
-  renderAdmin();
+  updateBadges(); renderAdmin();
 }
 
 function updateBadges() {
-  const n  = comments.filter(c => !c.resolved).length;
+  const n = comments.filter(c => !c.resolved).length;
   const nb = document.getElementById('navBadge');
   const tb = document.getElementById('commentBadgeTop');
-  if (n > 0) {
-    nb.textContent = n; nb.style.display = '';
-    tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = '';
-  } else {
-    nb.style.display = 'none'; tb.style.display = 'none';
-  }
+  if (n > 0) { nb.textContent = n; nb.style.display = ''; tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
+  else       { nb.style.display = 'none'; tb.style.display = 'none'; }
 }
 
 // ═══════════════════════════════════════
-//   EDITOR DE RECETA
+//   FICHAS
 // ═══════════════════════════════════════
-function openAddRecipe() {
-  editorMode = 'add';
-  editorData = {
-    id: Date.now().toString(), name: '', category: 'Carnes',
-    servings: 4, photo: '', description: '', ingredients: [], steps: [],
-  };
-  renderEditor();
-  enterEditor();
+function renderFichas() {
+  document.getElementById('addWeightBtn').style.display = isAdmin ? '' : 'none';
+  document.getElementById('addBrineBtn').style.display  = isAdmin ? '' : 'none';
+  renderWeights();
+  renderBrines();
 }
 
-function openEditRecipe() {
-  editorMode = 'edit';
-  editorData = JSON.parse(JSON.stringify(recipes.find(r => r.id === currentRecipeId)));
-  renderEditor();
-  enterEditor();
+function renderWeights() {
+  const el = document.getElementById('weightsList');
+  if (!el) return;
+  el.innerHTML = weights.length === 0
+    ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
+    : weights.map(w => `
+        <div class="ficha-row">
+          <div>
+            <div class="ficha-name">${w.name}</div>
+            ${w.notes ? `<div class="ficha-note">${w.notes}</div>` : ''}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="ing-amount">${w.grams} g</span>
+            ${isAdmin ? `
+              <button class="btn-icon" onclick="openWeightModal('${w.id}')">
+                <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+              </button>
+              <button class="btn-icon" onclick="deleteWeight('${w.id}')">
+                <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+              </button>` : ''}
+          </div>
+        </div>`).join('');
 }
 
-function enterEditor() {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('editorPage').classList.add('active');
-  document.getElementById('searchSection').style.display = 'none';
-  document.getElementById('adminAddRow').style.display   = 'none';
-  document.getElementById('mainNav').style.display       = 'none';
+function renderBrines() {
+  const el = document.getElementById('brinesList');
+  if (!el) return;
+  const cats = [...new Set(brines.map(b => b.category))];
+  el.innerHTML = cats.length === 0
+    ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
+    : cats.map(cat => `
+        <div class="ficha-category">${cat === 'Aves' ? '🐔' : cat === 'Cerdo' ? '🐷' : '🐟'} ${cat}</div>
+        ${brines.filter(b => b.category === cat).map(b => `
+          <div class="ficha-row">
+            <div>
+              <div class="ficha-name">${b.product}</div>
+              ${b.notes ? `<div class="ficha-note">${b.notes}</div>` : ''}
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="ing-amount">${b.minutes >= 60 ? (b.minutes/60)+' h' : b.minutes+' min'}</span>
+              ${isAdmin ? `
+                <button class="btn-icon" onclick="openBrineModal('${b.id}')">
+                  <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+                </button>
+                <button class="btn-icon" onclick="deleteBrine('${b.id}')">
+                  <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+                </button>` : ''}
+            </div>
+          </div>`).join('')}`).join('');
 }
 
-function renderEditor() {
-  const r = editorData;
-  const isNew = editorMode === 'add';
-
-  const photoSection = `
-    <div class="form-group">
-      <div class="form-label">Foto del plato</div>
-      ${r.photo
-        ? `<img class="photo-preview" src="${r.photo}" id="photoPreview">
-           <button class="btn-pill danger" onclick="removePhoto()" style="margin-bottom:8px;">
-             <span class="material-symbols-outlined" style="font-size:15px;">delete</span> Quitar foto
-           </button>`
-        : `<div class="photo-upload-area" onclick="document.getElementById('photoInput').click()">
-             <span class="material-symbols-outlined">add_photo_alternate</span>
-             <p>Toca para añadir una foto</p>
-             <p style="font-size:11px; margin-top:4px; opacity:0.7;">JPG, PNG · Máx. 5 MB</p>
-           </div>`
-      }
-      <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
-      <div class="form-group" style="margin-top:8px; margin-bottom:0;">
-        <div class="form-label">O pega una URL de imagen</div>
-        <input class="form-input" placeholder="https://..." value="${r.photo}"
-          oninput="editorData.photo=this.value">
-      </div>
-    </div>
-  `;
-
-  const ings = r.ingredients.map((ing, i) => `
-    <div class="ing-edit-row">
-      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente"
-        oninput="editorData.ingredients[${i}].name=this.value">
-      <input class="ing-edit-amount" type="number" value="${ing.amount}"
-        oninput="editorData.ingredients[${i}].amount=parseFloat(this.value)||0">
-      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud"
-        oninput="editorData.ingredients[${i}].unit=this.value">
-      <button class="btn-remove" onclick="removeIngredient(${i})">
-        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
-      </button>
-    </div>`).join('');
-
-  const stps = r.steps.map((s, i) => `
-    <div class="step-edit-row">
-      <div class="step-edit-num">${i + 1}</div>
-      <textarea rows="2" oninput="editorData.steps[${i}]=this.value">${s}</textarea>
-      <button class="btn-remove" onclick="removeStep(${i})">
-        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
-      </button>
-    </div>`).join('');
-
-  document.getElementById('editorPage').innerHTML = `
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-      <button class="back-btn" onclick="cancelEditor()">
-        <span class="material-symbols-outlined">close</span> Cancelar
-      </button>
-      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva receta' : 'Editar receta'}</span>
-      <button class="btn-pill filled" id="saveBtn" onclick="saveEditor()">Guardar</button>
-    </div>
-    <div class="card">
-      ${photoSection}
-      <div class="form-group">
-        <div class="form-label">Nombre de la receta</div>
-        <input class="form-input" value="${r.name}" placeholder="Nombre..."
-          oninput="editorData.name=this.value">
-      </div>
-      <div class="form-group">
-        <div class="form-label">Categoría</div>
-        <select class="form-select" onchange="editorData.category=this.value">
-          ${['Carnes','Pescados','Postres','Salsas y fondos','Ensaladas','Guarniciones','Plato del día'].map(c =>
-            `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <div class="form-label">Raciones</div>
-        <input class="form-input" type="number" value="${r.servings}"
-          oninput="editorData.servings=parseInt(this.value)||1">
-      </div>
-      <div class="form-group">
-        <div class="form-label">Descripción</div>
-        <textarea class="form-textarea" rows="2"
-          oninput="editorData.description=this.value">${r.description}</textarea>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div class="section-title" style="margin-bottom:0;">
-          <span class="material-symbols-outlined">grocery</span> Ingredientes
-        </div>
-        <button class="btn-pill" onclick="addIngredient()">
-          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
-        </button>
-      </div>
-      <div id="ingList">${ings}</div>
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div class="section-title" style="margin-bottom:0;">
-          <span class="material-symbols-outlined">format_list_numbered</span> Elaboración
-        </div>
-        <button class="btn-pill" onclick="addStep()">
-          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
-        </button>
-      </div>
-      <div id="stepList">${stps}</div>
-    </div>
-  `;
+// ─── Pesos CRUD ───────────────────────
+function openWeightModal(id) {
+  editingWeightId = id;
+  const w = id ? weights.find(x => x.id === id) : null;
+  document.getElementById('weightModalTitle').textContent = id ? 'Editar peso' : 'Nuevo peso';
+  document.getElementById('weightName').value  = w ? w.name  : '';
+  document.getElementById('weightGrams').value = w ? w.grams : '';
+  document.getElementById('weightNotes').value = w ? (w.notes || '') : '';
+  document.getElementById('weightModal').style.display = 'flex';
 }
 
-// ─── Foto ────────────────────────────
-async function handlePhotoUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  showToast('Subiendo foto...');
-  try {
-    const ext      = file.name.split('.').pop();
-    const filename = `${Date.now()}.${ext}`;
-    const { error: upErr } = await sb.storage.from('recipe-photos').upload(filename, file);
-    if (upErr) throw upErr;
-    const { data } = sb.storage.from('recipe-photos').getPublicUrl(filename);
-    editorData.photo = data.publicUrl;
-    renderEditor();
-    showToast('Foto subida ✓');
-  } catch (err) {
-    console.error(err);
-    showToast('Error al subir la foto');
-  }
-}
-
-function removePhoto() {
-  editorData.photo = '';
-  renderEditor();
-}
-
-// ─── Ingredientes / Pasos ─────────────
-function addIngredient() {
-  editorData.ingredients.push({ id: Date.now().toString(), name: '', amount: 0, unit: 'g' });
-  renderEditor();
-}
-
-function removeIngredient(i) {
-  editorData.ingredients.splice(i, 1);
-  renderEditor();
-}
-
-function addStep()     { editorData.steps.push(''); renderEditor(); }
-function removeStep(i) { editorData.steps.splice(i, 1); renderEditor(); }
-
-// ─── Guardar / Cancelar ───────────────
-async function saveEditor() {
-  if (!editorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
-
-  const btn = document.getElementById('saveBtn');
-  btn.textContent = 'Guardando...';
-  btn.disabled = true;
-
-  const payload = {
-    id:          editorData.id,
-    name:        editorData.name,
-    category:    editorData.category,
-    servings:    editorData.servings,
-    description: editorData.description,
-    photo:       editorData.photo,
-    ingredients: editorData.ingredients,
-    steps:       editorData.steps,
-  };
-
-  const { error } = await sb.from('recipes').upsert(payload);
-  if (error) {
-    showToast('Error al guardar');
-    btn.textContent = 'Guardar';
-    btn.disabled = false;
-    return;
-  }
-
-  if (editorMode === 'add') recipes.push(payload);
-  else recipes = recipes.map(r => r.id === payload.id ? payload : r);
-
-  currentRecipeId = payload.id;
-  showToast('Receta guardada ✓');
-  exitEditor();
-}
-
-function cancelEditor() { exitEditor(); }
-
-function exitEditor() {
-  exitInnerView();
-  if (editorMode === 'edit') {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('detailPage').classList.add('active');
-    renderDetail();
+async function saveWeight() {
+  const name  = document.getElementById('weightName').value.trim();
+  const grams = parseInt(document.getElementById('weightGrams').value);
+  const notes = document.getElementById('weightNotes').value.trim();
+  if (!name || !grams) { showToast('Nombre y gramos son obligatorios'); return; }
+  const payload = { name, grams, notes };
+  if (editingWeightId) {
+    await sb.from('weights').update(payload).eq('id', editingWeightId);
+    weights = weights.map(w => w.id === editingWeightId ? { ...w, ...payload } : w);
   } else {
-    backToRecipes();
-    renderRecipes();
+    payload.id = Date.now().toString();
+    await sb.from('weights').insert(payload);
+    weights.push(payload);
   }
-  editorMode = null;
-  editorData = null;
+  closeModal('weightModal'); showToast('Guardado ✓'); renderWeights();
 }
 
-async function deleteRecipe(id) {
-  if (!confirm('¿Eliminar esta receta?')) return;
-  const { error } = await sb.from('recipes').delete().eq('id', id);
-  if (error) { showToast('Error al eliminar'); return; }
-  recipes = recipes.filter(r => r.id !== id);
-  showToast('Receta eliminada');
-  backToRecipes();
-  renderRecipes();
+async function deleteWeight(id) {
+  if (!confirm('¿Eliminar?')) return;
+  await sb.from('weights').delete().eq('id', id);
+  weights = weights.filter(w => w.id !== id);
+  showToast('Eliminado'); renderWeights();
+}
+
+// ─── Salmueras CRUD ───────────────────
+function openBrineModal(id) {
+  editingBrineId = id;
+  const b = id ? brines.find(x => x.id === id) : null;
+  document.getElementById('brineModalTitle').textContent = id ? 'Editar salmuera' : 'Nueva salmuera';
+  document.getElementById('brineName').value    = b ? b.product  : '';
+  document.getElementById('brineCategory').value = b ? b.category : 'Aves';
+  document.getElementById('brineMinutes').value = b ? b.minutes  : '';
+  document.getElementById('brineNotes').value   = b ? (b.notes || '') : '';
+  document.getElementById('brineModal').style.display = 'flex';
+}
+
+async function saveBrine() {
+  const product  = document.getElementById('brineName').value.trim();
+  const category = document.getElementById('brineCategory').value;
+  const minutes  = parseInt(document.getElementById('brineMinutes').value);
+  const notes    = document.getElementById('brineNotes').value.trim();
+  if (!product || !minutes) { showToast('Producto y tiempo son obligatorios'); return; }
+  const payload = { product, category, minutes, notes };
+  if (editingBrineId) {
+    await sb.from('brines').update(payload).eq('id', editingBrineId);
+    brines = brines.map(b => b.id === editingBrineId ? { ...b, ...payload } : b);
+  } else {
+    payload.id = Date.now().toString();
+    await sb.from('brines').insert(payload);
+    brines.push(payload);
+  }
+  closeModal('brineModal'); showToast('Guardado ✓'); renderBrines();
+}
+
+async function deleteBrine(id) {
+  if (!confirm('¿Eliminar?')) return;
+  await sb.from('brines').delete().eq('id', id);
+  brines = brines.filter(b => b.id !== id);
+  showToast('Eliminado'); renderBrines();
 }
 
 // ═══════════════════════════════════════
@@ -651,32 +1060,24 @@ const CONV_TYPES = {
   Volumen:     { units: ['ml','L','taza','fl oz','tbsp','tsp'], toBase: { ml:1, L:1000, taza:236.588, 'fl oz':29.5735, tbsp:14.7868, tsp:4.92892 } },
   Temperatura: { units: ['°C','°F'], toBase: null },
 };
-
 let convType = 'Peso';
 
 function initConverter() {
   document.getElementById('convTypeChips').innerHTML = Object.keys(CONV_TYPES).map(t =>
     `<button class="chip ${t === convType ? 'active' : ''}" onclick="setConvType('${t}')">${t}</button>`
   ).join('');
-
   const units = CONV_TYPES[convType].units;
   ['convFrom','convTo'].forEach((id, i) => {
     const s = document.getElementById(id);
     s.innerHTML = units.map(u => `<option>${u}</option>`).join('');
     s.value = units[i === 0 ? 0 : 1];
   });
-
   updateConverter();
-
   document.getElementById('tempRef').innerHTML = [
-    ['Bajo','150°C','300°F'], ['Medio','180°C','356°F'], ['Fuerte','200°C','392°F'],
-    ['Muy fuerte','220°C','428°F'], ['Brasa','240°C','464°F'], ['Máximo','260°C','500°F'],
+    ['Bajo','150°C','300°F'],['Medio','180°C','356°F'],['Fuerte','200°C','392°F'],
+    ['Muy fuerte','220°C','428°F'],['Brasa','240°C','464°F'],['Máximo','260°C','500°F'],
   ].map(([l,c,f]) =>
-    `<div class="ref-cell">
-       <div class="ref-cell-lbl">${l}</div>
-       <div class="ref-cell-val">${c}</div>
-       <div class="ref-cell-sub">${f}</div>
-     </div>`
+    `<div class="ref-cell"><div class="ref-cell-lbl">${l}</div><div class="ref-cell-val">${c}</div><div class="ref-cell-sub">${f}</div></div>`
   ).join('');
 }
 
@@ -687,15 +1088,9 @@ function updateConverter() {
   const from = document.getElementById('convFrom').value;
   const to   = document.getElementById('convTo').value;
   if (isNaN(val)) { document.getElementById('convResult').textContent = '—'; return; }
-
   let result;
-  if (convType === 'Temperatura') {
-    result = from === to ? val : from === '°C' ? val * 9/5 + 32 : (val - 32) * 5/9;
-  } else {
-    const b = CONV_TYPES[convType].toBase;
-    result = val * b[from] / b[to];
-  }
-
+  if (convType === 'Temperatura') result = from === to ? val : from === '°C' ? val*9/5+32 : (val-32)*5/9;
+  else { const b = CONV_TYPES[convType].toBase; result = val*b[from]/b[to]; }
   const d = Number.isInteger(result) ? result : parseFloat(result.toFixed(4));
   document.getElementById('convResult').textContent     = d + ' ' + to;
   document.getElementById('convResultLabel').textContent = `${val} ${from} = ${d} ${to}`;
@@ -711,227 +1106,13 @@ function showToast(msg) {
   document.querySelectorAll('.toast').forEach(t => t.remove());
   if (toastTimer) clearTimeout(toastTimer);
   const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
+  t.className = 'toast'; t.textContent = msg;
   document.body.appendChild(t);
   toastTimer = setTimeout(() => t.remove(), 2800);
 }
 
 // ═══════════════════════════════════════
-//   FICHAS — PESOS Y SALMUERAS
-// ═══════════════════════════════════════
-let weights = [];
-let brines  = [];
-let editingWeightId = null;
-let editingBrineId  = null;
-let fichaCommentSection = null;
-
-async function loadFichas() {
-  try {
-    const [{ data: wData }, { data: bData }] = await Promise.all([
-      sb.from('weights').select('*').order('name', { ascending: true }),
-      sb.from('brines').select('*').order('category', { ascending: true }),
-    ]);
-    weights = wData || [];
-    brines  = bData || [];
-    renderWeights();
-    renderBrines();
-    // Mostrar botones admin si está logueado
-    document.getElementById('addWeightBtn').style.display = isAdmin ? '' : 'none';
-    document.getElementById('addBrineBtn').style.display  = isAdmin ? '' : 'none';
-  } catch (err) {
-    console.error('Error cargando fichas:', err);
-  }
-}
-
-function renderWeights() {
-  const el = document.getElementById('weightsList');
-  if (!el) return;
-  if (weights.length === 0) {
-    el.innerHTML = `<div class="empty-state" style="padding:20px;">
-      <span class="material-symbols-outlined">monitor_weight</span> Sin datos
-    </div>`;
-    return;
-  }
-  el.innerHTML = weights.map(w => `
-    <div class="ficha-row">
-      <div>
-        <div class="ficha-name">${w.name}</div>
-        ${w.notes ? `<div class="ficha-note">${w.notes}</div>` : ''}
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="ing-amount">${w.grams} g</span>
-        ${isAdmin ? `
-          <button class="btn-icon" onclick="openEditWeight('${w.id}')">
-            <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
-          </button>
-          <button class="btn-icon" onclick="deleteWeight('${w.id}')">
-            <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
-          </button>` : ''}
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderBrines() {
-  const el = document.getElementById('brinesList');
-  if (!el) return;
-  if (brines.length === 0) {
-    el.innerHTML = `<div class="empty-state" style="padding:20px;">
-      <span class="material-symbols-outlined">water_drop</span> Sin datos
-    </div>`;
-    return;
-  }
-  const categories = [...new Set(brines.map(b => b.category))];
-  el.innerHTML = categories.map(cat => `
-    <div class="ficha-category">${cat === 'Aves' ? '🐔' : cat === 'Cerdo' ? '🐷' : '🐟'} ${cat}</div>
-    ${brines.filter(b => b.category === cat).map(b => `
-      <div class="ficha-row">
-        <div>
-          <div class="ficha-name">${b.product}</div>
-          ${b.notes ? `<div class="ficha-note">${b.notes}</div>` : ''}
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="ing-amount">${b.minutes >= 60 ? (b.minutes/60) + ' h' : b.minutes + ' min'}</span>
-          ${isAdmin ? `
-            <button class="btn-icon" onclick="openEditBrine('${b.id}')">
-              <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
-            </button>
-            <button class="btn-icon" onclick="deleteBrine('${b.id}')">
-              <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
-            </button>` : ''}
-        </div>
-      </div>
-    `).join('')}
-  `).join('');
-}
-
-// ─── Pesos CRUD ───────────────────────
-function openAddWeight() {
-  editingWeightId = null;
-  document.getElementById('weightModalTitle').textContent = 'Nuevo peso';
-  document.getElementById('weightName').value  = '';
-  document.getElementById('weightGrams').value = '';
-  document.getElementById('weightNotes').value = '';
-  document.getElementById('weightModal').style.display = 'flex';
-}
-
-function openEditWeight(id) {
-  const w = weights.find(x => x.id === id);
-  if (!w) return;
-  editingWeightId = id;
-  document.getElementById('weightModalTitle').textContent = 'Editar peso';
-  document.getElementById('weightName').value  = w.name;
-  document.getElementById('weightGrams').value = w.grams;
-  document.getElementById('weightNotes').value = w.notes || '';
-  document.getElementById('weightModal').style.display = 'flex';
-}
-
-async function saveWeight() {
-  const name  = document.getElementById('weightName').value.trim();
-  const grams = parseInt(document.getElementById('weightGrams').value);
-  const notes = document.getElementById('weightNotes').value.trim();
-  if (!name || !grams) { showToast('Nombre y gramos son obligatorios'); return; }
-  const payload = { name, grams, notes };
-  if (editingWeightId) {
-    await sb.from('weights').update(payload).eq('id', editingWeightId);
-  } else {
-    payload.id = Date.now().toString();
-    await sb.from('weights').insert(payload);
-  }
-  closeModal('weightModal');
-  showToast('Guardado ✓');
-  loadFichas();
-}
-
-async function deleteWeight(id) {
-  if (!confirm('¿Eliminar este peso?')) return;
-  await sb.from('weights').delete().eq('id', id);
-  showToast('Eliminado');
-  loadFichas();
-}
-
-// ─── Salmueras CRUD ───────────────────
-function openAddBrine() {
-  editingBrineId = null;
-  document.getElementById('brineModalTitle').textContent = 'Nueva salmuera';
-  document.getElementById('brineName').value    = '';
-  document.getElementById('brineMinutes').value = '';
-  document.getElementById('brineNotes').value   = '';
-  document.getElementById('brineModal').style.display = 'flex';
-}
-
-function openEditBrine(id) {
-  const b = brines.find(x => x.id === id);
-  if (!b) return;
-  editingBrineId = id;
-  document.getElementById('brineModalTitle').textContent = 'Editar salmuera';
-  document.getElementById('brineName').value      = b.product;
-  document.getElementById('brineCategory').value  = b.category;
-  document.getElementById('brineMinutes').value   = b.minutes;
-  document.getElementById('brineNotes').value     = b.notes || '';
-  document.getElementById('brineModal').style.display = 'flex';
-}
-
-async function saveBrine() {
-  const product  = document.getElementById('brineName').value.trim();
-  const category = document.getElementById('brineCategory').value;
-  const minutes  = parseInt(document.getElementById('brineMinutes').value);
-  const notes    = document.getElementById('brineNotes').value.trim();
-  if (!product || !minutes) { showToast('Producto y tiempo son obligatorios'); return; }
-  const payload = { product, category, minutes, notes };
-  if (editingBrineId) {
-    await sb.from('brines').update(payload).eq('id', editingBrineId);
-  } else {
-    payload.id = Date.now().toString();
-    await sb.from('brines').insert(payload);
-  }
-  closeModal('brineModal');
-  showToast('Guardado ✓');
-  loadFichas();
-}
-
-async function deleteBrine(id) {
-  if (!confirm('¿Eliminar esta salmuera?')) return;
-  await sb.from('brines').delete().eq('id', id);
-  showToast('Eliminado');
-  loadFichas();
-}
-
-// ─── Comentarios fichas ───────────────
-function openFichaComment(section) {
-  fichaCommentSection = section;
-  const label = section === 'pesos' ? 'Pesos de ración' : 'Salmueras';
-  document.getElementById('fichaCommentSection').textContent = label;
-  document.getElementById('fichaCommentInput').value = '';
-  document.getElementById('fichaCommentFormArea').style.display = '';
-  document.getElementById('fichaCommentSuccess').style.display  = 'none';
-  document.getElementById('fichaCommentModal').style.display    = 'flex';
-}
-
-async function sendFichaComment() {
-  const text = document.getElementById('fichaCommentInput').value.trim();
-  if (!text) return;
-  const label = fichaCommentSection === 'pesos' ? 'Pesos de ración' : 'Salmueras';
-  const newComment = {
-    id:          Date.now().toString(),
-    recipe_id:   null,
-    recipe_name: label,
-    text,
-    date:        new Date().toLocaleDateString('es-ES'),
-    resolved:    false,
-  };
-  const { error } = await sb.from('comments').insert(newComment);
-  if (error) { showToast('Error al enviar comentario'); return; }
-  comments.push(newComment);
-  updateBadges();
-  document.getElementById('fichaCommentFormArea').style.display = 'none';
-  document.getElementById('fichaCommentSuccess').style.display  = '';
-  setTimeout(() => closeModal('fichaCommentModal'), 2200);
-}
-
-// ═══════════════════════════════════════
 //   INIT
 // ═══════════════════════════════════════
-initChips();
+initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
 loadData();
