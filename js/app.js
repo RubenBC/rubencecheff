@@ -854,7 +854,20 @@ function renderAdmin() {
   document.getElementById('adminStats').innerHTML = `
     <div class="stat-card"><span class="material-symbols-outlined">menu_book</span><div class="stat-card-num">${recipes.length}</div><div class="stat-card-lbl">Recetas</div></div>
     <div class="stat-card"><span class="material-symbols-outlined">blender</span><div class="stat-card-num">${productions.length}</div><div class="stat-card-lbl">Producciones</div></div>
-    <div class="stat-card"><span class="material-symbols-outlined">mark_chat_unread</span><div class="stat-card-num">${pending.length}</div><div class="stat-card-lbl">Pendientes</div></div>`;
+    <div class="stat-card"><span class="material-symbols-outlined">mark_chat_unread</span><div class="stat-card-num">${isAdmin ? pending.length : '—'}</div><div class="stat-card-lbl">Pendientes</div></div>`;
+
+  if (!isAdmin) {
+    document.getElementById('pendingTitle').innerHTML = '';
+    document.getElementById('commentsList').innerHTML = `
+      <div class="card" style="text-align:center; padding:32px; color:var(--text2);">
+        <span class="material-symbols-outlined" style="font-size:48px; color:var(--outline); display:block; margin-bottom:12px;">lock</span>
+        <p style="font-weight:700;">Acceso restringido</p>
+        <p style="font-size:13px; margin-top:4px;">Inicia sesión como admin para ver los comentarios.</p>
+        <button class="btn-pill filled" style="margin-top:16px;" onclick="toggleAdmin()">Iniciar sesión</button>
+      </div>`;
+    document.getElementById('resolvedSection').innerHTML = '';
+    return;
+  }
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
