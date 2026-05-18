@@ -338,7 +338,12 @@ function renderRecipeDetail() {
     </div>
     <div class="card">
       <div class="section-title"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
-      ${renderAllergenBadges(r.allergens)}
+      ${(() => {
+        const prodAllergens = linkedProds.flatMap(p => p.allergens || []);
+        const recipeAllergens = r.allergens || [];
+        const all = [...new Set([...prodAllergens, ...recipeAllergens])];
+        return renderAllergenBadges(all);
+      })()}
     </div>
   `;
 }
