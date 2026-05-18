@@ -84,6 +84,7 @@ function showPage(page, btn) {
   document.getElementById('adminAddRow').style.display   = (page === 'recipes' && isAdmin) ? '' : 'none';
   if (page === 'converter') initConverter();
   if (page === 'admin')     renderAdmin();
+  if (page === 'fichas')    loadFichas();
 }
 
 function showDetail(id) {
@@ -714,6 +715,219 @@ function showToast(msg) {
   t.textContent = msg;
   document.body.appendChild(t);
   toastTimer = setTimeout(() => t.remove(), 2800);
+}
+
+// ═══════════════════════════════════════
+//   FICHAS — PESOS Y SALMUERAS
+// ═══════════════════════════════════════
+let weights = [];
+let brines  = [];
+let editingWeightId = null;
+let editingBrineId  = null;
+let fichaCommentSection = null;
+
+async function loadFichas() {
+  try {
+    const [{ data: wData }, { data: bData }] = await Promise.all([
+      sb.from('weights').select('*').order('name', { ascending: true }),
+      sb.from('brines').select('*').order('category', { ascending: true }),
+    ]);
+    weights = wData || [];
+    brines  = bData || [];
+    renderWeights();
+    renderBrines();
+    // Mostrar botones admin si está logueado
+    document.getElementById('addWeightBtn').style.display = isAdmin ? '' : 'none';
+    document.getElementById('addBrineBtn').style.display  = isAdmin ? '' : 'none';
+  } catch (err) {
+    console.error('Error cargando fichas:', err);
+  }
+}
+
+function renderWeights() {
+  const el = document.getElementById('weightsList');
+  if (!el) return;
+  if (weights.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:20px;">
+      <span class="material-symbols-outlined">monitor_weight</span> Sin datos
+    </div>`;
+    return;
+  }
+  el.innerHTML = weights.map(w => `
+    <div class="ficha-row">
+      <div>
+        <div class="ficha-name">${w.name}</div>
+        ${w.notes ? `<div class="ficha-note">${w.notes}</div>` : ''}
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="ing-amount">${w.grams} g</span>
+        ${isAdmin ? `
+          <button class="btn-icon" onclick="openEditWeight('${w.id}')">
+            <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+          </button>
+          <button class="btn-icon" onclick="deleteWeight('${w.id}')">
+            <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+          </button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderBrines() {
+  const el = document.getElementById('brinesList');
+  if (!el) return;
+  if (brines.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:20px;">
+      <span class="material-symbols-outlined">water_drop</span> Sin datos
+    </div>`;
+    return;
+  }
+  const categories = [...new Set(brines.map(b => b.category))];
+  el.innerHTML = categories.map(cat => `
+    <div class="ficha-category">${cat === 'Aves' ? '🐔' : cat === 'Cerdo' ? '🐷' : '🐟'} ${cat}</div>
+    ${brines.filter(b => b.category === cat).map(b => `
+      <div class="ficha-row">
+        <div>
+          <div class="ficha-name">${b.product}</div>
+          ${b.notes ? `<div class="ficha-note">${b.notes}</div>` : ''}
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="ing-amount">${b.minutes >= 60 ? (b.minutes/60) + ' h' : b.minutes + ' min'}</span>
+          ${isAdmin ? `
+            <button class="btn-icon" onclick="openEditBrine('${b.id}')">
+              <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+            </button>
+            <button class="btn-icon" onclick="deleteBrine('${b.id}')">
+              <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+            </button>` : ''}
+        </div>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+// ─── Pesos CRUD ───────────────────────
+function openAddWeight() {
+  editingWeightId = null;
+  document.getElementById('weightModalTitle').textContent = 'Nuevo peso';
+  document.getElementById('weightName').value  = '';
+  document.getElementById('weightGrams').value = '';
+  document.getElementById('weightNotes').value = '';
+  document.getElementById('weightModal').style.display = 'flex';
+}
+
+function openEditWeight(id) {
+  const w = weights.find(x => x.id === id);
+  if (!w) return;
+  editingWeightId = id;
+  document.getElementById('weightModalTitle').textContent = 'Editar peso';
+  document.getElementById('weightName').value  = w.name;
+  document.getElementById('weightGrams').value = w.grams;
+  document.getElementById('weightNotes').value = w.notes || '';
+  document.getElementById('weightModal').style.display = 'flex';
+}
+
+async function saveWeight() {
+  const name  = document.getElementById('weightName').value.trim();
+  const grams = parseInt(document.getElementById('weightGrams').value);
+  const notes = document.getElementById('weightNotes').value.trim();
+  if (!name || !grams) { showToast('Nombre y gramos son obligatorios'); return; }
+  const payload = { name, grams, notes };
+  if (editingWeightId) {
+    await sb.from('weights').update(payload).eq('id', editingWeightId);
+  } else {
+    payload.id = Date.now().toString();
+    await sb.from('weights').insert(payload);
+  }
+  closeModal('weightModal');
+  showToast('Guardado ✓');
+  loadFichas();
+}
+
+async function deleteWeight(id) {
+  if (!confirm('¿Eliminar este peso?')) return;
+  await sb.from('weights').delete().eq('id', id);
+  showToast('Eliminado');
+  loadFichas();
+}
+
+// ─── Salmueras CRUD ───────────────────
+function openAddBrine() {
+  editingBrineId = null;
+  document.getElementById('brineModalTitle').textContent = 'Nueva salmuera';
+  document.getElementById('brineName').value    = '';
+  document.getElementById('brineMinutes').value = '';
+  document.getElementById('brineNotes').value   = '';
+  document.getElementById('brineModal').style.display = 'flex';
+}
+
+function openEditBrine(id) {
+  const b = brines.find(x => x.id === id);
+  if (!b) return;
+  editingBrineId = id;
+  document.getElementById('brineModalTitle').textContent = 'Editar salmuera';
+  document.getElementById('brineName').value      = b.product;
+  document.getElementById('brineCategory').value  = b.category;
+  document.getElementById('brineMinutes').value   = b.minutes;
+  document.getElementById('brineNotes').value     = b.notes || '';
+  document.getElementById('brineModal').style.display = 'flex';
+}
+
+async function saveBrine() {
+  const product  = document.getElementById('brineName').value.trim();
+  const category = document.getElementById('brineCategory').value;
+  const minutes  = parseInt(document.getElementById('brineMinutes').value);
+  const notes    = document.getElementById('brineNotes').value.trim();
+  if (!product || !minutes) { showToast('Producto y tiempo son obligatorios'); return; }
+  const payload = { product, category, minutes, notes };
+  if (editingBrineId) {
+    await sb.from('brines').update(payload).eq('id', editingBrineId);
+  } else {
+    payload.id = Date.now().toString();
+    await sb.from('brines').insert(payload);
+  }
+  closeModal('brineModal');
+  showToast('Guardado ✓');
+  loadFichas();
+}
+
+async function deleteBrine(id) {
+  if (!confirm('¿Eliminar esta salmuera?')) return;
+  await sb.from('brines').delete().eq('id', id);
+  showToast('Eliminado');
+  loadFichas();
+}
+
+// ─── Comentarios fichas ───────────────
+function openFichaComment(section) {
+  fichaCommentSection = section;
+  const label = section === 'pesos' ? 'Pesos de ración' : 'Salmueras';
+  document.getElementById('fichaCommentSection').textContent = label;
+  document.getElementById('fichaCommentInput').value = '';
+  document.getElementById('fichaCommentFormArea').style.display = '';
+  document.getElementById('fichaCommentSuccess').style.display  = 'none';
+  document.getElementById('fichaCommentModal').style.display    = 'flex';
+}
+
+async function sendFichaComment() {
+  const text = document.getElementById('fichaCommentInput').value.trim();
+  if (!text) return;
+  const label = fichaCommentSection === 'pesos' ? 'Pesos de ración' : 'Salmueras';
+  const newComment = {
+    id:          Date.now().toString(),
+    recipe_id:   null,
+    recipe_name: label,
+    text,
+    date:        new Date().toLocaleDateString('es-ES'),
+    resolved:    false,
+  };
+  const { error } = await sb.from('comments').insert(newComment);
+  if (error) { showToast('Error al enviar comentario'); return; }
+  comments.push(newComment);
+  updateBadges();
+  document.getElementById('fichaCommentFormArea').style.display = 'none';
+  document.getElementById('fichaCommentSuccess').style.display  = '';
+  setTimeout(() => closeModal('fichaCommentModal'), 2200);
 }
 
 // ═══════════════════════════════════════
