@@ -1246,18 +1246,28 @@ const searchInput = document.createElement('input');
 searchInput.setAttribute('type', 'text');
 searchInput.setAttribute('id', 'searchInput');
 searchInput.setAttribute('placeholder', 'Buscar...');
-searchInput.setAttribute('autocomplete', 'off');
+searchInput.setAttribute('autocomplete', 'new-password');
 searchInput.setAttribute('autocorrect', 'off');
 searchInput.setAttribute('autocapitalize', 'off');
 searchInput.setAttribute('spellcheck', 'false');
 searchInput.setAttribute('data-form-type', 'other');
+searchInput.setAttribute('data-lpignore', 'true');
+searchInput.setAttribute('data-1p-ignore', 'true');
 searchInput.setAttribute('role', 'searchbox');
+searchInput.setAttribute('aria-autocomplete', 'none');
 searchInput.style.cssText = 'border:none;background:none;outline:none;font-size:14px;font-family:Nunito,sans-serif;color:var(--text);flex:1;width:100%;';
 searchInput.addEventListener('input', onSearch);
 document.getElementById('searchInputWrap').appendChild(searchInput);
 
 initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
 loadData();
+
+// Registrar Service Worker para PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 
 // Botón atrás de Android
 history.pushState({ view: 'home' }, '');
