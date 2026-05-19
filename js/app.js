@@ -243,6 +243,7 @@ function renderRecipes() {
 // ═══════════════════════════════════════
 function showRecipeDetail(id) {
   currentRecipeId = id;
+  history.pushState({ view: 'recipeDetail', id }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('detailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
@@ -304,7 +305,7 @@ function renderRecipeDetail() {
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn-pill ghost" onclick="openCommentModal('${r.name}','recipe','${r.id}')">
-          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error en la receta
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
         </button>
         ${adminBtns}
       </div>
@@ -383,6 +384,7 @@ function openEditRecipe() {
 }
 
 function enterEditor(pageId) {
+  history.pushState({ view: 'editor', pageId }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
@@ -624,6 +626,7 @@ function showProdDetail(id) {
   currentProdId = id;
   currentMultiplier = 1;
   const fromPage = currentPage;
+  history.pushState({ view: 'prodDetail', id, fromPage }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('productionDetailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
@@ -673,7 +676,7 @@ function renderProdDetail(fromPage) {
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn-pill ghost" onclick="openCommentModal('${p.name}','production','${p.id}')">
-          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error en la receta
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
         </button>
         ${adminBtns}
       </div>
@@ -1239,3 +1242,48 @@ function showToast(msg) {
 // ═══════════════════════════════════════
 initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
 loadData();
+
+// Botón atrás de Android
+history.pushState({ view: 'home' }, '');
+
+window.addEventListener('popstate', (e) => {
+  const state = e.state;
+
+  // Cerrar modales abiertos primero
+  const openModal = document.querySelector('.modal-overlay[style*="flex"]');
+  if (openModal) { openModal.style.display = 'none'; history.pushState({ view: 'modal' }, ''); return; }
+
+  if (!state || state.view === 'home') {
+    // Volver a la página principal
+    if (document.getElementById('editorPage').classList.contains('active')) {
+      cancelRecipeEditor(); history.pushState({ view: 'home' }, ''); return;
+    }
+    if (document.getElementById('productionEditorPage').classList.contains('active')) {
+      cancelProdEditor(); history.pushState({ view: 'home' }, ''); return;
+    }
+    if (document.getElementById('detailPage').classList.contains('active')) {
+      backTo('recipes'); history.pushState({ view: 'home' }, ''); return;
+    }
+    if (document.getElementById('productionDetailPage').classList.contains('active')) {
+      backTo(currentPage || 'productions'); history.pushState({ view: 'home' }, ''); return;
+    }
+    history.pushState({ view: 'home' }, '');
+    return;
+  }
+
+  if (state.view === 'editor') {
+    if (document.getElementById('editorPage').classList.contains('active')) cancelRecipeEditor();
+    else cancelProdEditor();
+    return;
+  }
+
+  if (state.view === 'recipeDetail') {
+    if (document.getElementById('detailPage').classList.contains('active')) backTo('recipes');
+    return;
+  }
+
+  if (state.view === 'prodDetail') {
+    if (document.getElementById('productionDetailPage').classList.contains('active')) backTo(state.fromPage || 'productions');
+    return;
+  }
+});
