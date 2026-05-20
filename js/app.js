@@ -418,9 +418,9 @@ function renderRecipeEditor() {
 
   const ings = r.ingredients.map((ing, i) => `
     <div class="ing-edit-row">
-      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.value">
-      <input class="ing-edit-amount" type="number" value="${ing.amount}" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
-      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.value">
+      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" autocomplete="off" data-form-type="other" oninput="recipeEditorData.ingredients[${i}].name=this.value">
+      <input class="ing-edit-amount" type="number" value="${ing.amount}" autocomplete="off" data-form-type="other" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
+      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" autocomplete="off" data-form-type="other" oninput="recipeEditorData.ingredients[${i}].unit=this.value">
       <button class="btn-remove" onclick="recipeEditorData.ingredients.splice(${i},1); renderRecipeEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -447,7 +447,7 @@ function renderRecipeEditor() {
       ${photoSection}
       <div class="form-group">
         <div class="form-label">Nombre</div>
-        <input class="form-input" value="${r.name}" placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.value">
+        <input class="form-input" value="${r.name}" placeholder="Nombre de la receta..." autocomplete="off" data-form-type="other" data-lpignore="true" oninput="recipeEditorData.name=this.value">
       </div>
       <div class="form-group">
         <div class="form-label">Categoría</div>
@@ -741,9 +741,9 @@ function renderProdEditor() {
 
   const ings = p.ingredients.map((ing, i) => `
     <div class="ing-edit-row">
-      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.value">
-      <input class="ing-edit-amount" type="number" value="${ing.amount}" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
-      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.value">
+      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" autocomplete="off" data-form-type="other" oninput="prodEditorData.ingredients[${i}].name=this.value">
+      <input class="ing-edit-amount" type="number" value="${ing.amount}" autocomplete="off" data-form-type="other" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
+      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" autocomplete="off" data-form-type="other" oninput="prodEditorData.ingredients[${i}].unit=this.value">
       <button class="btn-remove" onclick="prodEditorData.ingredients.splice(${i},1); renderProdEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -769,7 +769,7 @@ function renderProdEditor() {
     <div class="card">
       <div class="form-group">
         <div class="form-label">Nombre</div>
-        <input class="form-input" value="${p.name}" placeholder="Nombre de la producción..." oninput="prodEditorData.name=this.value">
+        <input class="form-input" value="${p.name}" placeholder="Nombre de la producción..." autocomplete="off" data-form-type="other" data-lpignore="true" oninput="prodEditorData.name=this.value">
       </div>
       <div class="form-group">
         <div class="form-label">Categoría</div>
