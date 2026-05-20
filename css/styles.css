@@ -81,8 +81,8 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 ═══════════════════════════════════════ */
 .recipe-card { background: var(--surface); border-radius: 20px; margin-bottom: 12px; border: 1px solid var(--outline-light); cursor: pointer; transition: transform 0.08s, box-shadow 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
 .recipe-card:active { transform: scale(0.98); box-shadow: none; }
-.recipe-card-img { width: 100%; height: auto; display: block; background: var(--surface2); }
-.recipe-card-img-placeholder { width: 100%; height: 160px; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+.recipe-card-img { width: 100%; height: 200px; object-fit: cover; display: block; background: var(--surface2); }
+.recipe-card-img-placeholder { width: 100%; height: 200px; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
 .recipe-card-img-placeholder .material-symbols-outlined { font-size: 48px; color: var(--outline); opacity: 0.4; }
 .recipe-card-body { padding: 14px 16px 16px; }
 .recipe-card-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -110,7 +110,8 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 /* ═══════════════════════════════════════
    DETALLE
 ═══════════════════════════════════════ */
-.detail-img { width: 100%; height: auto; border-radius: 20px; display: block; margin-bottom: 12px; }
+.detail-img { width: 100%; height: 260px; object-fit: cover; border-radius: 20px; display: block; margin-bottom: 12px; cursor: zoom-in; transition: opacity 0.15s; }
+.detail-img:active { opacity: 0.85; }
 .detail-img-placeholder { width: 100%; height: 220px; border-radius: 20px; background: var(--surface2); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
 .detail-img-placeholder .material-symbols-outlined { font-size: 64px; color: var(--outline); opacity: 0.3; }
 .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
