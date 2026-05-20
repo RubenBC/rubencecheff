@@ -284,7 +284,7 @@ function renderRecipeDetail() {
     </div>`).join('');
 
   const photoHtml = r.photo
-    ? `<img class="detail-img" src="${r.photo}" alt="${r.name}">`
+    ? `<img class="detail-img" src="${r.photo}" alt="${r.name}" onclick="openLightbox('${r.photo}')" style="cursor:zoom-in;">`
     : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
 
   const adminBtns = isAdmin ? `
@@ -1227,6 +1227,24 @@ function updateConverter() {
 // ═══════════════════════════════════════
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+function openLightbox(src) {
+  let lb = document.getElementById('lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'lightbox';
+    lb.className = 'lightbox-overlay';
+    lb.innerHTML = `
+      <button class="lightbox-close" onclick="document.getElementById('lightbox').style.display='none'">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <img id="lightboxImg" class="lightbox-img">`;
+    lb.addEventListener('click', e => { if (e.target === lb) lb.style.display = 'none'; });
+    document.body.appendChild(lb);
+  }
+  document.getElementById('lightboxImg').src = src;
+  lb.style.display = 'flex';
+}
+
 let toastTimer = null;
 function showToast(msg) {
   document.querySelectorAll('.toast').forEach(t => t.remove());
@@ -1262,12 +1280,12 @@ document.getElementById('searchInputWrap').appendChild(searchInput);
 initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
 loadData();
 
-// Registrar Service Worker para PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
-}
+// Service Worker desactivado temporalmente
+// if ('serviceWorker' in navigator) {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker.register('/rubencecheff/sw.js').catch(() => {});
+//   });
+// }
 
 // Botón atrás de Android
 history.pushState({ view: 'home' }, '');
