@@ -284,7 +284,7 @@ function renderRecipeDetail() {
     </div>`).join('');
 
   const photoHtml = r.photo
-    ? `<img class="detail-img" src="${r.photo}" alt="${r.name}" onclick="openLightbox('${r.photo}')" style="cursor:zoom-in;">`
+    ? `<img class="detail-img" src="${r.photo}" alt="Foto del plato" data-src="${r.photo}" onclick="openLightbox(this.dataset.src)" style="cursor:zoom-in;">`
     : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
 
   const adminBtns = isAdmin ? `
@@ -1233,16 +1233,22 @@ function openLightbox(src) {
     lb = document.createElement('div');
     lb.id = 'lightbox';
     lb.className = 'lightbox-overlay';
+    lb.style.display = 'none';
     lb.innerHTML = `
-      <button class="lightbox-close" onclick="document.getElementById('lightbox').style.display='none'">
+      <button class="lightbox-close" onclick="closeLightbox()">
         <span class="material-symbols-outlined">close</span>
       </button>
       <img id="lightboxImg" class="lightbox-img">`;
-    lb.addEventListener('click', e => { if (e.target === lb) lb.style.display = 'none'; });
+    lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
     document.body.appendChild(lb);
   }
   document.getElementById('lightboxImg').src = src;
   lb.style.display = 'flex';
+}
+
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  if (lb) lb.style.display = 'none';
 }
 
 let toastTimer = null;
