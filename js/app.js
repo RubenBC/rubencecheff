@@ -447,7 +447,7 @@ function renderRecipeEditor() {
       ${photoSection}
       <div class="form-group">
         <div class="form-label">Nombre</div>
-        <input class="form-input" value="${r.name}" placeholder="Nombre de la receta..." autocomplete="off" data-form-type="other" data-lpignore="true" oninput="recipeEditorData.name=this.value">
+        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.innerText.trim()">${r.name}</div>
       </div>
       <div class="form-group">
         <div class="form-label">Categoría</div>
@@ -769,7 +769,7 @@ function renderProdEditor() {
     <div class="card">
       <div class="form-group">
         <div class="form-label">Nombre</div>
-        <input class="form-input" value="${p.name}" placeholder="Nombre de la producción..." autocomplete="off" data-form-type="other" data-lpignore="true" oninput="prodEditorData.name=this.value">
+        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la producción..." oninput="prodEditorData.name=this.innerText.trim()">${p.name}</div>
       </div>
       <div class="form-group">
         <div class="form-label">Categoría</div>
