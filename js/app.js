@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 const ADMIN_PASSWORD = 'chef2024';
 
-const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Postres', 'Salsas y fondos', 'Ensaladas', 'Guarniciones', 'Plato del día'];
+const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres', 'Plato del día'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -206,6 +206,21 @@ function toggleProdAllergen(id) {
 }
 
 // ═══════════════════════════════════════
+//   FORMATO CANTIDADES
+// ═══════════════════════════════════════
+function formatAmount(amount) {
+  const fractions = {
+    0.25: '¼', 0.5: '½', 0.75: '¾',
+    0.33: '⅓', 0.333: '⅓', 0.66: '⅔', 0.667: '⅔',
+    1.25: '1¼', 1.5: '1½', 1.75: '1¾',
+    2.5: '2½', 3.5: '3½',
+  };
+  if (Number.isInteger(amount)) return amount;
+  const rounded = parseFloat(amount.toFixed(3));
+  return fractions[rounded] !== undefined ? fractions[rounded] : parseFloat(amount.toFixed(2));
+}
+
+// ═══════════════════════════════════════
 //   RECETAS — LISTA
 // ═══════════════════════════════════════
 function renderRecipes() {
@@ -243,7 +258,7 @@ function renderRecipes() {
 // ═══════════════════════════════════════
 function showRecipeDetail(id) {
   currentRecipeId = id;
-  history.pushState({ view: 'recipeDetail', id }, '');
+  history.pushState({ view: 'recipeDetail', id, fromPage: currentPage }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('detailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
@@ -274,7 +289,7 @@ function renderRecipeDetail() {
   const ings = r.ingredients.map(ing =>
     `<div class="ing-row">
       <span class="ing-name">${ing.name}</span>
-      <span class="ing-amount">${ing.amount} ${ing.unit}</span>
+      <span class="ing-amount">${formatAmount(ing.amount)} ${ing.unit}</span>
     </div>`).join('');
 
   const steps = r.steps.map((s, i) =>
@@ -649,7 +664,7 @@ function renderProdDetail(fromPage) {
     const v = ing.amount * m;
     return `<div class="ing-row">
       <span class="ing-name">${ing.name}</span>
-      <span class="ing-amount">${v % 1 === 0 ? v : v.toFixed(1)} ${ing.unit}</span>
+      <span class="ing-amount">${formatAmount(v)} ${ing.unit}</span>
     </div>`;
   }).join('');
 
@@ -1328,7 +1343,7 @@ window.addEventListener('popstate', (e) => {
   }
 
   if (state.view === 'recipeDetail') {
-    if (document.getElementById('detailPage').classList.contains('active')) backTo('recipes');
+    if (document.getElementById('detailPage').classList.contains('active')) backTo(state.fromPage || 'recipes');
     return;
   }
 
