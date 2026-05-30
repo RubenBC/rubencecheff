@@ -940,7 +940,6 @@ function toggleAdmin() {
     modal.style.display = 'flex';
     modal.innerHTML = `
       <div class="modal-sheet" onclick="event.stopPropagation()">
-        <div class="modal-sheet-handle"></div>
         <div class="modal-header">
           <span class="modal-title">Acceso Administrador</span>
           <button class="modal-close" onclick="closeLoginModal()">✕</button>
