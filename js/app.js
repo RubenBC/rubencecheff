@@ -929,16 +929,49 @@ function toggleAdmin() {
     document.getElementById('addBrineBtn').style.display  = 'none';
     showToast('Sesión cerrada');
   } else {
-    document.getElementById('loginInput').value = '';
-    document.getElementById('loginError').style.display = 'none';
-    document.getElementById('loginModal').style.display = 'flex';
+    // Crear modal dinámicamente — el campo password no existe en el DOM
+    // hasta que se necesita, evitando que Android lo asocie con otros campos
+    const existing = document.getElementById('loginModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'loginModal';
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-sheet-handle"></div>
+        <div class="modal-header">
+          <span class="modal-title">Acceso Administrador</span>
+          <button class="modal-close" onclick="closeLoginModal()">✕</button>
+        </div>
+        <div style="text-align:center; padding:12px 0 20px;">
+          <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">lock</span>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Contraseña</div>
+          <input type="password" class="form-input" id="loginInput"
+            placeholder="Contraseña de administrador"
+            onkeydown="if(event.key==='Enter') doLogin()">
+        </div>
+        <p id="loginError" style="color:var(--danger); font-size:13px; display:none; margin-bottom:12px;">Contraseña incorrecta</p>
+        <button class="btn-action" onclick="doLogin()">Entrar</button>
+      </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) closeLoginModal(); });
+    document.body.appendChild(modal);
+    setTimeout(() => document.getElementById('loginInput')?.focus(), 150);
   }
+}
+
+function closeLoginModal() {
+  const modal = document.getElementById('loginModal');
+  if (modal) modal.remove();
 }
 
 function doLogin() {
   if (document.getElementById('loginInput').value === ADMIN_PASSWORD) {
     isAdmin = true;
-    closeModal('loginModal');
+    closeLoginModal();
     document.getElementById('adminBtn').innerHTML =
       `<span class="material-symbols-outlined" style="font-size:16px;">person</span> Chef
        <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
@@ -953,7 +986,8 @@ function doLogin() {
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
     if (currentPage === 'admin') renderAdmin();
   } else {
-    document.getElementById('loginError').style.display = '';
+    const err = document.getElementById('loginError');
+    if (err) err.style.display = '';
   }
 }
 
@@ -1341,7 +1375,12 @@ window.addEventListener('popstate', (e) => {
 
   // Cerrar modales abiertos primero
   const openModal = document.querySelector('.modal-overlay[style*="flex"]');
-  if (openModal) { openModal.style.display = 'none'; history.pushState({ view: 'modal' }, ''); return; }
+  if (openModal) {
+    if (openModal.id === 'loginModal') closeLoginModal();
+    else openModal.style.display = 'none';
+    history.pushState({ view: 'modal' }, '');
+    return;
+  }
 
   if (!state || state.view === 'home') {
     // Volver a la página principal
