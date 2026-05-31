@@ -157,6 +157,18 @@ function exitInnerView() {
 //   SEARCH
 // ═══════════════════════════════════════
 function onSearch() {
+  const si = document.getElementById('searchInput');
+  const btn = document.getElementById('searchClearBtn');
+  if (btn) btn.style.display = (si && si.innerText.trim()) ? 'flex' : 'none';
+  if (currentPage === 'recipes')     renderRecipes();
+  if (currentPage === 'productions') renderProductions();
+}
+
+function clearSearch() {
+  const si = document.getElementById('searchInput');
+  if (si) si.innerText = '';
+  const btn = document.getElementById('searchClearBtn');
+  if (btn) btn.style.display = 'none';
   if (currentPage === 'recipes')     renderRecipes();
   if (currentPage === 'productions') renderProductions();
 }
