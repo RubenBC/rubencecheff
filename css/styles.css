@@ -200,6 +200,7 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .form-textarea { resize: vertical; }
 .ing-edit-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
 .ing-edit-row input { padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--outline-light); font-size: 13px; font-family: 'Nunito', sans-serif; outline: none; color: var(--text); }
+.ing-edit-row .ce-input { padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--outline-light); font-size: 13px; font-family: 'Nunito', sans-serif; outline: none; color: var(--text); background: var(--surface); min-height: 36px; }
 .ing-edit-name   { flex: 2; }
 .ing-edit-amount { width: 70px; text-align: center; }
 .ing-edit-unit   { width: 58px; text-align: center; }
@@ -342,4 +343,27 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .contenteditable-input:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+/* Campos contenteditable genéricos (evitan autorelleno de Android) */
+.ce-input {
+  cursor: text;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.ce-input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text2);
+  pointer-events: none;
+}
+.ce-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Placeholder del buscador contenteditable */
+.search-contenteditable:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text2);
+  pointer-events: none;
 }
