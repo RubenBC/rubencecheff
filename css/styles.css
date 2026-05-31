@@ -39,6 +39,8 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
 ═══════════════════════════════════════ */
 .search-wrap { display: flex; align-items: center; background: var(--surface2); border-radius: 28px; padding: 8px 14px; gap: 8px; margin-bottom: 10px; }
 .search-wrap .material-symbols-outlined { color: var(--text2); font-size: 20px; }
+.search-clear { border: none; background: var(--outline-light); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0; }
+.search-clear .material-symbols-outlined { font-size: 15px; color: var(--text2); }
 .search-wrap input { border: none; background: none; outline: none; font-size: 14px; font-family: 'Nunito', sans-serif; color: var(--text); flex: 1; }
 .search-wrap input::placeholder { color: var(--text2); }
 .chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
