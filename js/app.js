@@ -224,7 +224,8 @@ function formatAmount(amount) {
 //   RECETAS — LISTA
 // ═══════════════════════════════════════
 function renderRecipes() {
-  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const si = document.getElementById('searchInput');
+  const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
   const filtered = recipes.filter(r =>
     (recipeFilter === 'Todas' || r.category === recipeFilter) &&
     r.name.toLowerCase().includes(q)
@@ -427,15 +428,15 @@ function renderRecipeEditor() {
       <input type="file" id="recipePhotoInput" accept="image/*" style="display:none;" onchange="handleRecipePhoto(event)">
       <div class="form-group" style="margin-top:8px; margin-bottom:0;">
         <div class="form-label">O pega una URL</div>
-        <input class="form-input" placeholder="https://..." value="${r.photo}" oninput="recipeEditorData.photo=this.value">
+        <div class="form-input ce-input" contenteditable="true" data-placeholder="https://..." oninput="recipeEditorData.photo=this.innerText.trim()">${r.photo}</div>
       </div>
     </div>`;
 
   const ings = r.ingredients.map((ing, i) => `
     <div class="ing-edit-row">
-      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" autocomplete="off" data-form-type="other" oninput="recipeEditorData.ingredients[${i}].name=this.value">
-      <input class="ing-edit-amount" type="number" value="${ing.amount}" autocomplete="off" data-form-type="other" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
-      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" autocomplete="off" data-form-type="other" oninput="recipeEditorData.ingredients[${i}].unit=this.value">
+      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
+      <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
+      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
       <button class="btn-remove" onclick="recipeEditorData.ingredients.splice(${i},1); renderRecipeEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -608,7 +609,8 @@ async function saveLinkProductions() {
 //   PRODUCCIONES — LISTA
 // ═══════════════════════════════════════
 function renderProductions() {
-  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const si = document.getElementById('searchInput');
+  const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
   const filtered = productions.filter(p =>
     (prodFilter === 'Todas' || p.category === prodFilter) &&
     p.name.toLowerCase().includes(q)
@@ -781,9 +783,9 @@ function renderProdEditor() {
 
   const ings = p.ingredients.map((ing, i) => `
     <div class="ing-edit-row">
-      <input class="ing-edit-name" value="${ing.name}" placeholder="Ingrediente" autocomplete="off" data-form-type="other" oninput="prodEditorData.ingredients[${i}].name=this.value">
-      <input class="ing-edit-amount" type="number" value="${ing.amount}" autocomplete="off" data-form-type="other" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.value)||0">
-      <input class="ing-edit-unit" value="${ing.unit}" placeholder="ud" autocomplete="off" data-form-type="other" oninput="prodEditorData.ingredients[${i}].unit=this.value">
+      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
+      <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
+      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
       <button class="btn-remove" onclick="prodEditorData.ingredients.splice(${i},1); renderProdEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -1061,7 +1063,7 @@ function renderAdmin() {
     <div class="card">
       ${catHtml}
       <div style="margin-top:12px; display:flex; gap:8px;">
-        <input class="form-input" id="newCatInput" placeholder="Nueva categoría..." style="flex:1;">
+        <div class="form-input ce-input" id="newCatInput" contenteditable="true" data-placeholder="Nueva categoría..." style="flex:1;"></div>
         <button class="btn-pill filled" onclick="addProdCategory()">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span>
         </button>
@@ -1078,7 +1080,7 @@ async function resolveComment(id) {
 // ─── Categorías de producción ─────────
 async function addProdCategory() {
   const input = document.getElementById('newCatInput');
-  const name = input?.value.trim();
+  const name = (input?.innerText || '').trim();
   if (!name) return;
   const newCat = { id: Date.now().toString(), name, sort_order: productionCategories.length + 1 };
   const { error } = await sb.from('production_categories').insert(newCat);
@@ -1184,16 +1186,16 @@ function openWeightModal(id) {
   editingWeightId = id;
   const w = id ? weights.find(x => x.id === id) : null;
   document.getElementById('weightModalTitle').textContent = id ? 'Editar peso' : 'Nuevo peso';
-  document.getElementById('weightName').value  = w ? w.name  : '';
-  document.getElementById('weightGrams').value = w ? w.grams : '';
-  document.getElementById('weightNotes').value = w ? (w.notes || '') : '';
+  document.getElementById('weightName').innerText  = w ? w.name  : '';
+  document.getElementById('weightGrams').innerText = w ? w.grams : '';
+  document.getElementById('weightNotes').innerText = w ? (w.notes || '') : '';
   document.getElementById('weightModal').style.display = 'flex';
 }
 
 async function saveWeight() {
-  const name  = document.getElementById('weightName').value.trim();
-  const grams = parseInt(document.getElementById('weightGrams').value);
-  const notes = document.getElementById('weightNotes').value.trim();
+  const name  = document.getElementById('weightName').innerText.trim();
+  const grams = parseInt(document.getElementById('weightGrams').innerText);
+  const notes = document.getElementById('weightNotes').innerText.trim();
   if (!name || !grams) { showToast('Nombre y gramos son obligatorios'); return; }
   const payload = { name, grams, notes };
   if (editingWeightId) {
@@ -1219,18 +1221,18 @@ function openBrineModal(id) {
   editingBrineId = id;
   const b = id ? brines.find(x => x.id === id) : null;
   document.getElementById('brineModalTitle').textContent = id ? 'Editar salmuera' : 'Nueva salmuera';
-  document.getElementById('brineName').value    = b ? b.product  : '';
+  document.getElementById('brineName').innerText    = b ? b.product  : '';
   document.getElementById('brineCategory').value = b ? b.category : 'Aves';
-  document.getElementById('brineMinutes').value = b ? b.minutes  : '';
-  document.getElementById('brineNotes').value   = b ? (b.notes || '') : '';
+  document.getElementById('brineMinutes').innerText = b ? b.minutes  : '';
+  document.getElementById('brineNotes').innerText   = b ? (b.notes || '') : '';
   document.getElementById('brineModal').style.display = 'flex';
 }
 
 async function saveBrine() {
-  const product  = document.getElementById('brineName').value.trim();
+  const product  = document.getElementById('brineName').innerText.trim();
   const category = document.getElementById('brineCategory').value;
-  const minutes  = parseInt(document.getElementById('brineMinutes').value);
-  const notes    = document.getElementById('brineNotes').value.trim();
+  const minutes  = parseInt(document.getElementById('brineMinutes').innerText);
+  const notes    = document.getElementById('brineNotes').innerText.trim();
   if (!product || !minutes) { showToast('Producto y tiempo son obligatorios'); return; }
   const payload = { product, category, minutes, notes };
   if (editingBrineId) {
@@ -1338,21 +1340,16 @@ function showToast(msg) {
 //   INIT
 // ═══════════════════════════════════════
 
-// Crear el input de búsqueda dinámicamente para evitar el gestor de contraseñas de Android
-const searchInput = document.createElement('input');
-searchInput.setAttribute('type', 'text');
+// Crear el campo de búsqueda como contenteditable para evitar el autorelleno de Android
+const searchInput = document.createElement('div');
 searchInput.setAttribute('id', 'searchInput');
-searchInput.setAttribute('placeholder', 'Buscar...');
-searchInput.setAttribute('autocomplete', 'new-password');
-searchInput.setAttribute('autocorrect', 'off');
-searchInput.setAttribute('autocapitalize', 'off');
-searchInput.setAttribute('spellcheck', 'false');
-searchInput.setAttribute('data-form-type', 'other');
-searchInput.setAttribute('data-lpignore', 'true');
-searchInput.setAttribute('data-1p-ignore', 'true');
+searchInput.setAttribute('contenteditable', 'true');
+searchInput.setAttribute('data-placeholder', 'Buscar...');
 searchInput.setAttribute('role', 'searchbox');
-searchInput.setAttribute('aria-autocomplete', 'none');
-searchInput.style.cssText = 'border:none;background:none;outline:none;font-size:14px;font-family:Nunito,sans-serif;color:var(--text);flex:1;width:100%;';
+searchInput.className = 'search-contenteditable';
+searchInput.style.cssText = 'border:none;background:none;outline:none;font-size:14px;font-family:Nunito,sans-serif;color:var(--text);flex:1;width:100%;min-height:20px;';
+// Helper para leer el texto de búsqueda
+searchInput.getValue = function() { return this.innerText.trim(); };
 searchInput.addEventListener('input', onSearch);
 document.getElementById('searchInputWrap').appendChild(searchInput);
 
