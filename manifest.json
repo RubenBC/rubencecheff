@@ -1,6 +1,6 @@
 {
-  "name": "ChefBook",
-  "short_name": "ChefBook",
+  "name": "RubenceChef",
+  "short_name": "RubenceChef",
   "description": "Hotel Kitchen Pro - Recetas y producciones",
   "start_url": "./index.html",
   "scope": "./",
