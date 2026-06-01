@@ -369,3 +369,37 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
   color: var(--text2);
   pointer-events: none;
 }
+
+/* ═══════════════════════════════════════
+   BUSCADOR GLOBAL — DESPLEGABLE
+═══════════════════════════════════════ */
+.search-dropdown {
+  background: var(--surface);
+  border: 1px solid var(--outline-light);
+  border-radius: 16px;
+  margin-bottom: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+.search-dropdown-section {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text2);
+  padding: 10px 14px 4px;
+}
+.search-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--outline-light);
+}
+.search-dropdown-item:last-child { border-bottom: none; }
+.search-dropdown-item:active { background: var(--surface2); }
+.search-dropdown-info { display: flex; flex-direction: column; gap: 3px; }
+.search-dropdown-name { font-size: 14px; font-weight: 700; }
+.search-dropdown-empty { padding: 16px; text-align: center; color: var(--text2); font-size: 13px; }
