@@ -137,7 +137,10 @@ function showPage(page, btn) {
 
   const isRecipes = page === 'recipes';
   const isProd    = page === 'productions';
-  document.getElementById('searchSection').style.display = (isRecipes || isProd) ? '' : 'none';
+  // El buscador global siempre visible
+  document.getElementById('searchSection').style.display = '';
+  // Los chips de categoría solo en platos y producciones
+  document.getElementById('chipsRow').style.display = (isRecipes || isProd) ? '' : 'none';
   document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
   document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
 
@@ -159,9 +162,62 @@ function exitInnerView() {
 function onSearch() {
   const si = document.getElementById('searchInput');
   const btn = document.getElementById('searchClearBtn');
-  if (btn) btn.style.display = (si && si.innerText.trim()) ? 'flex' : 'none';
+  const q = (si ? si.innerText : '').trim().toLowerCase();
+  if (btn) btn.style.display = q ? 'flex' : 'none';
+
+  // Filtrado inline de la lista actual (platos/producciones)
   if (currentPage === 'recipes')     renderRecipes();
   if (currentPage === 'productions') renderProductions();
+
+  // Búsqueda global en desplegable
+  renderSearchDropdown(q);
+}
+
+function renderSearchDropdown(q) {
+  const dd = document.getElementById('searchDropdown');
+  if (!dd) return;
+  if (!q) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
+
+  const matchedRecipes = recipes.filter(r => r.name.toLowerCase().includes(q));
+  const matchedProds   = productions.filter(p => p.name.toLowerCase().includes(q));
+
+  if (matchedRecipes.length === 0 && matchedProds.length === 0) {
+    dd.innerHTML = `<div class="search-dropdown-empty">Sin resultados para "${q}"</div>`;
+    dd.style.display = 'block';
+    return;
+  }
+
+  let html = '';
+  if (matchedRecipes.length > 0) {
+    html += `<div class="search-dropdown-section">Platos</div>`;
+    html += matchedRecipes.map(r => `
+      <div class="search-dropdown-item" onclick="goToSearchResult('recipe','${r.id}')">
+        <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">menu_book</span>
+        <div class="search-dropdown-info">
+          <div class="search-dropdown-name">${r.name}</div>
+          <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${r.category}</span>
+        </div>
+      </div>`).join('');
+  }
+  if (matchedProds.length > 0) {
+    html += `<div class="search-dropdown-section">Producciones</div>`;
+    html += matchedProds.map(p => `
+      <div class="search-dropdown-item" onclick="goToSearchResult('production','${p.id}')">
+        <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">blender</span>
+        <div class="search-dropdown-info">
+          <div class="search-dropdown-name">${p.name}</div>
+          <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+        </div>
+      </div>`).join('');
+  }
+  dd.innerHTML = html;
+  dd.style.display = 'block';
+}
+
+function goToSearchResult(type, id) {
+  clearSearch();
+  if (type === 'recipe') showRecipeDetail(id);
+  else showProdDetail(id);
 }
 
 function clearSearch() {
@@ -169,6 +225,8 @@ function clearSearch() {
   if (si) si.innerText = '';
   const btn = document.getElementById('searchClearBtn');
   if (btn) btn.style.display = 'none';
+  const dd = document.getElementById('searchDropdown');
+  if (dd) { dd.style.display = 'none'; dd.innerHTML = ''; }
   if (currentPage === 'recipes')     renderRecipes();
   if (currentPage === 'productions') renderProductions();
 }
