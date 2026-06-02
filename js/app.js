@@ -52,6 +52,7 @@ let brines               = [];
 let productionCategories = [];
 let isAdmin     = false;
 let currentPage = 'recipes';
+let savedScroll = {};
 
 // Recetas
 let recipeFilter       = 'Todas';
@@ -277,13 +278,21 @@ function toggleProdAllergen(id) {
 // ═══════════════════════════════════════
 //   FORMATO CANTIDADES
 // ═══════════════════════════════════════
-function moveItem(arr, index, dir, rerender) {
-  const newIndex = index + dir;
-  if (newIndex < 0 || newIndex >= arr.length) return;
-  const tmp = arr[index];
-  arr[index] = arr[newIndex];
-  arr[newIndex] = tmp;
-  if (rerender) rerender();
+function initSortable(containerId, arr, rerender) {
+  const el = document.getElementById(containerId);
+  if (!el || typeof Sortable === 'undefined') return;
+  Sortable.create(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    delay: 120,
+    delayOnTouchOnly: true,
+    onEnd: (evt) => {
+      if (evt.oldIndex === evt.newIndex) return;
+      const item = arr.splice(evt.oldIndex, 1)[0];
+      arr.splice(evt.newIndex, 0, item);
+      rerender();
+    }
+  });
 }
 
 function formatAmount(amount) {
@@ -307,17 +316,23 @@ function renderRecipes() {
   const filtered = recipes.filter(r =>
     (recipeFilter === 'Todas' || r.category === recipeFilter) &&
     r.name.toLowerCase().includes(q)
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('recipeList');
   if (!list) return;
 
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">search_off</span>No se encontraron recetas</div>`;
+    let msg;
+    if (recipes.length === 0) msg = 'Aún no hay platos creados';
+    else if (q) msg = `Ningún plato coincide con "${q}"`;
+    else msg = `No hay platos en "${recipeFilter}"`;
+    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">restaurant</span>${msg}</div>`;
     return;
   }
 
-  list.innerHTML = filtered.map(r => `
+  list.innerHTML = filtered.map(r => {
+    const numProds = recipeProductions.filter(rp => rp.recipe_id === r.id).length;
+    return `
     <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
       ${r.photo
         ? `<img class="recipe-card-img" src="${r.photo}" alt="${r.name}" loading="lazy">`
@@ -328,14 +343,17 @@ function renderRecipes() {
         </div>
         <h3>${r.name}</h3>
         <p>${r.description}</p>
+        ${numProds > 0 ? `<div class="recipe-card-footer"><span><span class="material-symbols-outlined">blender</span>${numProds} ${numProds === 1 ? 'producción' : 'producciones'}</span></div>` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════
 //   RECETAS — DETALLE
 // ═══════════════════════════════════════
 function showRecipeDetail(id) {
+  savedScroll[currentPage] = window.scrollY;
   currentRecipeId = id;
   history.pushState({ view: 'recipeDetail', id, fromPage: currentPage }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -343,6 +361,7 @@ function showRecipeDetail(id) {
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
   document.getElementById('mainNav').style.display = 'none';
+  window.scrollTo(0, 0);
   renderRecipeDetail();
 }
 
@@ -469,6 +488,9 @@ function backTo(page) {
     const cats = ['Todas', ...productionCategories.map(c => c.name)];
     initChips(cats, prodFilter, setProdFilter);
   }
+  // Restaurar la posición de scroll donde estaba el usuario
+  const y = savedScroll[page] || 0;
+  requestAnimationFrame(() => window.scrollTo(0, y));
 }
 
 // ═══════════════════════════════════════
@@ -522,11 +544,8 @@ function renderRecipeEditor() {
     </div>`;
 
   const ings = r.ingredients.map((ing, i) => `
-    <div class="ing-edit-row">
-      <div class="reorder-btns">
-        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.ingredients,${i},-1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
-        <button class="reorder-btn" ${i === r.ingredients.length - 1 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.ingredients,${i},1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
-      </div>
+    <div class="ing-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
       <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
       <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
       <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
@@ -536,13 +555,10 @@ function renderRecipeEditor() {
     </div>`).join('');
 
   const stps = r.steps.map((s, i) => `
-    <div class="step-edit-row">
+    <div class="step-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
       <div class="step-edit-num">${i + 1}</div>
       <textarea rows="2" oninput="recipeEditorData.steps[${i}]=this.value">${s}</textarea>
-      <div class="reorder-btns">
-        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.steps,${i},-1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
-        <button class="reorder-btn" ${i === r.steps.length - 1 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.steps,${i},1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
-      </div>
       <button class="btn-remove" onclick="recipeEditorData.steps.splice(${i},1); renderRecipeEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -600,6 +616,9 @@ function renderRecipeEditor() {
       </div>
       <div id="recipeStepList">${stps}</div>
     </div>`;
+
+  initSortable('recipeIngList', recipeEditorData.ingredients, renderRecipeEditor);
+  initSortable('recipeStepList', recipeEditorData.steps, renderRecipeEditor);
 }
 
 async function handleRecipePhoto(event) {
@@ -657,10 +676,13 @@ async function deleteRecipe(id) {
 // ═══════════════════════════════════════
 function openLinkModal(recipeId) {
   linkingRecipeId = recipeId;
+  document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
+  document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
   selectedProdIds = recipeProductions.filter(rp => rp.recipe_id === recipeId).map(rp => rp.production_id);
-  document.getElementById('linkProductionList').innerHTML = productions.length === 0
+  const sortedProds = [...productions].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  document.getElementById('linkProductionList').innerHTML = sortedProds.length === 0
     ? '<p style="color:var(--text2); font-size:13px;">No hay producciones creadas aún.</p>'
-    : productions.map(p => `
+    : sortedProds.map(p => `
         <div class="link-prod-row" onclick="toggleProdLink('${p.id}', this)">
           <div>
             <div style="font-size:14px; font-weight:600;">${p.name}</div>
@@ -720,6 +742,72 @@ async function moveLinkedProd(recipeId, idx, dir) {
   renderRecipeDetail();
 }
 
+// ─── Vincular platos desde una producción ───
+let linkingProdId = null;
+let selectedRecipeIds = [];
+
+function openLinkRecipesModal(prodId) {
+  linkingProdId = prodId;
+  selectedRecipeIds = recipeProductions.filter(rp => rp.production_id === prodId).map(rp => rp.recipe_id);
+  const sortedRecipes = [...recipes].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  document.getElementById('linkProductionList').innerHTML = sortedRecipes.length === 0
+    ? '<p style="color:var(--text2); font-size:13px;">No hay platos creados aún.</p>'
+    : sortedRecipes.map(r => `
+        <div class="link-prod-row" onclick="toggleRecipeLink('${r.id}', this)">
+          <div>
+            <div style="font-size:14px; font-weight:600;">${r.name}</div>
+            <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${r.category}</span>
+          </div>
+          <span class="material-symbols-outlined check-icon" style="color:${selectedRecipeIds.includes(r.id) ? 'var(--primary)' : 'var(--outline-light)'};">
+            ${selectedRecipeIds.includes(r.id) ? 'check_circle' : 'radio_button_unchecked'}
+          </span>
+        </div>`).join('');
+  // Cambiar título y acción del modal
+  document.querySelector('#linkModal .modal-title').textContent = 'Vincular platos';
+  document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkRecipes()');
+  document.getElementById('linkModal').style.display = 'flex';
+}
+
+function toggleRecipeLink(recipeId, row) {
+  if (selectedRecipeIds.includes(recipeId)) {
+    selectedRecipeIds = selectedRecipeIds.filter(id => id !== recipeId);
+  } else {
+    selectedRecipeIds.push(recipeId);
+  }
+  const icon = row.querySelector('.check-icon');
+  icon.textContent = selectedRecipeIds.includes(recipeId) ? 'check_circle' : 'radio_button_unchecked';
+  icon.style.color = selectedRecipeIds.includes(recipeId) ? 'var(--primary)' : 'var(--outline-light)';
+}
+
+async function saveLinkRecipes() {
+  // Para cada plato seleccionado, añadir el vínculo si no existe.
+  // Para los deseleccionados, quitarlo.
+  const currentlyLinked = recipeProductions.filter(rp => rp.production_id === linkingProdId).map(rp => rp.recipe_id);
+
+  // Añadir nuevos
+  for (const rid of selectedRecipeIds) {
+    if (!currentlyLinked.includes(rid)) {
+      const order = recipeProductions.filter(rp => rp.recipe_id === rid).length;
+      const row = { id: `${rid}_${linkingProdId}`, recipe_id: rid, production_id: linkingProdId, sort_order: order };
+      await sb.from('recipe_productions').insert(row);
+      recipeProductions.push(row);
+    }
+  }
+  // Quitar los deseleccionados
+  for (const rid of currentlyLinked) {
+    if (!selectedRecipeIds.includes(rid)) {
+      await sb.from('recipe_productions').delete().eq('id', `${rid}_${linkingProdId}`);
+      recipeProductions = recipeProductions.filter(rp => rp.id !== `${rid}_${linkingProdId}`);
+    }
+  }
+  // Restaurar el modal a su estado original (vincular producciones)
+  document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
+  document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
+  closeModal('linkModal');
+  showToast('Platos vinculados ✓');
+  renderProdDetail(currentPage);
+}
+
 // ═══════════════════════════════════════
 //   PRODUCCIONES — LISTA
 // ═══════════════════════════════════════
@@ -729,13 +817,17 @@ function renderProductions() {
   const filtered = productions.filter(p =>
     (prodFilter === 'Todas' || p.category === prodFilter) &&
     p.name.toLowerCase().includes(q)
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('productionList');
   if (!list) return;
 
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">search_off</span>No se encontraron producciones</div>`;
+    let msg;
+    if (productions.length === 0) msg = 'Aún no hay producciones creadas';
+    else if (q) msg = `Ninguna producción coincide con "${q}"`;
+    else msg = `No hay producciones en "${prodFilter}"`;
+    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">blender</span>${msg}</div>`;
     return;
   }
 
@@ -755,6 +847,7 @@ function renderProductions() {
 //   PRODUCCIONES — DETALLE
 // ═══════════════════════════════════════
 function showProdDetail(id) {
+  savedScroll[currentPage] = window.scrollY;
   currentProdId = id;
   currentMultiplier = 1;
   const fromPage = currentPage;
@@ -765,6 +858,7 @@ function showProdDetail(id) {
   document.getElementById('adminAddProductionRow').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
   document.getElementById('mainNav').style.display = 'none';
+  window.scrollTo(0, 0);
   renderProdDetail(fromPage);
 }
 
@@ -794,6 +888,9 @@ function renderProdDetail(fromPage) {
   const adminBtns = isAdmin ? `
     <button class="btn-pill" onclick="openEditProduction()">
       <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Editar
+    </button>
+    <button class="btn-pill" onclick="openLinkRecipesModal('${p.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">link</span> Vincular plato
     </button>
     <button class="btn-pill danger" onclick="deleteProduction('${p.id}')">
       <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
@@ -846,7 +943,8 @@ function renderProdDetail(fromPage) {
       <div class="section-title"><span class="material-symbols-outlined">menu_book</span> Platos que la usan</div>
       ${(() => {
         const linkedRecipeIds = recipeProductions.filter(rp => rp.production_id === p.id).map(rp => rp.recipe_id);
-        const linkedRecipes = recipes.filter(r => linkedRecipeIds.includes(r.id));
+        const linkedRecipes = recipes.filter(r => linkedRecipeIds.includes(r.id))
+          .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
         return linkedRecipes.length > 0
           ? linkedRecipes.map(r => `
               <div class="prod-link-row" onclick="goToRecipeFromProd('${r.id}')">
@@ -897,11 +995,8 @@ function renderProdEditor() {
   const isNew = prodEditorMode === 'add';
 
   const ings = p.ingredients.map((ing, i) => `
-    <div class="ing-edit-row">
-      <div class="reorder-btns">
-        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(prodEditorData.ingredients,${i},-1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
-        <button class="reorder-btn" ${i === p.ingredients.length - 1 ? 'disabled' : ''} onclick="moveItem(prodEditorData.ingredients,${i},1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
-      </div>
+    <div class="ing-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
       <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
       <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
       <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
@@ -911,13 +1006,10 @@ function renderProdEditor() {
     </div>`).join('');
 
   const stps = p.steps.map((s, i) => `
-    <div class="step-edit-row">
+    <div class="step-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
       <div class="step-edit-num">${i + 1}</div>
       <textarea rows="2" oninput="prodEditorData.steps[${i}]=this.value">${s}</textarea>
-      <div class="reorder-btns">
-        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(prodEditorData.steps,${i},-1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
-        <button class="reorder-btn" ${i === p.steps.length - 1 ? 'disabled' : ''} onclick="moveItem(prodEditorData.steps,${i},1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
-      </div>
       <button class="btn-remove" onclick="prodEditorData.steps.splice(${i},1); renderProdEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -959,7 +1051,7 @@ function renderProdEditor() {
           <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
         </button>
       </div>
-      <div>${ings}</div>
+      <div id="prodIngList">${ings}</div>
     </div>
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -968,8 +1060,11 @@ function renderProdEditor() {
           <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
         </button>
       </div>
-      <div>${stps}</div>
+      <div id="prodStepList">${stps}</div>
     </div>`;
+
+  initSortable('prodIngList', prodEditorData.ingredients, renderProdEditor);
+  initSortable('prodStepList', prodEditorData.steps, renderProdEditor);
 }
 
 async function saveProduction() {
