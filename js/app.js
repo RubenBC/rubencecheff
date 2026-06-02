@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 const ADMIN_PASSWORD = 'chef2024';
 
-const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres', 'Plato del día'];
+const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -21,9 +21,7 @@ const CAT_TAG = {
   'Salsas y fondos': 'tag-salsas',
   'Ensaladas':       'tag-ensaladas',
   'Guarniciones':    'tag-guarniciones',
-  'Plato del día':   'tag-plato',
   'Sopas y salsas':  'tag-salsas',
-  'Carnes':          'tag-carnes',
   'Vegetariano':     'tag-vegetariano',
   'Coulis':          'tag-coulis',
   'Vinagreta':       'tag-vinagreta',
@@ -278,6 +276,15 @@ function toggleProdAllergen(id) {
 // ═══════════════════════════════════════
 //   FORMATO CANTIDADES
 // ═══════════════════════════════════════
+function moveItem(arr, index, dir, rerender) {
+  const newIndex = index + dir;
+  if (newIndex < 0 || newIndex >= arr.length) return;
+  const tmp = arr[index];
+  arr[index] = arr[newIndex];
+  arr[newIndex] = tmp;
+  if (rerender) rerender();
+}
+
 function formatAmount(amount) {
   const fractions = {
     0.25: '¼', 0.5: '½', 0.75: '¾',
@@ -342,18 +349,28 @@ function renderRecipeDetail() {
   const r = recipes.find(x => x.id === currentRecipeId);
   if (!r) return;
 
-  // Producciones vinculadas
-  const linkedIds = recipeProductions.filter(rp => rp.recipe_id === r.id).map(rp => rp.production_id);
-  const linkedProds = productions.filter(p => linkedIds.includes(p.id));
+  // Producciones vinculadas (ordenadas por sort_order)
+  const linkedRels = recipeProductions
+    .filter(rp => rp.recipe_id === r.id)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const linkedProds = linkedRels
+    .map(rel => productions.find(p => p.id === rel.production_id))
+    .filter(Boolean);
 
   const prodsHtml = linkedProds.length > 0
-    ? linkedProds.map(p => `
-        <div class="prod-link-row" onclick="showProdDetail('${p.id}')">
-          <div>
-            <div class="prod-link-name">${p.name}</div>
-            <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+    ? linkedProds.map((p, idx) => `
+        <div class="prod-link-row">
+          <div style="flex:1; display:flex; align-items:center; gap:8px;" onclick="showProdDetail('${p.id}')">
+            ${isAdmin ? `<div class="reorder-btns">
+              <button class="reorder-btn" ${idx === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); moveLinkedProd('${r.id}',${idx},-1)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
+              <button class="reorder-btn" ${idx === linkedProds.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); moveLinkedProd('${r.id}',${idx},1)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
+            </div>` : ''}
+            <div>
+              <div class="prod-link-name">${p.name}</div>
+              <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+            </div>
           </div>
-          <span class="material-symbols-outlined" style="color:var(--outline);">chevron_right</span>
+          <span class="material-symbols-outlined" style="color:var(--outline);" onclick="showProdDetail('${p.id}')">chevron_right</span>
         </div>`).join('')
     : `<p style="font-size:13px; color:var(--text2); padding:8px 0;">Sin producciones vinculadas</p>`;
 
@@ -448,7 +465,8 @@ function backTo(page) {
   }
   if (page === 'productions') {
     document.getElementById('adminAddProductionRow').style.display = isAdmin ? '' : 'none';
-    initChips(PROD_CATEGORIES, prodFilter, setProdFilter);
+    const cats = ['Todas', ...productionCategories.map(c => c.name)];
+    initChips(cats, prodFilter, setProdFilter);
   }
 }
 
@@ -504,6 +522,10 @@ function renderRecipeEditor() {
 
   const ings = r.ingredients.map((ing, i) => `
     <div class="ing-edit-row">
+      <div class="reorder-btns">
+        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.ingredients,${i},-1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
+        <button class="reorder-btn" ${i === r.ingredients.length - 1 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.ingredients,${i},1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
+      </div>
       <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
       <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
       <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
@@ -516,6 +538,10 @@ function renderRecipeEditor() {
     <div class="step-edit-row">
       <div class="step-edit-num">${i + 1}</div>
       <textarea rows="2" oninput="recipeEditorData.steps[${i}]=this.value">${s}</textarea>
+      <div class="reorder-btns">
+        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.steps,${i},-1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
+        <button class="reorder-btn" ${i === r.steps.length - 1 ? 'disabled' : ''} onclick="moveItem(recipeEditorData.steps,${i},1,renderRecipeEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
+      </div>
       <button class="btn-remove" onclick="recipeEditorData.steps.splice(${i},1); renderRecipeEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -672,6 +698,24 @@ async function saveLinkProductions() {
   selectedProdIds.forEach((pid, i) => recipeProductions.push({ id: `${linkingRecipeId}_${pid}`, recipe_id: linkingRecipeId, production_id: pid, sort_order: i }));
   closeModal('linkModal');
   showToast('Producciones vinculadas ✓');
+  renderRecipeDetail();
+}
+
+async function moveLinkedProd(recipeId, idx, dir) {
+  const rels = recipeProductions
+    .filter(rp => rp.recipe_id === recipeId)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= rels.length) return;
+  // Intercambiar
+  const tmp = rels[idx];
+  rels[idx] = rels[newIdx];
+  rels[newIdx] = tmp;
+  // Reasignar sort_order y guardar
+  for (let i = 0; i < rels.length; i++) {
+    rels[i].sort_order = i;
+    await sb.from('recipe_productions').update({ sort_order: i }).eq('id', rels[i].id);
+  }
   renderRecipeDetail();
 }
 
@@ -853,6 +897,10 @@ function renderProdEditor() {
 
   const ings = p.ingredients.map((ing, i) => `
     <div class="ing-edit-row">
+      <div class="reorder-btns">
+        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(prodEditorData.ingredients,${i},-1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
+        <button class="reorder-btn" ${i === p.ingredients.length - 1 ? 'disabled' : ''} onclick="moveItem(prodEditorData.ingredients,${i},1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
+      </div>
       <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
       <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
       <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
@@ -865,6 +913,10 @@ function renderProdEditor() {
     <div class="step-edit-row">
       <div class="step-edit-num">${i + 1}</div>
       <textarea rows="2" oninput="prodEditorData.steps[${i}]=this.value">${s}</textarea>
+      <div class="reorder-btns">
+        <button class="reorder-btn" ${i === 0 ? 'disabled' : ''} onclick="moveItem(prodEditorData.steps,${i},-1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
+        <button class="reorder-btn" ${i === p.steps.length - 1 ? 'disabled' : ''} onclick="moveItem(prodEditorData.steps,${i},1,renderProdEditor)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
+      </div>
       <button class="btn-remove" onclick="prodEditorData.steps.splice(${i},1); renderProdEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -1372,6 +1424,28 @@ function updateConverter() {
 // ═══════════════════════════════════════
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+// ═══════════════════════════════════════
+//   MODO OSCURO
+// ═══════════════════════════════════════
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  try { localStorage.setItem('rubencechef-theme', isDark ? 'dark' : 'light'); } catch(e) {}
+  updateThemeIcon(isDark);
+}
+
+function updateThemeIcon(isDark) {
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.querySelector('.material-symbols-outlined').textContent = isDark ? 'light_mode' : 'dark_mode';
+}
+
+function initTheme() {
+  let saved = 'light';
+  try { saved = localStorage.getItem('rubencechef-theme') || 'light'; } catch(e) {}
+  const isDark = saved === 'dark';
+  if (isDark) document.body.classList.add('dark');
+  updateThemeIcon(isDark);
+}
+
 function openLightbox(src) {
   let lb = document.getElementById('lightbox');
   if (!lb) {
@@ -1409,6 +1483,7 @@ function showToast(msg) {
 // ═══════════════════════════════════════
 //   INIT
 // ═══════════════════════════════════════
+initTheme();
 
 // Crear el campo de búsqueda como contenteditable para evitar el autorelleno de Android
 const searchInput = document.createElement('div');
