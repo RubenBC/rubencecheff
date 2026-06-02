@@ -452,3 +452,22 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
 }
 .reorder-btn:disabled { opacity: 0.3; cursor: default; }
 .reorder-btn .material-symbols-outlined { font-size: 16px; }
+
+/* ═══════════════════════════════════════
+   ARRASTRAR PARA REORDENAR
+═══════════════════════════════════════ */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--outline);
+  flex-shrink: 0;
+  touch-action: none;
+  padding: 2px;
+}
+.drag-handle:active { cursor: grabbing; }
+.drag-handle .material-symbols-outlined { font-size: 20px; }
+.sortable-ghost { opacity: 0.4; background: var(--primary-container); border-radius: 10px; }
+.sortable-chosen { background: var(--surface2); border-radius: 10px; }
+.step-edit-row .drag-handle { margin-top: 6px; align-self: flex-start; }
