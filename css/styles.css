@@ -16,6 +16,20 @@
   --shape-full:        999px;
 }
 
+body.dark {
+  --primary:           #4FD8D8;
+  --primary-container: #00504F;
+  --bg:                #0E1514;
+  --surface:           #1A2322;
+  --surface2:          #2A3433;
+  --text:              #E0E3E2;
+  --text2:             #A8B3B2;
+  --outline:           #8A9594;
+  --outline-light:     #3A4443;
+  --danger:            #FFB4AB;
+  --danger-light:      #5C1A16;
+}
+
 /* ═══════════════════════════════════════
    RESET
 ═══════════════════════════════════════ */
@@ -403,3 +417,38 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .search-dropdown-info { display: flex; flex-direction: column; gap: 3px; }
 .search-dropdown-name { font-size: 14px; font-weight: 700; }
 .search-dropdown-empty { padding: 16px; text-align: center; color: var(--text2); font-size: 13px; }
+
+/* ═══════════════════════════════════════
+   MODO OSCURO — AJUSTES
+═══════════════════════════════════════ */
+body.dark .topbar { background: rgba(26,35,34,0.92); }
+body.dark .bottom-nav { background: rgba(26,35,34,0.94); }
+body.dark .modal-sheet { background: var(--surface); }
+body.dark .search-dropdown { background: var(--surface); }
+body.dark .recipe-card-img-placeholder,
+body.dark .detail-img-placeholder { background: var(--surface2); }
+
+/* ═══════════════════════════════════════
+   BOTONES REORDENAR
+═══════════════════════════════════════ */
+.reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+.reorder-btn {
+  border: none;
+  background: var(--surface2);
+  border-radius: 6px;
+  width: 26px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  color: var(--primary);
+}
+.reorder-btn:disabled { opacity: 0.3; cursor: default; }
+.reorder-btn .material-symbols-outlined { font-size: 16px; }
