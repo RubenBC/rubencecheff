@@ -110,6 +110,7 @@ async function loadData() {
 
     renderRecipes();
     updateBadges();
+    restoreAdminSession();
 
   } catch (err) {
     console.error('Error cargando datos:', err);
@@ -1046,6 +1047,7 @@ async function sendComment() {
 function toggleAdmin() {
   if (isAdmin) {
     isAdmin = false;
+    try { localStorage.removeItem('rubencechef-admin'); } catch(e) {}
     document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
     document.getElementById('adminAddRecipeRow').style.display    = 'none';
     document.getElementById('adminAddProductionRow').style.display = 'none';
@@ -1094,16 +1096,9 @@ function closeLoginModal() {
 function doLogin() {
   if (document.getElementById('loginInput').value === ADMIN_PASSWORD) {
     isAdmin = true;
+    try { localStorage.setItem('rubencechef-admin', '1'); } catch(e) {}
     closeLoginModal();
-    document.getElementById('adminBtn').innerHTML =
-      `<span class="material-symbols-outlined" style="font-size:16px;">person</span> Chef
-       <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
-    if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
-    if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
-    if (currentPage === 'fichas') {
-      document.getElementById('addWeightBtn').style.display = '';
-      document.getElementById('addBrineBtn').style.display  = '';
-    }
+    activateAdminUI();
     showToast('Bienvenido, Chef 👨‍🍳');
     if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
@@ -1111,6 +1106,27 @@ function doLogin() {
   } else {
     const err = document.getElementById('loginError');
     if (err) err.style.display = '';
+  }
+}
+
+function activateAdminUI() {
+  document.getElementById('adminBtn').innerHTML =
+    `<span class="material-symbols-outlined" style="font-size:16px;">person</span> Chef
+     <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
+  if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
+  if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
+  if (currentPage === 'fichas') {
+    document.getElementById('addWeightBtn').style.display = '';
+    document.getElementById('addBrineBtn').style.display  = '';
+  }
+}
+
+function restoreAdminSession() {
+  let saved = false;
+  try { saved = localStorage.getItem('rubencechef-admin') === '1'; } catch(e) {}
+  if (saved) {
+    isAdmin = true;
+    activateAdminUI();
   }
 }
 
