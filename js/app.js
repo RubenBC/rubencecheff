@@ -61,6 +61,22 @@ function normalizeText(s) {
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 }
 
+// Coletillas de cantidad que a veces se escriben dentro del nombre del
+// ingrediente. Se quitan SOLO para la lista de pedidos (no tocan la receta).
+const AMOUNT_NOTE_PHRASES = ['a ojo', 'al gusto', 'cantidad suficiente', 'c/s', 'qb', 'a discrecion', 'a discreción', 'a demanda', 'to taste'];
+function cleanIngredientName(raw) {
+  let s = (raw || '').toString();
+  AMOUNT_NOTE_PHRASES.forEach(p => {
+    const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    s = s.replace(new RegExp('\\(?\\s*\\b' + esc + '\\b\\s*\\)?', 'gi'), ' ');
+  });
+  return s
+    .replace(/\(\s*\)/g, ' ')        // paréntesis vacíos
+    .replace(/\s{2,}/g, ' ')         // espacios dobles
+    .replace(/^[\s,;:.\-–]+|[\s,;:.\-–]+$/g, '') // separadores colgando
+    .trim();
+}
+
 // Clasifica una materia prima en un grupo. Prioridad: asignación manual
 // guardada > diccionario por palabra clave > "Otros / Sin asignar".
 function classifyIngredient(name) {
@@ -89,6 +105,8 @@ let orderItems = [];        // filas de la tabla order_items (estado guardado)
 let orderState = {};        // key normalizada -> { name, supplier_group, checked, comment }
 let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos'
 let pedidosSearch = '';
+let pedidosEdit   = false;  // modo edición de la lista de pedidos
+let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
 let _pedidosIndex = [];     // ítems de la lista en el render actual (para los onclick)
 let isAdmin     = false;
 let currentPage = 'recipes';
@@ -160,6 +178,11 @@ async function loadData() {
       console.warn('order_items no disponible (¿falta crear la tabla?):', e?.message || e);
       orderItems = [];
     }
+    // ¿Están las columnas para editar la lista (hidden/manual/display_name)?
+    try {
+      const { error: cErr } = await sb.from('order_items').select('hidden,manual,display_name').limit(1);
+      orderEditCols = !cErr;
+    } catch (e) { orderEditCols = false; }
     rebuildOrderState();
 
     renderRecipes();
@@ -1546,7 +1569,7 @@ function escAttr(s) {
     .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Reconstruye el estado guardado (check/comentario/grupo) por materia prima.
+// Reconstruye el estado guardado (check/comentario/grupo/edición) por materia prima.
 function rebuildOrderState() {
   orderState = {};
   (orderItems || []).forEach(it => {
@@ -1557,23 +1580,57 @@ function rebuildOrderState() {
       supplier_group: it.supplier_group || null,
       checked: !!it.checked,
       comment: it.comment || '',
+      hidden: !!it.hidden,
+      manual: !!it.manual,
+      display_name: it.display_name || null,
     };
   });
 }
 
-// Lista de materias primas en vivo desde ingredientes de recetas + producciones.
+// Lista de materias primas en vivo desde ingredientes de recetas + producciones,
+// más los nombres de pesos de ración y de salmueras.
 function buildMateriasPrimas() {
   const map = {}; // key normalizada -> nombre a mostrar
-  const add = (arr) => (arr || []).forEach(e => (e.ingredients || []).forEach(ing => {
-    const raw = (ing.name || '').trim();
-    if (!raw) return;
-    const key = normalizeText(raw);
+  const addName = (raw) => {
+    const cleaned = cleanIngredientName(raw);
+    if (!cleaned) return;
+    const key = normalizeText(cleaned);
     if (!key || map[key]) return;
-    map[key] = raw.charAt(0).toUpperCase() + raw.slice(1);
-  }));
-  add(recipes);
-  add(productions);
+    map[key] = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  };
+  const addIngredients = (arr) => (arr || []).forEach(e => (e.ingredients || []).forEach(ing => addName(ing.name)));
+  addIngredients(recipes);
+  addIngredients(productions);
+  (weights || []).forEach(w => addName(w.name));     // pesos de ración
+  (brines  || []).forEach(b => addName(b.product));  // salmueras
   return map;
+}
+
+// Combina las materias primas derivadas con los ítems manuales y aplica
+// renombrados y ocultaciones guardadas. Devuelve { entries, hiddenCount }.
+function buildPedidoEntries() {
+  const derived = buildMateriasPrimas();
+  const keys = new Set(Object.keys(derived));
+  Object.keys(orderState).forEach(k => { if (orderState[k].manual) keys.add(k); });
+
+  const entries = [];
+  let hiddenCount = 0;
+  keys.forEach(key => {
+    const st = orderState[key] || {};
+    const baseDisplay = derived[key] || st.name || key;
+    const display = st.display_name || baseDisplay;
+    if (st.hidden) {
+      hiddenCount++;
+      if (!pedidosEdit) return; // ocultos solo se ven en modo edición
+    }
+    entries.push({
+      key, display,
+      group: st.supplier_group || classifyIngredient(display),
+      checked: !!st.checked, comment: st.comment || '',
+      manual: !!st.manual, hidden: !!st.hidden,
+    });
+  });
+  return { entries, hiddenCount };
 }
 
 function renderPedidos() {
@@ -1589,10 +1646,14 @@ function renderPedidos() {
         <span class="material-symbols-outlined">search</span>
         <input type="text" id="pedSearchInput" placeholder="Buscar materia prima…" oninput="onPedidosSearch(this.value)">
       </div>
+      ${orderEditCols ? `<button class="btn-pill ${pedidosEdit ? '' : 'ghost'}" id="pedEditBtn" onclick="setPedidosEdit(${!pedidosEdit})">
+        <span class="material-symbols-outlined" style="font-size:15px;">${pedidosEdit ? 'done' : 'edit'}</span> ${pedidosEdit ? 'Listo' : 'Editar'}
+      </button>` : ''}
       <button class="btn-pill ghost" onclick="resetPedidos()">
         <span class="material-symbols-outlined" style="font-size:15px;">restart_alt</span> Reiniciar
       </button>
     </div>
+    ${!orderEditCols ? `<div class="ped-hint">Para poder editar la lista (añadir, renombrar u ocultar), ejecuta la pequeña actualización SQL que te paso.</div>` : ''}
     <div class="ped-count" id="pedCount"></div>
     <div id="pedList"></div>
     <div class="ped-send-bar">
@@ -1603,23 +1664,21 @@ function renderPedidos() {
 }
 
 function onPedidosSearch(v) { pedidosSearch = v; renderPedidosList(); }
+function setPedidosEdit(on) { pedidosEdit = !!on; renderPedidos(); }
 
 function renderPedidosList() {
   const listEl = document.getElementById('pedList');
   if (!listEl) return;
-  const map = buildMateriasPrimas();
   const q = normalizeText(pedidosSearch);
 
-  let entries = Object.keys(map).map(key => {
-    const display = map[key];
-    const st = orderState[key] || {};
-    return { key, display, group: classifyIngredient(display), checked: !!st.checked, comment: st.comment || '' };
-  });
+  const { entries: all, hiddenCount } = buildPedidoEntries();
   _pedIndexByKey = {};
-  entries.forEach(e => { _pedIndexByKey[e.key] = e; });
+  all.forEach(e => { _pedIndexByKey[e.key] = e; });
 
-  const totalItems   = entries.length;
-  const totalChecked = entries.filter(e => e.checked).length;
+  const totalItems   = all.filter(e => !e.hidden).length;
+  const totalChecked = all.filter(e => e.checked && !e.hidden).length;
+
+  let entries = all;
   if (q) entries = entries.filter(e => normalizeText(e.display).includes(q));
 
   const byGroup = {};
@@ -1627,8 +1686,14 @@ function renderPedidosList() {
   const order = [...SUPPLIER_GROUPS.map(g => g.id), 'otros'];
 
   let html = '';
+  if (pedidosEdit) {
+    html += `<button class="btn-pill ped-add" onclick="addManualMateriaPrima()">
+      <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir materia prima
+    </button>`;
+  }
+
   if (entries.length === 0) {
-    html = `<div class="empty-state"><span class="material-symbols-outlined">${q ? 'search_off' : 'inventory_2'}</span>${q ? 'Sin coincidencias' : 'No hay materias primas todavía. Añade recetas o producciones con ingredientes.'}</div>`;
+    html += `<div class="empty-state"><span class="material-symbols-outlined">${q ? 'search_off' : 'inventory_2'}</span>${q ? 'Sin coincidencias' : 'No hay materias primas todavía. Añade recetas, producciones, pesos o salmueras.'}</div>`;
   } else {
     order.forEach(gid => {
       const list = byGroup[gid];
@@ -1638,33 +1703,54 @@ function renderPedidosList() {
       html += `<div class="order-group-head"><span class="gh-emoji">${meta.emoji}</span> ${meta.label} <span class="gh-count">${list.length}</span></div>`;
       list.forEach(e => {
         const k = encodeURIComponent(e.key);
-        html += `
-          <div class="order-row ${e.checked ? 'checked' : ''}">
-            <span class="order-check material-symbols-outlined" onclick="togglePedido('${k}')">${e.checked ? 'check_circle' : 'radio_button_unchecked'}</span>
-            <span class="order-name">${e.display}</span>
-            <input class="order-comment" type="text" placeholder="Nota…" value="${escAttr(e.comment)}" onchange="setPedidoComment('${k}', this.value)">
-            <button class="order-move btn-icon" onclick="openGroupPicker('${k}')"><span class="material-symbols-outlined">swap_horiz</span></button>
-          </div>`;
+        if (pedidosEdit) {
+          html += `
+            <div class="order-row edit ${e.hidden ? 'is-hidden' : ''}">
+              <span class="order-name">${e.display}${e.manual ? ' <span class="ped-tag">manual</span>' : ''}</span>
+              <button class="order-act btn-icon" onclick="renamePedido('${k}')" title="Renombrar"><span class="material-symbols-outlined">edit</span></button>
+              <button class="order-act btn-icon" onclick="openGroupPicker('${k}')" title="Cambiar grupo"><span class="material-symbols-outlined">swap_horiz</span></button>
+              ${e.hidden
+                ? `<button class="order-act btn-icon" onclick="unhidePedido('${k}')" title="Mostrar"><span class="material-symbols-outlined" style="color:var(--primary);">visibility</span></button>`
+                : `<button class="order-act btn-icon" onclick="hideOrDeletePedido('${k}')" title="${e.manual ? 'Eliminar' : 'Ocultar'}"><span class="material-symbols-outlined" style="color:var(--danger);">${e.manual ? 'delete' : 'visibility_off'}</span></button>`}
+            </div>`;
+        } else {
+          html += `
+            <div class="order-row ${e.checked ? 'checked' : ''}">
+              <span class="order-check material-symbols-outlined" onclick="togglePedido('${k}')">${e.checked ? 'check_circle' : 'radio_button_unchecked'}</span>
+              <span class="order-name">${e.display}</span>
+              <input class="order-comment" type="text" placeholder="Nota…" value="${escAttr(e.comment)}" onchange="setPedidoComment('${k}', this.value)">
+              <button class="order-move btn-icon" onclick="openGroupPicker('${k}')"><span class="material-symbols-outlined">swap_horiz</span></button>
+            </div>`;
+        }
       });
     });
   }
   listEl.innerHTML = html;
 
   const countEl = document.getElementById('pedCount');
-  if (countEl) countEl.textContent = `${totalChecked} marcados · ${totalItems} materias primas`;
+  if (countEl) {
+    countEl.textContent = pedidosEdit
+      ? `${totalItems} materias primas${hiddenCount ? ` · ${hiddenCount} ocultas` : ''}`
+      : `${totalChecked} marcados · ${totalItems} materias primas`;
+  }
   const sendBtn = document.getElementById('pedSendBtn');
   if (sendBtn) sendBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:19px; vertical-align:middle;">picture_as_pdf</span> Enviar pedido (${totalChecked})`;
 }
 
 // Guarda (upsert) el estado de una materia prima en Supabase.
 async function upsertOrderItem(key, display, patch) {
-  const cur = orderState[key] || { name: display, supplier_group: null, checked: false, comment: '' };
+  const cur = orderState[key] || { name: display, supplier_group: null, checked: false, comment: '', hidden: false, manual: false, display_name: null };
   const next = { ...cur, ...patch, name: cur.name || display };
   orderState[key] = next;
   const row = {
     key, name: next.name, supplier_group: next.supplier_group,
     checked: next.checked, comment: next.comment, updated_at: new Date().toISOString(),
   };
+  if (orderEditCols) {
+    row.hidden = !!next.hidden;
+    row.manual = !!next.manual;
+    row.display_name = next.display_name || null;
+  }
   try {
     const { error } = await sb.from('order_items').upsert(row, { onConflict: 'key' });
     if (error) throw error;
@@ -1732,6 +1818,74 @@ async function assignIngredientGroup(enc, gid) {
   showToast('Grupo actualizado');
 }
 
+// ─── Edición de la lista ───────────────
+async function addManualMateriaPrima() {
+  const name = await showPrompt({
+    title:       'Nueva materia prima',
+    label:       'Nombre',
+    placeholder: 'Ej: Sal Maldon',
+    confirmText: 'Añadir',
+    icon:        'add_shopping_cart',
+  });
+  if (!name) return;
+  const clean = cleanIngredientName(name) || name.trim();
+  const key = normalizeText(clean);
+  if (!key) return;
+  const display = clean.charAt(0).toUpperCase() + clean.slice(1);
+  orderState[key] = { ...(orderState[key] || { supplier_group: null, checked: false, comment: '' }), name: display, manual: true, hidden: false };
+  await upsertOrderItem(key, display, { manual: true, hidden: false, name: display });
+  renderPedidosList();
+  showToast('Materia prima añadida ✓');
+}
+
+async function renamePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const current = e ? e.display : (orderState[key]?.name || key);
+  const name = await showPrompt({
+    title:       'Renombrar',
+    label:       'Nombre mostrado',
+    value:       current,
+    placeholder: 'Nombre de la materia prima',
+    confirmText: 'Guardar',
+    icon:        'edit',
+  });
+  if (!name || name === current) return;
+  const display = name.trim();
+  await upsertOrderItem(key, display, { display_name: display });
+  renderPedidosList();
+  showToast('Renombrado ✓');
+}
+
+async function hideOrDeletePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const st = orderState[key] || {};
+  if (st.manual) {
+    // Ítem manual → se elimina por completo
+    delete orderState[key];
+    renderPedidosList();
+    try {
+      const { error } = await sb.from('order_items').delete().eq('key', key);
+      if (error) throw error;
+    } catch (e) { console.error(e); showToast('Error al eliminar'); }
+    showToast('Eliminado');
+  } else {
+    // Ítem derivado → se oculta (volvería a salir si se borra de la receta)
+    const display = (_pedIndexByKey[key] && _pedIndexByKey[key].display) || st.name || key;
+    await upsertOrderItem(key, display, { hidden: true });
+    renderPedidosList();
+    showToast('Ocultado');
+  }
+}
+
+async function unhidePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const display = (_pedIndexByKey[key] && _pedIndexByKey[key].display) || orderState[key]?.name || key;
+  await upsertOrderItem(key, display, { hidden: false });
+  renderPedidosList();
+  showToast('Visible de nuevo');
+}
+
 async function resetPedidos() {
   const ok = await showConfirm({
     title:       'Reiniciar lista',
@@ -1752,12 +1906,7 @@ async function resetPedidos() {
 
 // Genera el PDF con los marcados y abre el menú de compartir (WhatsApp, etc.).
 async function sendPedidoPDF() {
-  const map = buildMateriasPrimas();
-  const entries = Object.keys(map).map(key => {
-    const display = map[key];
-    const st = orderState[key] || {};
-    return { key, display, group: classifyIngredient(display), checked: !!st.checked, comment: st.comment || '' };
-  }).filter(e => e.checked);
+  const entries = buildPedidoEntries().entries.filter(e => e.checked && !e.hidden);
 
   if (!entries.length) { showToast('Marca al menos una materia prima'); return; }
   if (!window.jspdf || !window.jspdf.jsPDF) { showToast('No se pudo cargar el generador de PDF'); return; }
