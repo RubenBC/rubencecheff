@@ -258,6 +258,28 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .modal-title { font-size: 17px; font-weight: 800; color: var(--primary); }
 .modal-close { background: none; border: none; font-size: 18px; color: var(--text2); cursor: pointer; padding: 4px 8px; }
 
+/* ── Diálogo de confirmación ── */
+.confirm-overlay { align-items: center; padding: 24px; z-index: 600; }
+.confirm-sheet { border-radius: 24px; max-width: 380px; text-align: center; padding: 28px 22px calc(24px + env(safe-area-inset-bottom)); animation: confirmPop 0.18s ease; }
+.confirm-sheet::before { display: none; }
+@keyframes confirmPop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.confirm-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--primary-container); color: var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.confirm-icon .material-symbols-outlined { font-size: 30px; }
+.confirm-icon.danger { background: var(--danger-light); color: var(--danger); }
+.confirm-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.confirm-message { font-size: 14px; color: var(--text2); line-height: 1.45; margin-bottom: 22px; }
+.confirm-actions { display: flex; gap: 10px; }
+.btn-confirm { flex: 1; border: none; border-radius: 14px; padding: 13px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: 'Nunito', sans-serif; transition: opacity 0.15s, transform 0.08s; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-confirm:active { transform: scale(0.97); }
+.btn-confirm.cancel { background: var(--surface2); color: var(--text); }
+.btn-confirm.ok { background: var(--primary); color: #fff; }
+.btn-confirm.ok.danger { background: var(--danger); color: #fff; }
+
+/* ── Estados de carga / deshabilitado consistentes ── */
+.btn-action:disabled, .btn-pill:disabled, .btn-confirm:disabled { opacity: 0.6; cursor: default; pointer-events: none; }
+.btn-loading { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-loading .spin { font-size: 18px; }
+
 /* ═══════════════════════════════════════
    TOAST
 ═══════════════════════════════════════ */
