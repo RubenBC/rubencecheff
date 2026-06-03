@@ -540,3 +540,13 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
 .gp-option.selected { border-color: var(--primary); background: var(--primary-container); }
 .gp-option .gp-emoji { font-size: 22px; }
 .gp-option .gp-label { font-size: 15px; font-weight: 700; }
+
+/* ── Pedidos: modo edición ── */
+.ped-hint { background: var(--primary-container); color: var(--text); font-size: 12.5px; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.45; }
+.ped-add { width: 100%; justify-content: center; margin-bottom: 14px; }
+.order-row.edit { gap: 6px; }
+.order-row.edit .order-name { font-weight: 700; }
+.order-act { flex-shrink: 0; }
+.order-act .material-symbols-outlined { font-size: 20px; color: var(--text2); }
+.order-row.is-hidden { opacity: 0.5; }
+.ped-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--primary); background: var(--primary-container); border-radius: var(--shape-full); padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
