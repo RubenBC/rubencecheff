@@ -446,6 +446,7 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 body.dark .topbar { background: rgba(26,35,34,0.92); }
 body.dark .bottom-nav { background: rgba(26,35,34,0.94); }
 body.dark .modal-sheet { background: var(--surface); }
+body.dark .toast { background: var(--surface2); color: var(--text); }
 body.dark .search-dropdown { background: var(--surface); }
 body.dark .recipe-card-img-placeholder,
 body.dark .detail-img-placeholder { background: var(--surface2); }
