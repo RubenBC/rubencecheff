@@ -55,16 +55,18 @@ let currentPage = 'recipes';
 let savedScroll = {};
 
 // Recetas
-let recipeFilter       = 'Todas';
-let currentRecipeId    = null;
-let recipeEditorMode   = null;
-let recipeEditorData   = null;
+let recipeFilter        = 'Todas';
+let currentRecipeId     = null;
+let recipeEditorMode    = null;
+let recipeEditorData    = null;
+let recipeEditorBaseline = null;   // snapshot para detectar cambios sin guardar
 
 // Producciones
 let prodFilter         = 'Todas';
 let currentProdId      = null;
 let prodEditorMode     = null;
 let prodEditorData     = null;
+let prodEditorBaseline = null;     // snapshot para detectar cambios sin guardar
 let currentMultiplier  = 1;
 
 // Comentarios
@@ -115,11 +117,15 @@ async function loadData() {
 
   } catch (err) {
     console.error('Error cargando datos:', err);
-    document.getElementById('recipeList').innerHTML = `
+    const errHtml = `
       <div class="empty-state">
         <span class="material-symbols-outlined">wifi_off</span>
         Error al conectar con la base de datos
       </div>`;
+    const rl = document.getElementById('recipeList');
+    const pl = document.getElementById('productionList');
+    if (rl) rl.innerHTML = errHtml;
+    if (pl) pl.innerHTML = errHtml;
   }
 }
 
@@ -499,6 +505,7 @@ function backTo(page) {
 function openAddRecipe() {
   recipeEditorMode = 'add';
   recipeEditorData = { id: Date.now().toString(), name: '', category: 'Carnes', servings: 4, description: '', photo: '', plating: '', ingredients: [], steps: [] };
+  recipeEditorBaseline = JSON.stringify(recipeEditorData);
   renderRecipeEditor();
   enterEditor('editorPage');
 }
@@ -506,6 +513,7 @@ function openAddRecipe() {
 function openEditRecipe() {
   recipeEditorMode = 'edit';
   recipeEditorData = JSON.parse(JSON.stringify(recipes.find(r => r.id === currentRecipeId)));
+  recipeEditorBaseline = JSON.stringify(recipeEditorData);
   renderRecipeEditor();
   enterEditor('editorPage');
 }
@@ -638,17 +646,21 @@ async function handleRecipePhoto(event) {
 async function saveRecipe() {
   if (!recipeEditorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
   const btn = document.getElementById('saveRecipeBtn');
-  btn.textContent = 'Guardando...'; btn.disabled = true;
-  const { error } = await sb.from('recipes').upsert(recipeEditorData);
-  if (error) { showToast('Error al guardar'); btn.textContent = 'Guardar'; btn.disabled = false; return; }
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    const { error } = await sb.from('recipes').upsert(recipeEditorData);
+    if (error) { showToast('Error al guardar'); return false; }
+    return true;
+  });
+  if (!ok) return;
   if (recipeEditorMode === 'add') recipes.push(recipeEditorData);
   else recipes = recipes.map(r => r.id === recipeEditorData.id ? recipeEditorData : r);
   currentRecipeId = recipeEditorData.id;
+  recipeEditorBaseline = JSON.stringify(recipeEditorData); // ya guardado: sin cambios pendientes
   showToast('Receta guardada ✓');
   exitRecipeEditor(true);
 }
 
-function cancelRecipeEditor() { exitRecipeEditor(recipeEditorMode === 'edit'); }
+function cancelRecipeEditor() { return requestExitRecipeEditor(); }
 
 function exitRecipeEditor(goToDetail) {
   exitInnerView();
@@ -660,13 +672,23 @@ function exitRecipeEditor(goToDetail) {
     backTo('recipes');
     renderRecipes();
   }
-  recipeEditorMode = null; recipeEditorData = null;
+  recipeEditorMode = null; recipeEditorData = null; recipeEditorBaseline = null;
 }
 
 async function deleteRecipe(id) {
-  if (!confirm('¿Eliminar esta receta?')) return;
-  await sb.from('recipes').delete().eq('id', id);
-  recipes = recipes.filter(r => r.id !== id);
+  const ok = await showConfirm({
+    title:       'Eliminar receta',
+    message:     '¿Seguro que quieres eliminar esta receta? Esta acción no se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('recipes').delete().eq('id', id);
+      if (error) throw error;
+      recipes = recipes.filter(r => r.id !== id);
+    },
+  });
+  if (!ok) return;
   showToast('Receta eliminada');
   backTo('recipes'); renderRecipes();
 }
@@ -707,18 +729,21 @@ function toggleProdLink(prodId, row) {
 }
 
 async function saveLinkProductions() {
-  await sb.from('recipe_productions').delete().eq('recipe_id', linkingRecipeId);
-  if (selectedProdIds.length > 0) {
-    const rows = selectedProdIds.map((pid, i) => ({
-      id: `${linkingRecipeId}_${pid}`,
-      recipe_id: linkingRecipeId,
-      production_id: pid,
-      sort_order: i,
-    }));
-    await sb.from('recipe_productions').insert(rows);
-  }
-  recipeProductions = recipeProductions.filter(rp => rp.recipe_id !== linkingRecipeId);
-  selectedProdIds.forEach((pid, i) => recipeProductions.push({ id: `${linkingRecipeId}_${pid}`, recipe_id: linkingRecipeId, production_id: pid, sort_order: i }));
+  const btn = document.querySelector('#linkModal .btn-action');
+  await runWithLoading(btn, 'Guardando...', async () => {
+    await sb.from('recipe_productions').delete().eq('recipe_id', linkingRecipeId);
+    if (selectedProdIds.length > 0) {
+      const rows = selectedProdIds.map((pid, i) => ({
+        id: `${linkingRecipeId}_${pid}`,
+        recipe_id: linkingRecipeId,
+        production_id: pid,
+        sort_order: i,
+      }));
+      await sb.from('recipe_productions').insert(rows);
+    }
+    recipeProductions = recipeProductions.filter(rp => rp.recipe_id !== linkingRecipeId);
+    selectedProdIds.forEach((pid, i) => recipeProductions.push({ id: `${linkingRecipeId}_${pid}`, recipe_id: linkingRecipeId, production_id: pid, sort_order: i }));
+  });
   closeModal('linkModal');
   showToast('Producciones vinculadas ✓');
   renderRecipeDetail();
@@ -780,26 +805,29 @@ function toggleRecipeLink(recipeId, row) {
 }
 
 async function saveLinkRecipes() {
-  // Para cada plato seleccionado, añadir el vínculo si no existe.
-  // Para los deseleccionados, quitarlo.
-  const currentlyLinked = recipeProductions.filter(rp => rp.production_id === linkingProdId).map(rp => rp.recipe_id);
+  const btn = document.querySelector('#linkModal .btn-action');
+  await runWithLoading(btn, 'Guardando...', async () => {
+    // Para cada plato seleccionado, añadir el vínculo si no existe.
+    // Para los deseleccionados, quitarlo.
+    const currentlyLinked = recipeProductions.filter(rp => rp.production_id === linkingProdId).map(rp => rp.recipe_id);
 
-  // Añadir nuevos
-  for (const rid of selectedRecipeIds) {
-    if (!currentlyLinked.includes(rid)) {
-      const order = recipeProductions.filter(rp => rp.recipe_id === rid).length;
-      const row = { id: `${rid}_${linkingProdId}`, recipe_id: rid, production_id: linkingProdId, sort_order: order };
-      await sb.from('recipe_productions').insert(row);
-      recipeProductions.push(row);
+    // Añadir nuevos
+    for (const rid of selectedRecipeIds) {
+      if (!currentlyLinked.includes(rid)) {
+        const order = recipeProductions.filter(rp => rp.recipe_id === rid).length;
+        const row = { id: `${rid}_${linkingProdId}`, recipe_id: rid, production_id: linkingProdId, sort_order: order };
+        await sb.from('recipe_productions').insert(row);
+        recipeProductions.push(row);
+      }
     }
-  }
-  // Quitar los deseleccionados
-  for (const rid of currentlyLinked) {
-    if (!selectedRecipeIds.includes(rid)) {
-      await sb.from('recipe_productions').delete().eq('id', `${rid}_${linkingProdId}`);
-      recipeProductions = recipeProductions.filter(rp => rp.id !== `${rid}_${linkingProdId}`);
+    // Quitar los deseleccionados
+    for (const rid of currentlyLinked) {
+      if (!selectedRecipeIds.includes(rid)) {
+        await sb.from('recipe_productions').delete().eq('id', `${rid}_${linkingProdId}`);
+        recipeProductions = recipeProductions.filter(rp => rp.id !== `${rid}_${linkingProdId}`);
+      }
     }
-  }
+  });
   // Restaurar el modal a su estado original (vincular producciones)
   document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
   document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
@@ -979,6 +1007,7 @@ function openAddProduction() {
   prodEditorMode = 'add';
   const defaultCat = productionCategories.length > 0 ? productionCategories[0].name : '';
   prodEditorData = { id: Date.now().toString(), name: '', category: defaultCat, description: '', ingredients: [], steps: [] };
+  prodEditorBaseline = JSON.stringify(prodEditorData);
   renderProdEditor();
   enterEditor('productionEditorPage');
 }
@@ -986,6 +1015,7 @@ function openAddProduction() {
 function openEditProduction() {
   prodEditorMode = 'edit';
   prodEditorData = JSON.parse(JSON.stringify(productions.find(p => p.id === currentProdId)));
+  prodEditorBaseline = JSON.stringify(prodEditorData);
   renderProdEditor();
   enterEditor('productionEditorPage');
 }
@@ -1070,17 +1100,21 @@ function renderProdEditor() {
 async function saveProduction() {
   if (!prodEditorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
   const btn = document.getElementById('saveProdBtn');
-  btn.textContent = 'Guardando...'; btn.disabled = true;
-  const { error } = await sb.from('productions').upsert(prodEditorData);
-  if (error) { showToast('Error al guardar'); btn.textContent = 'Guardar'; btn.disabled = false; return; }
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    const { error } = await sb.from('productions').upsert(prodEditorData);
+    if (error) { showToast('Error al guardar'); return false; }
+    return true;
+  });
+  if (!ok) return;
   if (prodEditorMode === 'add') productions.push(prodEditorData);
   else productions = productions.map(p => p.id === prodEditorData.id ? prodEditorData : p);
   currentProdId = prodEditorData.id;
+  prodEditorBaseline = JSON.stringify(prodEditorData);
   showToast('Producción guardada ✓');
   exitProdEditor(true);
 }
 
-function cancelProdEditor() { exitProdEditor(prodEditorMode === 'edit'); }
+function cancelProdEditor() { return requestExitProdEditor(); }
 
 function exitProdEditor(goToDetail) {
   exitInnerView();
@@ -1092,13 +1126,23 @@ function exitProdEditor(goToDetail) {
     backTo('productions');
     renderProductions();
   }
-  prodEditorMode = null; prodEditorData = null;
+  prodEditorMode = null; prodEditorData = null; prodEditorBaseline = null;
 }
 
 async function deleteProduction(id) {
-  if (!confirm('¿Eliminar esta producción?')) return;
-  await sb.from('productions').delete().eq('id', id);
-  productions = productions.filter(p => p.id !== id);
+  const ok = await showConfirm({
+    title:       'Eliminar producción',
+    message:     '¿Seguro que quieres eliminar esta producción? Esta acción no se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('productions').delete().eq('id', id);
+      if (error) throw error;
+      productions = productions.filter(p => p.id !== id);
+    },
+  });
+  if (!ok) return;
   showToast('Producción eliminada');
   backTo('productions'); renderProductions();
 }
@@ -1127,8 +1171,13 @@ async function sendComment() {
     date:         new Date().toLocaleDateString('es-ES'),
     resolved:     false,
   };
-  const { error } = await sb.from('comments').insert(newComment);
-  if (error) { showToast('Error al enviar'); return; }
+  const btn = document.querySelector('#commentModal .btn-action');
+  const ok = await runWithLoading(btn, 'Enviando...', async () => {
+    const { error } = await sb.from('comments').insert(newComment);
+    if (error) { showToast('Error al enviar'); return false; }
+    return true;
+  });
+  if (!ok) return;
   comments.unshift(newComment);
   updateBadges();
   document.getElementById('commentFormArea').style.display = 'none';
@@ -1263,7 +1312,7 @@ function renderAdmin() {
             <div class="comment-text">${c.text}</div>
             <div class="comment-date">${c.date}</div>
           </div>
-          <button class="btn-pill" onclick="resolveComment('${c.id}')">
+          <button class="btn-pill" onclick="resolveComment('${c.id}', this)">
             <span class="material-symbols-outlined" style="font-size:15px;">check</span> Resolver
           </button>
         </div>`).join('');
@@ -1280,7 +1329,7 @@ function renderAdmin() {
     <div class="ficha-row">
       <div class="ficha-name">${c.name}</div>
       <div style="display:flex; gap:6px;">
-        <button class="btn-icon" onclick="renameProdCategory('${c.id}','${c.name}')">
+        <button class="btn-icon" onclick="renameProdCategory('${c.id}')">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
         </button>
         <button class="btn-icon" onclick="deleteProdCategory('${c.id}')">
@@ -1297,16 +1346,19 @@ function renderAdmin() {
       ${catHtml}
       <div style="margin-top:12px; display:flex; gap:8px;">
         <div class="form-input ce-input" id="newCatInput" contenteditable="true" data-placeholder="Nueva categoría..." style="flex:1;"></div>
-        <button class="btn-pill filled" onclick="addProdCategory()">
+        <button class="btn-pill filled" id="addCatBtn" onclick="addProdCategory()">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span>
         </button>
       </div>
     </div>`;
 }
 
-async function resolveComment(id) {
-  await sb.from('comments').update({ resolved: true }).eq('id', id);
-  comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
+async function resolveComment(id, btn) {
+  await runWithLoading(btn, '', async () => {
+    const { error } = await sb.from('comments').update({ resolved: true }).eq('id', id);
+    if (error) { showToast('Error al resolver'); throw error; }
+    comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
+  }).catch(() => {});
   updateBadges(); renderAdmin();
 }
 
@@ -1316,20 +1368,37 @@ async function addProdCategory() {
   const name = (input?.innerText || '').trim();
   if (!name) return;
   const newCat = { id: Date.now().toString(), name, sort_order: productionCategories.length + 1 };
-  const { error } = await sb.from('production_categories').insert(newCat);
-  if (error) { showToast('Error al añadir'); return; }
+  const btn = document.getElementById('addCatBtn');
+  const ok = await runWithLoading(btn, '', async () => {
+    const { error } = await sb.from('production_categories').insert(newCat);
+    if (error) { showToast('Error al añadir'); return false; }
+    return true;
+  });
+  if (!ok) return;
   productionCategories.push(newCat);
   showToast('Categoría añadida ✓');
   renderAdmin();
 }
 
-async function renameProdCategory(id, currentName) {
-  const newName = prompt('Nuevo nombre para la categoría:', currentName);
+async function renameProdCategory(id) {
+  const cat = productionCategories.find(c => c.id === id);
+  if (!cat) return;
+  const currentName = cat.name;
+  const newName = await showPrompt({
+    title:       'Renombrar categoría',
+    label:       'Nuevo nombre',
+    value:       currentName,
+    placeholder: 'Nombre de la categoría',
+    confirmText: 'Guardar',
+    onConfirm:   async (name) => {
+      if (name === currentName) return;
+      const { error } = await sb.from('production_categories').update({ name }).eq('id', id);
+      if (error) throw error;
+      productionCategories = productionCategories.map(c => c.id === id ? { ...c, name } : c);
+      productions = productions.map(p => p.category === currentName ? { ...p, category: name } : p);
+    },
+  });
   if (!newName || newName === currentName) return;
-  const { error } = await sb.from('production_categories').update({ name: newName }).eq('id', id);
-  if (error) { showToast('Error al renombrar'); return; }
-  productionCategories = productionCategories.map(c => c.id === id ? { ...c, name: newName } : c);
-  productions = productions.map(p => p.category === currentName ? { ...p, category: newName } : p);
   showToast('Categoría renombrada ✓');
   renderAdmin();
 }
@@ -1337,10 +1406,19 @@ async function renameProdCategory(id, currentName) {
 async function deleteProdCategory(id) {
   const cat = productionCategories.find(c => c.id === id);
   if (!cat) return;
-  if (!confirm(`¿Eliminar la categoría "${cat.name}"?`)) return;
-  const { error } = await sb.from('production_categories').delete().eq('id', id);
-  if (error) { showToast('Error al eliminar'); return; }
-  productionCategories = productionCategories.filter(c => c.id !== id);
+  const ok = await showConfirm({
+    title:       'Eliminar categoría',
+    message:     `¿Seguro que quieres eliminar la categoría "${cat.name}"?`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('production_categories').delete().eq('id', id);
+      if (error) throw error;
+      productionCategories = productionCategories.filter(c => c.id !== id);
+    },
+  });
+  if (!ok) return;
   showToast('Categoría eliminada');
   renderAdmin();
 }
@@ -1431,21 +1509,39 @@ async function saveWeight() {
   const notes = document.getElementById('weightNotes').innerText.trim();
   if (!name || !grams) { showToast('Nombre y gramos son obligatorios'); return; }
   const payload = { name, grams, notes };
-  if (editingWeightId) {
-    await sb.from('weights').update(payload).eq('id', editingWeightId);
-    weights = weights.map(w => w.id === editingWeightId ? { ...w, ...payload } : w);
-  } else {
-    payload.id = Date.now().toString();
-    await sb.from('weights').insert(payload);
-    weights.push(payload);
-  }
+  const btn = document.querySelector('#weightModal .btn-action');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    if (editingWeightId) {
+      const { error } = await sb.from('weights').update(payload).eq('id', editingWeightId);
+      if (error) { showToast('Error al guardar'); return false; }
+      weights = weights.map(w => w.id === editingWeightId ? { ...w, ...payload } : w);
+    } else {
+      payload.id = Date.now().toString();
+      const { error } = await sb.from('weights').insert(payload);
+      if (error) { showToast('Error al guardar'); return false; }
+      weights.push(payload);
+    }
+    return true;
+  });
+  if (!ok) return;
   closeModal('weightModal'); showToast('Guardado ✓'); renderWeights();
 }
 
 async function deleteWeight(id) {
-  if (!confirm('¿Eliminar?')) return;
-  await sb.from('weights').delete().eq('id', id);
-  weights = weights.filter(w => w.id !== id);
+  const w = weights.find(x => x.id === id);
+  const ok = await showConfirm({
+    title:       'Eliminar peso',
+    message:     w ? `¿Eliminar "${w.name}" de la lista de pesos?` : '¿Eliminar este peso?',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('weights').delete().eq('id', id);
+      if (error) throw error;
+      weights = weights.filter(w => w.id !== id);
+    },
+  });
+  if (!ok) return;
   showToast('Eliminado'); renderWeights();
 }
 
@@ -1468,21 +1564,39 @@ async function saveBrine() {
   const notes    = document.getElementById('brineNotes').innerText.trim();
   if (!product || !minutes) { showToast('Producto y tiempo son obligatorios'); return; }
   const payload = { product, category, minutes, notes };
-  if (editingBrineId) {
-    await sb.from('brines').update(payload).eq('id', editingBrineId);
-    brines = brines.map(b => b.id === editingBrineId ? { ...b, ...payload } : b);
-  } else {
-    payload.id = Date.now().toString();
-    await sb.from('brines').insert(payload);
-    brines.push(payload);
-  }
+  const btn = document.querySelector('#brineModal .btn-action');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    if (editingBrineId) {
+      const { error } = await sb.from('brines').update(payload).eq('id', editingBrineId);
+      if (error) { showToast('Error al guardar'); return false; }
+      brines = brines.map(b => b.id === editingBrineId ? { ...b, ...payload } : b);
+    } else {
+      payload.id = Date.now().toString();
+      const { error } = await sb.from('brines').insert(payload);
+      if (error) { showToast('Error al guardar'); return false; }
+      brines.push(payload);
+    }
+    return true;
+  });
+  if (!ok) return;
   closeModal('brineModal'); showToast('Guardado ✓'); renderBrines();
 }
 
 async function deleteBrine(id) {
-  if (!confirm('¿Eliminar?')) return;
-  await sb.from('brines').delete().eq('id', id);
-  brines = brines.filter(b => b.id !== id);
+  const b = brines.find(x => x.id === id);
+  const ok = await showConfirm({
+    title:       'Eliminar salmuera',
+    message:     b ? `¿Eliminar la salmuera de "${b.product}"?` : '¿Eliminar esta salmuera?',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('brines').delete().eq('id', id);
+      if (error) throw error;
+      brines = brines.filter(b => b.id !== id);
+    },
+  });
+  if (!ok) return;
   showToast('Eliminado'); renderBrines();
 }
 
@@ -1533,6 +1647,233 @@ function updateConverter() {
 // ═══════════════════════════════════════
 //   UTILIDADES
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//   DIÁLOGO DE CONFIRMACIÓN PROPIO
+// ═══════════════════════════════════════
+// Sustituye al confirm() del navegador. Devuelve una promesa que
+// resuelve true (confirmar) o false (cancelar). Si se pasa onConfirm,
+// la acción asíncrona se ejecuta mostrando el botón en estado de carga
+// y el diálogo no se cierra hasta que termina.
+let _confirmResolve = null;
+
+function showConfirm(opts = {}) {
+  const {
+    title       = 'Confirmar',
+    message     = '',
+    confirmText = 'Confirmar',
+    cancelText  = 'Cancelar',
+    danger      = false,
+    icon        = danger ? 'warning' : 'help',
+    onConfirm   = null,
+  } = opts;
+
+  return new Promise(resolve => {
+    const existing = document.getElementById('confirmModal');
+    if (existing) existing.remove();
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      _confirmResolve = null;
+      const m = document.getElementById('confirmModal');
+      if (m) m.remove();
+      resolve(result);
+    };
+    // Permite que el botón "atrás" de Android cancele el diálogo
+    _confirmResolve = () => finish(false);
+
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'modal-overlay confirm-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-sheet confirm-sheet" onclick="event.stopPropagation()">
+        <div class="confirm-icon ${danger ? 'danger' : ''}">
+          <span class="material-symbols-outlined">${icon}</span>
+        </div>
+        <div class="confirm-title">${title}</div>
+        ${message ? `<p class="confirm-message">${message}</p>` : ''}
+        <div class="confirm-actions">
+          <button class="btn-confirm cancel" id="confirmCancelBtn">${cancelText}</button>
+          <button class="btn-confirm ok ${danger ? 'danger' : ''}" id="confirmOkBtn">${confirmText}</button>
+        </div>
+      </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) finish(false); });
+    document.body.appendChild(modal);
+
+    const cancelBtn = modal.querySelector('#confirmCancelBtn');
+    const okBtn     = modal.querySelector('#confirmOkBtn');
+
+    cancelBtn.addEventListener('click', () => finish(false));
+    okBtn.addEventListener('click', async () => {
+      if (!onConfirm) { finish(true); return; }
+      const orig = okBtn.innerHTML;
+      okBtn.disabled = true; cancelBtn.disabled = true;
+      okBtn.innerHTML = `<span class="material-symbols-outlined spin">progress_activity</span>`;
+      okBtn.classList.add('btn-loading');
+      try {
+        await onConfirm();
+        finish(true);
+      } catch (err) {
+        console.error(err);
+        showToast('Error, inténtalo de nuevo');
+        okBtn.disabled = false; cancelBtn.disabled = false;
+        okBtn.classList.remove('btn-loading');
+        okBtn.innerHTML = orig;
+      }
+    });
+
+    setTimeout(() => okBtn.focus(), 100);
+  });
+}
+
+// Diálogo de entrada de texto propio (sustituye a prompt()).
+// Resuelve con el texto introducido, o null si se cancela. Si se pasa
+// onConfirm(valor), se ejecuta con el botón en estado de carga.
+function showPrompt(opts = {}) {
+  const {
+    title       = '',
+    label       = '',
+    value       = '',
+    placeholder = '',
+    confirmText = 'Guardar',
+    cancelText  = 'Cancelar',
+    icon        = 'edit',
+    onConfirm   = null,
+  } = opts;
+
+  return new Promise(resolve => {
+    const existing = document.getElementById('confirmModal');
+    if (existing) existing.remove();
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      _confirmResolve = null;
+      const m = document.getElementById('confirmModal');
+      if (m) m.remove();
+      resolve(result);
+    };
+    _confirmResolve = () => finish(null);
+
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'modal-overlay confirm-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-sheet confirm-sheet" onclick="event.stopPropagation()">
+        <div class="confirm-icon"><span class="material-symbols-outlined">${icon}</span></div>
+        ${title ? `<div class="confirm-title">${title}</div>` : ''}
+        <div class="form-group" style="text-align:left; margin-top:14px;">
+          ${label ? `<div class="form-label">${label}</div>` : ''}
+          <input type="text" class="form-input" id="promptInput" placeholder="${placeholder}"
+            onkeydown="if(event.key==='Enter') document.getElementById('promptOkBtn').click();">
+        </div>
+        <div class="confirm-actions">
+          <button class="btn-confirm cancel" id="promptCancelBtn">${cancelText}</button>
+          <button class="btn-confirm ok" id="promptOkBtn">${confirmText}</button>
+        </div>
+      </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) finish(null); });
+    document.body.appendChild(modal);
+
+    const input     = modal.querySelector('#promptInput');
+    const cancelBtn = modal.querySelector('#promptCancelBtn');
+    const okBtn     = modal.querySelector('#promptOkBtn');
+    input.value = value;
+
+    cancelBtn.addEventListener('click', () => finish(null));
+    okBtn.addEventListener('click', async () => {
+      const text = input.value.trim();
+      if (!text) { input.focus(); return; }
+      if (!onConfirm) { finish(text); return; }
+      const orig = okBtn.innerHTML;
+      okBtn.disabled = true; cancelBtn.disabled = true; input.disabled = true;
+      okBtn.innerHTML = `<span class="material-symbols-outlined spin">progress_activity</span>`;
+      okBtn.classList.add('btn-loading');
+      try {
+        await onConfirm(text);
+        finish(text);
+      } catch (err) {
+        console.error(err);
+        showToast('Error, inténtalo de nuevo');
+        okBtn.disabled = false; cancelBtn.disabled = false; input.disabled = false;
+        okBtn.classList.remove('btn-loading');
+        okBtn.innerHTML = orig;
+      }
+    });
+
+    setTimeout(() => { input.focus(); input.select(); }, 120);
+  });
+}
+
+// ═══════════════════════════════════════
+//   ESTADO DE CARGA EN BOTONES (consistente)
+// ═══════════════════════════════════════
+// Deshabilita el botón, muestra un spinner + etiqueta mientras corre la
+// tarea asíncrona y restaura el estado original al terminar (o fallar).
+async function runWithLoading(btn, label, task) {
+  if (!btn) return task();
+  const original     = btn.innerHTML;
+  const wasDisabled  = btn.disabled;
+  btn.disabled = true;
+  btn.classList.add('btn-loading');
+  btn.innerHTML = `<span class="material-symbols-outlined spin">progress_activity</span>${label ? ' ' + label : ''}`;
+  try {
+    return await task();
+  } finally {
+    btn.disabled = wasDisabled;
+    btn.classList.remove('btn-loading');
+    btn.innerHTML = original;
+  }
+}
+
+// ═══════════════════════════════════════
+//   CAMBIOS SIN GUARDAR (editores)
+// ═══════════════════════════════════════
+function isRecipeEditorDirty() {
+  return !!recipeEditorData && recipeEditorBaseline !== null
+    && JSON.stringify(recipeEditorData) !== recipeEditorBaseline;
+}
+function isProdEditorDirty() {
+  return !!prodEditorData && prodEditorBaseline !== null
+    && JSON.stringify(prodEditorData) !== prodEditorBaseline;
+}
+
+// Intenta salir del editor de recetas. Si hay cambios sin guardar pide
+// confirmación. Devuelve true si finalmente se salió, false si se queda.
+async function requestExitRecipeEditor() {
+  if (isRecipeEditorDirty()) {
+    const ok = await showConfirm({
+      title:       'Cambios sin guardar',
+      message:     'Si sales ahora perderás los cambios que no has guardado.',
+      confirmText: 'Salir sin guardar',
+      cancelText:  'Seguir editando',
+      icon:        'edit_off',
+    });
+    if (!ok) return false;
+  }
+  exitRecipeEditor(recipeEditorMode === 'edit');
+  return true;
+}
+
+async function requestExitProdEditor() {
+  if (isProdEditorDirty()) {
+    const ok = await showConfirm({
+      title:       'Cambios sin guardar',
+      message:     'Si sales ahora perderás los cambios que no has guardado.',
+      confirmText: 'Salir sin guardar',
+      cancelText:  'Seguir editando',
+      icon:        'edit_off',
+    });
+    if (!ok) return false;
+  }
+  exitProdEditor(prodEditorMode === 'edit');
+  return true;
+}
+
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 // ═══════════════════════════════════════
@@ -1622,6 +1963,16 @@ loadData();
 // Botón atrás de Android
 history.pushState({ view: 'home' }, '');
 
+// Avisar al cerrar/recargar la app si hay cambios sin guardar en un editor
+window.addEventListener('beforeunload', (e) => {
+  const editingRecipe = document.getElementById('editorPage').classList.contains('active') && isRecipeEditorDirty();
+  const editingProd   = document.getElementById('productionEditorPage').classList.contains('active') && isProdEditorDirty();
+  if (editingRecipe || editingProd) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
 window.addEventListener('popstate', (e) => {
   const state = e.state;
 
@@ -1629,6 +1980,7 @@ window.addEventListener('popstate', (e) => {
   const openModal = document.querySelector('.modal-overlay[style*="flex"]');
   if (openModal) {
     if (openModal.id === 'loginModal') closeLoginModal();
+    else if (openModal.id === 'confirmModal' && _confirmResolve) _confirmResolve(); // cancela el diálogo
     else openModal.style.display = 'none';
     history.pushState({ view: 'modal' }, '');
     return;
@@ -1637,10 +1989,12 @@ window.addEventListener('popstate', (e) => {
   if (!state || state.view === 'home') {
     // Volver a la página principal
     if (document.getElementById('editorPage').classList.contains('active')) {
-      cancelRecipeEditor(); history.pushState({ view: 'home' }, ''); return;
+      requestExitRecipeEditor().then(exited => history.pushState({ view: exited ? 'home' : 'editor' }, ''));
+      return;
     }
     if (document.getElementById('productionEditorPage').classList.contains('active')) {
-      cancelProdEditor(); history.pushState({ view: 'home' }, ''); return;
+      requestExitProdEditor().then(exited => history.pushState({ view: exited ? 'home' : 'editor' }, ''));
+      return;
     }
     if (document.getElementById('detailPage').classList.contains('active')) {
       backTo('recipes'); history.pushState({ view: 'home' }, ''); return;
@@ -1653,8 +2007,9 @@ window.addEventListener('popstate', (e) => {
   }
 
   if (state.view === 'editor') {
-    if (document.getElementById('editorPage').classList.contains('active')) cancelRecipeEditor();
-    else cancelProdEditor();
+    const isRecipe = document.getElementById('editorPage').classList.contains('active');
+    const fn = isRecipe ? requestExitRecipeEditor : requestExitProdEditor;
+    fn().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
     return;
   }
 
