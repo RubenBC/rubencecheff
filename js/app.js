@@ -1606,31 +1606,21 @@ function buildMateriasPrimas() {
   return map;
 }
 
-// Combina las materias primas derivadas con los ítems manuales y aplica
-// renombrados y ocultaciones guardadas. Devuelve { entries, hiddenCount }.
+// La lista de pedidos es 100% manual: se construye solo con los artículos
+// que el admin añade (no se saca de recetas, producciones, pesos ni salmueras).
 function buildPedidoEntries() {
-  const derived = buildMateriasPrimas();
-  const keys = new Set(Object.keys(derived));
-  Object.keys(orderState).forEach(k => { if (orderState[k].manual) keys.add(k); });
-
   const entries = [];
-  let hiddenCount = 0;
-  keys.forEach(key => {
-    const st = orderState[key] || {};
-    const baseDisplay = derived[key] || st.name || key;
-    const display = st.display_name || baseDisplay;
-    if (st.hidden) {
-      hiddenCount++;
-      if (!pedidosEdit) return; // ocultos solo se ven en modo edición
-    }
+  Object.keys(orderState).forEach(key => {
+    const st = orderState[key];
+    if (!st || !st.manual) return; // solo ítems añadidos a mano
+    const display = st.display_name || st.name || key;
     entries.push({
       key, display,
       group: st.supplier_group || classifyIngredient(display),
       checked: !!st.checked, comment: st.comment || '',
-      manual: !!st.manual, hidden: !!st.hidden,
     });
   });
-  return { entries, hiddenCount };
+  return { entries };
 }
 
 function renderPedidos() {
@@ -1644,7 +1634,7 @@ function renderPedidos() {
     <div class="ped-toolbar">
       <div class="ped-search">
         <span class="material-symbols-outlined">search</span>
-        <input type="text" id="pedSearchInput" placeholder="Buscar materia prima…" oninput="onPedidosSearch(this.value)">
+        <input type="text" id="pedSearchInput" placeholder="Buscar en la lista…" oninput="onPedidosSearch(this.value)">
       </div>
       ${orderEditCols ? `<button class="btn-pill ${pedidosEdit ? '' : 'ghost'}" id="pedEditBtn" onclick="setPedidosEdit(${!pedidosEdit})">
         <span class="material-symbols-outlined" style="font-size:15px;">${pedidosEdit ? 'done' : 'edit'}</span> ${pedidosEdit ? 'Listo' : 'Editar'}
@@ -1653,7 +1643,7 @@ function renderPedidos() {
         <span class="material-symbols-outlined" style="font-size:15px;">restart_alt</span> Reiniciar
       </button>
     </div>
-    ${!orderEditCols ? `<div class="ped-hint">Para poder editar la lista (añadir, renombrar u ocultar), ejecuta la pequeña actualización SQL que te paso.</div>` : ''}
+    ${!orderEditCols ? `<div class="ped-hint">Para poder crear y editar la lista, ejecuta la pequeña actualización SQL que te paso.</div>` : ''}
     <div class="ped-count" id="pedCount"></div>
     <div id="pedList"></div>
     <div class="ped-send-bar">
@@ -1671,12 +1661,12 @@ function renderPedidosList() {
   if (!listEl) return;
   const q = normalizeText(pedidosSearch);
 
-  const { entries: all, hiddenCount } = buildPedidoEntries();
+  const { entries: all } = buildPedidoEntries();
   _pedIndexByKey = {};
   all.forEach(e => { _pedIndexByKey[e.key] = e; });
 
-  const totalItems   = all.filter(e => !e.hidden).length;
-  const totalChecked = all.filter(e => e.checked && !e.hidden).length;
+  const totalItems   = all.length;
+  const totalChecked = all.filter(e => e.checked).length;
 
   let entries = all;
   if (q) entries = entries.filter(e => normalizeText(e.display).includes(q));
@@ -1686,14 +1676,14 @@ function renderPedidosList() {
   const order = [...SUPPLIER_GROUPS.map(g => g.id), 'otros'];
 
   let html = '';
-  if (pedidosEdit) {
+  if (orderEditCols) {
     html += `<button class="btn-pill ped-add" onclick="addManualMateriaPrima()">
-      <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir materia prima
+      <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir artículo
     </button>`;
   }
 
   if (entries.length === 0) {
-    html += `<div class="empty-state"><span class="material-symbols-outlined">${q ? 'search_off' : 'inventory_2'}</span>${q ? 'Sin coincidencias' : 'No hay materias primas todavía. Añade recetas, producciones, pesos o salmueras.'}</div>`;
+    html += `<div class="empty-state"><span class="material-symbols-outlined">${q ? 'search_off' : 'inventory_2'}</span>${q ? 'Sin coincidencias' : 'Lista vacía. Pulsa "Añadir artículo" para empezar tu lista de pedidos.'}</div>`;
   } else {
     order.forEach(gid => {
       const list = byGroup[gid];
@@ -1705,13 +1695,11 @@ function renderPedidosList() {
         const k = encodeURIComponent(e.key);
         if (pedidosEdit) {
           html += `
-            <div class="order-row edit ${e.hidden ? 'is-hidden' : ''}">
-              <span class="order-name">${e.display}${e.manual ? ' <span class="ped-tag">manual</span>' : ''}</span>
+            <div class="order-row edit">
+              <span class="order-name">${e.display}</span>
               <button class="order-act btn-icon" onclick="renamePedido('${k}')" title="Renombrar"><span class="material-symbols-outlined">edit</span></button>
               <button class="order-act btn-icon" onclick="openGroupPicker('${k}')" title="Cambiar grupo"><span class="material-symbols-outlined">swap_horiz</span></button>
-              ${e.hidden
-                ? `<button class="order-act btn-icon" onclick="unhidePedido('${k}')" title="Mostrar"><span class="material-symbols-outlined" style="color:var(--primary);">visibility</span></button>`
-                : `<button class="order-act btn-icon" onclick="hideOrDeletePedido('${k}')" title="${e.manual ? 'Eliminar' : 'Ocultar'}"><span class="material-symbols-outlined" style="color:var(--danger);">${e.manual ? 'delete' : 'visibility_off'}</span></button>`}
+              <button class="order-act btn-icon" onclick="deletePedido('${k}')" title="Eliminar"><span class="material-symbols-outlined" style="color:var(--danger);">delete</span></button>
             </div>`;
         } else {
           html += `
@@ -1730,8 +1718,8 @@ function renderPedidosList() {
   const countEl = document.getElementById('pedCount');
   if (countEl) {
     countEl.textContent = pedidosEdit
-      ? `${totalItems} materias primas${hiddenCount ? ` · ${hiddenCount} ocultas` : ''}`
-      : `${totalChecked} marcados · ${totalItems} materias primas`;
+      ? `${totalItems} artículo${totalItems === 1 ? '' : 's'}`
+      : `${totalChecked} marcados · ${totalItems} artículo${totalItems === 1 ? '' : 's'}`;
   }
   const sendBtn = document.getElementById('pedSendBtn');
   if (sendBtn) sendBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:19px; vertical-align:middle;">picture_as_pdf</span> Enviar pedido (${totalChecked})`;
@@ -1821,7 +1809,7 @@ async function assignIngredientGroup(enc, gid) {
 // ─── Edición de la lista ───────────────
 async function addManualMateriaPrima() {
   const name = await showPrompt({
-    title:       'Nueva materia prima',
+    title:       'Nuevo artículo',
     label:       'Nombre',
     placeholder: 'Ej: Sal Maldon',
     confirmText: 'Añadir',
@@ -1857,33 +1845,24 @@ async function renamePedido(enc) {
   showToast('Renombrado ✓');
 }
 
-async function hideOrDeletePedido(enc) {
-  const key = decodeURIComponent(enc);
-  const st = orderState[key] || {};
-  if (st.manual) {
-    // Ítem manual → se elimina por completo
-    delete orderState[key];
-    renderPedidosList();
-    try {
-      const { error } = await sb.from('order_items').delete().eq('key', key);
-      if (error) throw error;
-    } catch (e) { console.error(e); showToast('Error al eliminar'); }
-    showToast('Eliminado');
-  } else {
-    // Ítem derivado → se oculta (volvería a salir si se borra de la receta)
-    const display = (_pedIndexByKey[key] && _pedIndexByKey[key].display) || st.name || key;
-    await upsertOrderItem(key, display, { hidden: true });
-    renderPedidosList();
-    showToast('Ocultado');
-  }
-}
-
-async function unhidePedido(enc) {
+async function deletePedido(enc) {
   const key = decodeURIComponent(enc);
   const display = (_pedIndexByKey[key] && _pedIndexByKey[key].display) || orderState[key]?.name || key;
-  await upsertOrderItem(key, display, { hidden: false });
+  const ok = await showConfirm({
+    title:       'Eliminar artículo',
+    message:     `¿Quitar "${display}" de la lista?`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('order_items').delete().eq('key', key);
+      if (error) throw error;
+      delete orderState[key];
+    },
+  });
+  if (!ok) return;
   renderPedidosList();
-  showToast('Visible de nuevo');
+  showToast('Eliminado');
 }
 
 async function resetPedidos() {
