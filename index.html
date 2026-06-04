@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#006A6A">
   <meta name="mobile-web-app-capable" content="yes">
@@ -13,7 +16,7 @@
   <title>RubenceChef</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=11">
 </head>
 <body>
 
@@ -95,63 +98,96 @@
   <!-- EDITOR PRODUCCIÓN -->
   <div id="productionEditorPage" class="page"></div>
 
-  <!-- FICHAS -->
+  <!-- UTILIDADES (Pesos · Conversión · Pedidos) -->
   <div id="fichasPage" class="page">
-    <h2 style="margin-bottom:16px;"><span class="material-symbols-outlined">description</span> Fichas</h2>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <div class="section-title" style="margin-bottom:0;">
-        <span class="material-symbols-outlined">monitor_weight</span> Pesos de ración
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn-pill ghost" onclick="openCommentModal('Pesos de ración','fichas')">
-          <span class="material-symbols-outlined" style="font-size:15px;">report</span> Error
-        </button>
-        <button class="btn-pill" id="addWeightBtn" style="display:none;" onclick="openWeightModal(null)">
-          <span class="material-symbols-outlined" style="font-size:15px;">add</span> Añadir
-        </button>
-      </div>
+    <div class="seg-control">
+      <button class="seg-btn active" id="seg-pesos" onclick="setUtilTab('pesos')">
+        <span class="material-symbols-outlined">description</span> Pesos
+      </button>
+      <button class="seg-btn" id="seg-conv" onclick="setUtilTab('conv')">
+        <span class="material-symbols-outlined">calculate</span> Conversión
+      </button>
+      <button class="seg-btn" id="seg-pedidos" onclick="setUtilTab('pedidos')">
+        <span class="material-symbols-outlined">shopping_cart</span> Pedidos
+      </button>
     </div>
-    <div class="card" id="weightsList"></div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; margin-top:8px;">
-      <div class="section-title" style="margin-bottom:0;">
-        <span class="material-symbols-outlined">water_drop</span> Salmueras al 10%
+    <!-- Sub: Pesos y salmueras -->
+    <div id="utilPesos">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;">
+          <span class="material-symbols-outlined">monitor_weight</span> Pesos de ración
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-pill ghost" onclick="openCommentModal('Pesos de ración','fichas')">
+            <span class="material-symbols-outlined" style="font-size:15px;">report</span> Error
+          </button>
+          <button class="btn-pill" id="addWeightBtn" style="display:none;" onclick="openWeightModal(null)">
+            <span class="material-symbols-outlined" style="font-size:15px;">add</span> Añadir
+          </button>
+        </div>
       </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn-pill ghost" onclick="openCommentModal('Salmueras','fichas')">
-          <span class="material-symbols-outlined" style="font-size:15px;">report</span> Error
-        </button>
-        <button class="btn-pill" id="addBrineBtn" style="display:none;" onclick="openBrineModal(null)">
-          <span class="material-symbols-outlined" style="font-size:15px;">add</span> Añadir
-        </button>
-      </div>
-    </div>
-    <div class="card" id="brinesList"></div>
-  </div>
+      <div class="card" id="weightsList"></div>
 
-  <!-- CONVERSIÓN -->
-  <div id="converterPage" class="page">
-    <h2 style="margin-bottom:16px;"><span class="material-symbols-outlined">swap_horiz</span> Conversión</h2>
-    <div class="card">
-      <div class="chips-row" id="convTypeChips" style="margin-bottom:16px;"></div>
-      <div class="form-group">
-        <div class="conv-label">Valor</div>
-        <input type="number" class="conv-input" id="convValue" value="1000" oninput="updateConverter()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; margin-top:8px;">
+        <div class="section-title" style="margin-bottom:0;">
+          <span class="material-symbols-outlined">water_drop</span> Salmueras al 10%
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-pill ghost" onclick="openCommentModal('Salmueras','fichas')">
+            <span class="material-symbols-outlined" style="font-size:15px;">report</span> Error
+          </button>
+          <button class="btn-pill" id="addBrineBtn" style="display:none;" onclick="openBrineModal(null)">
+            <span class="material-symbols-outlined" style="font-size:15px;">add</span> Añadir
+          </button>
+        </div>
       </div>
-      <div class="conv-grid">
-        <div><div class="conv-label">Desde</div><select class="conv-select" id="convFrom" onchange="updateConverter()"></select></div>
-        <div class="conv-arrow">→</div>
-        <div><div class="conv-label">Hasta</div><select class="conv-select" id="convTo" onchange="updateConverter()"></select></div>
+      <div class="card" id="brinesList"></div>
+    </div>
+
+    <!-- Sub: Conversión + regla de tres -->
+    <div id="utilConv" style="display:none;">
+      <div class="card">
+        <div class="chips-row" id="convTypeChips" style="margin-bottom:16px;"></div>
+        <div class="form-group">
+          <div class="conv-label">Valor</div>
+          <input type="number" class="conv-input" id="convValue" value="1000" oninput="updateConverter()">
+        </div>
+        <div class="conv-grid">
+          <div><div class="conv-label">Desde</div><select class="conv-select" id="convFrom" onchange="updateConverter()"></select></div>
+          <div class="conv-arrow">→</div>
+          <div><div class="conv-label">Hasta</div><select class="conv-select" id="convTo" onchange="updateConverter()"></select></div>
+        </div>
+        <div class="converter-result">
+          <div class="converter-result-val" id="convResult">—</div>
+          <div class="converter-result-lbl" id="convResultLabel"></div>
+        </div>
       </div>
-      <div class="converter-result">
-        <div class="converter-result-val" id="convResult">—</div>
-        <div class="converter-result-lbl" id="convResultLabel"></div>
+      <div class="card">
+        <div class="section-title"><span class="material-symbols-outlined">thermostat</span> Temperatura horno</div>
+        <div class="ref-grid" id="tempRef"></div>
+      </div>
+      <div class="card">
+        <div class="section-title"><span class="material-symbols-outlined">function</span> Regla de tres</div>
+        <p style="font-size:12.5px; color:var(--text2); margin-bottom:14px; line-height:1.5;">Si <strong>A</strong> equivale a <strong>B</strong>, ¿a cuánto equivale <strong>C</strong>?</p>
+        <div class="rot-row">
+          <div><div class="conv-label">A es a…</div><input type="number" class="conv-input" id="rotA" placeholder="Ej: 4" oninput="updateRuleOfThree()"></div>
+          <div class="rot-sep">:</div>
+          <div><div class="conv-label">…B</div><input type="number" class="conv-input" id="rotB" placeholder="Ej: 500" oninput="updateRuleOfThree()"></div>
+        </div>
+        <div class="form-group" style="margin-top:12px; margin-bottom:0;">
+          <div class="conv-label">Como C es a X — escribe C</div>
+          <input type="number" class="conv-input" id="rotC" placeholder="Ej: 10" oninput="updateRuleOfThree()">
+        </div>
+        <div class="rot-result" id="rotResult" style="display:none;">
+          <div class="rot-result-val" id="rotResultVal">—</div>
+          <div class="rot-result-lbl" id="rotResultLbl"></div>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <div class="section-title"><span class="material-symbols-outlined">thermostat</span> Temperatura horno</div>
-      <div class="ref-grid" id="tempRef"></div>
-    </div>
+
+    <!-- Sub: Pedidos -->
+    <div id="utilPedidos" style="display:none;"></div>
   </div>
 
   <!-- ADMIN -->
@@ -174,10 +210,7 @@
     <span class="material-symbols-outlined">blender</span><span>Producción</span>
   </button>
   <button class="nav-btn" id="nav-fichas" onclick="showPage('fichas',this)">
-    <span class="material-symbols-outlined">description</span><span>Fichas</span>
-  </button>
-  <button class="nav-btn" id="nav-converter" onclick="showPage('converter',this)">
-    <span class="material-symbols-outlined">swap_horiz</span><span>Conversión</span>
+    <span class="material-symbols-outlined">handyman</span><span>Utilidades</span>
   </button>
   <button class="nav-btn" id="nav-admin" onclick="showPage('admin',this)">
     <span class="material-symbols-outlined">admin_panel_settings</span><span>Admin</span>
@@ -279,6 +312,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/app.js?v=11"></script>
 </body>
 </html>
