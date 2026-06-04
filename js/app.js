@@ -43,6 +43,58 @@ const ALLERGENS = [
   { id: 'altramuces', label: 'Altramuces',        emoji: '🫛' },
   { id: 'moluscos',   label: 'Moluscos',          emoji: '🐚' },
 ];
+
+// ─── Grupos de proveedor para la lista de pedidos ───
+const SUPPLIER_GROUPS = [
+  { id: 'aves',       label: 'Aves',                   emoji: '🐔', kw: ['pollo','pollos','pavo','pavos','pato','patos','magret','pechuga','pechugas','muslo','muslos','contramuslo','contramuslos','alita','alitas','gallina','gallinas','codorniz','codornices','perdiz','perdices','pularda','pulardas','capon','capones','pichon','pichones','jamoncito','jamoncitos','ave','aves'] },
+  { id: 'carnes',     label: 'Carnes',                 emoji: '🥩', kw: ['ternera','vacuno','buey','solomillo','lomo','cerdo','cochinillo','cordero','lechazo','conejo','costilla','costillar','chuleta','chuleton','entrecot','panceta','bacon','beicon','jamon','chorizo','salchicha','salchichon','morcilla','butifarra','secreto','presa','pluma','carrillera','carrilleras','rabo','codillo','hamburguesa','albondiga','albondigas','foie','higado','callos','manitas','careta','tocino','cabezada'] },
+  { id: 'pescados',   label: 'Pescados y mariscos',    emoji: '🐟', kw: ['salmon','merluza','bacalao','atun','bonito','lubina','dorada','rape','mero','rodaballo','lenguado','trucha','sardina','sardinas','boqueron','boquerones','anchoa','anchoas','caballa','jurel','pez','gamba','gambas','langostino','langostinos','cigala','cigalas','bogavante','carabinero','quisquilla','mejillon','mejillones','almeja','almejas','navaja','navajas','berberecho','berberechos','calamar','calamares','chipiron','chipirones','sepia','choco','pulpo','vieira','vieiras','zamburina','ostra','ostras','marisco','percebe','percebes','centollo','necora','langosta'] },
+  { id: 'fruver',     label: 'Frutas y verduras',      emoji: '🥬', kw: ['lechuga','tomate','tomates','cebolla','cebolleta','chalota','ajo','ajos','puerro','puerros','pimiento','pimientos','zanahoria','zanahorias','calabacin','berenjena','berenjenas','espinaca','espinacas','acelga','acelgas','brocoli','coliflor','romanesco','patata','patatas','apio','calabaza','champinon','champinones','seta','setas','boletus','niscalo','esparrago','esparragos','judia','judias','guisante','guisantes','haba','habas','rucula','canonigo','canonigos','escarola','endivia','endivias','remolacha','nabo','rabano','rabanos','hinojo','alcachofa','alcachofas','pepino','maiz','col','repollo','lombarda','kale','germinado','brote','brotes','jengibre','aguacate','tirabeque','tirabeques','borraja','cardo','grelo','grelos','perejil','cilantro','albahaca','hierbabuena','menta','manzana','manzanas','pera','peras','platano','platanos','naranja','naranjas','limon','limones','lima','limas','mandarina','pomelo','fresa','fresas','freson','frambuesa','frambuesas','arandano','arandanos','mora','moras','grosella','mango','pina','melon','sandia','uva','uvas','higo','higos','granada','kiwi','melocoton','albaricoque','nectarina','cereza','cerezas','ciruela','ciruelas','coco','maracuya','papaya'] },
+  { id: 'lacteos',    label: 'Lácteos y huevos',       emoji: '🧀', kw: ['leche','nata','queso','quesos','mantequilla','yogur','yogures','huevo','huevos','crema','parmesano','mozzarella','mascarpone','requeson','cuajada','kefir','burrata','feta','gruyer','emmental','cheddar','idiazabal','manchego','cabra','mantequa'] },
+  { id: 'encurtidos', label: 'Encurtidos y conservas', emoji: '🫙', kw: ['pepinillo','pepinillos','alcaparra','alcaparras','aceituna','aceitunas','encurtido','encurtidos','banderilla','banderillas','guindilla','guindillas','piparra','piparras','conserva','escabeche','antipasto','mojama','salazon','ventresca'] },
+  { id: 'panaderia',  label: 'Panadería y pastelería', emoji: '🥖', kw: ['harina','pan','levadura','masa','hojaldre','brioche','miga','picatoste','picatostes','obleas','empanadilla','panko','bizcocho','galleta','galletas','fondant','merengue','crema pastelera','pasta brisa','filo','tortilla de trigo'] },
+  { id: 'despensa',   label: 'Despensa y especias',    emoji: '🧂', kw: ['sal','azucar','aceite','vinagre','pimienta','pimenton','comino','curry','canela','nuez moscada','clavo','azafran','laurel','oregano','tomillo','romero','especia','especias','caldo','fondo','soja','mostaza','miel','sirope','chocolate','cacao','almendra','almendras','nuez','nueces','avellana','avellanas','pinon','pinones','pistacho','pistachos','sesamo','gelatina','agar','maicena','fecula','tomate frito','concentrado','mayonesa','ketchup','wasabi','miso','tahini','tahin','vainilla','bicarbonato','glucosa','isomalt','lecitina','arroz','pasta','fideo','fideos','espagueti','macarron','macarrones','cuscus','semola','polenta','bulgur','quinoa','lenteja','lentejas','garbanzo','garbanzos','alubia','alubias','pan rallado'] },
+  { id: 'bebidas',    label: 'Bebidas y bodega',       emoji: '🍷', kw: ['vino','brandy','conac','jerez','ron','whisky','cerveza','cava','champan','champagne','oporto','vermut','vermouth','licor','sidra','ginebra','sake','agua','zumo','refresco','tonica'] },
+];
+const OTHER_GROUP = { id: 'otros', label: 'Otros / Sin asignar', emoji: '📦' };
+
+function normalizeText(s) {
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Coletillas de cantidad que a veces se escriben dentro del nombre del
+// ingrediente. Se quitan SOLO para la lista de pedidos (no tocan la receta).
+const AMOUNT_NOTE_PHRASES = ['a ojo', 'al gusto', 'cantidad suficiente', 'c/s', 'qb', 'a discrecion', 'a discreción', 'a demanda', 'to taste'];
+function cleanIngredientName(raw) {
+  let s = (raw || '').toString();
+  AMOUNT_NOTE_PHRASES.forEach(p => {
+    const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    s = s.replace(new RegExp('\\(?\\s*\\b' + esc + '\\b\\s*\\)?', 'gi'), ' ');
+  });
+  return s
+    .replace(/\(\s*\)/g, ' ')        // paréntesis vacíos
+    .replace(/\s{2,}/g, ' ')         // espacios dobles
+    .replace(/^[\s,;:.\-–]+|[\s,;:.\-–]+$/g, '') // separadores colgando
+    .trim();
+}
+
+// Clasifica una materia prima en un grupo. Prioridad: asignación manual
+// guardada > diccionario por palabra clave > "Otros / Sin asignar".
+function classifyIngredient(name) {
+  const key = normalizeText(name);
+  if (!key) return 'otros';
+  const override = orderState[key] && orderState[key].supplier_group;
+  if (override) return override;
+  for (const g of SUPPLIER_GROUPS) {
+    for (const kw of g.kw) {
+      const k = normalizeText(kw).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp('\\b' + k + '\\b').test(key)) return g.id;
+    }
+  }
+  return 'otros';
+}
+function groupMeta(id) { return SUPPLIER_GROUPS.find(g => g.id === id) || OTHER_GROUP; }
+
 let recipes              = [];
 let productions          = [];
 let recipeProductions    = [];
@@ -50,6 +102,13 @@ let comments             = [];
 let weights              = [];
 let brines               = [];
 let productionCategories = [];
+let orderItems = [];        // filas de la tabla order_items (estado guardado)
+let orderState = {};        // key normalizada -> { name, supplier_group, checked, comment }
+let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos'
+let pedidosSearch = '';
+let pedidosEdit   = false;  // modo edición de la lista de pedidos
+let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
+let _pedidosIndex = [];     // ítems de la lista en el render actual (para los onclick)
 let isAdmin     = false;
 let currentPage = 'recipes';
 let savedScroll = {};
@@ -111,6 +170,22 @@ async function loadData() {
     brines               = bData  || [];
     productionCategories = pcData || [];
 
+    // La tabla de pedidos puede no existir todavía: cárgala sin romper el resto.
+    try {
+      const { data: oData, error: oErr } = await sb.from('order_items').select('*');
+      if (oErr) throw oErr;
+      orderItems = oData || [];
+    } catch (e) {
+      console.warn('order_items no disponible (¿falta crear la tabla?):', e?.message || e);
+      orderItems = [];
+    }
+    // ¿Están las columnas para editar la lista (hidden/manual/display_name)?
+    try {
+      const { error: cErr } = await sb.from('order_items').select('hidden,manual,display_name').limit(1);
+      orderEditCols = !cErr;
+    } catch (e) { orderEditCols = false; }
+    rebuildOrderState();
+
     renderRecipes();
     updateBadges();
     restoreAdminSession();
@@ -153,7 +228,6 @@ function showPage(page, btn) {
   if (isRecipes) { initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
   if (isProd)    { const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
   if (page === 'fichas')    renderFichas();
-  if (page === 'converter') initConverter();
   if (page === 'admin')     renderAdmin();
 }
 
@@ -657,6 +731,7 @@ async function saveRecipe() {
   currentRecipeId = recipeEditorData.id;
   recipeEditorBaseline = JSON.stringify(recipeEditorData); // ya guardado: sin cambios pendientes
   showToast('Receta guardada ✓');
+  refreshPedidosIfVisible();
   exitRecipeEditor(true);
 }
 
@@ -690,6 +765,7 @@ async function deleteRecipe(id) {
   });
   if (!ok) return;
   showToast('Receta eliminada');
+  refreshPedidosIfVisible();
   backTo('recipes'); renderRecipes();
 }
 
@@ -1111,6 +1187,7 @@ async function saveProduction() {
   currentProdId = prodEditorData.id;
   prodEditorBaseline = JSON.stringify(prodEditorData);
   showToast('Producción guardada ✓');
+  refreshPedidosIfVisible();
   exitProdEditor(true);
 }
 
@@ -1144,6 +1221,7 @@ async function deleteProduction(id) {
   });
   if (!ok) return;
   showToast('Producción eliminada');
+  refreshPedidosIfVisible();
   backTo('productions'); renderProductions();
 }
 
@@ -1197,6 +1275,7 @@ function toggleAdmin() {
     document.getElementById('adminAddProductionRow').style.display = 'none';
     document.getElementById('addWeightBtn').style.display = 'none';
     document.getElementById('addBrineBtn').style.display  = 'none';
+    if (currentPage === 'fichas') renderFichas();
     showToast('Sesión cerrada');
   } else {
     // Crear modal dinámicamente — el campo password no existe en el DOM
@@ -1259,10 +1338,7 @@ function activateAdminUI() {
      <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
   if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
   if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
-  if (currentPage === 'fichas') {
-    document.getElementById('addWeightBtn').style.display = '';
-    document.getElementById('addBrineBtn').style.display  = '';
-  }
+  if (currentPage === 'fichas') renderFichas();
 }
 
 function restoreAdminSession() {
@@ -1434,11 +1510,454 @@ function updateBadges() {
 // ═══════════════════════════════════════
 //   FICHAS
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//   UTILIDADES (Pesos · Conversión · Pedidos)
+// ═══════════════════════════════════════
 function renderFichas() {
+  const segPed = document.getElementById('seg-pedidos');
+  if (segPed) segPed.style.display = isAdmin ? '' : 'none';
+  if (utilTab === 'pedidos' && !isAdmin) utilTab = 'pesos';
+
+  document.getElementById('seg-pesos').classList.toggle('active', utilTab === 'pesos');
+  document.getElementById('seg-conv').classList.toggle('active', utilTab === 'conv');
+  if (segPed) segPed.classList.toggle('active', utilTab === 'pedidos');
+
+  document.getElementById('utilPesos').style.display   = utilTab === 'pesos'   ? '' : 'none';
+  document.getElementById('utilConv').style.display    = utilTab === 'conv'    ? '' : 'none';
+  document.getElementById('utilPedidos').style.display = utilTab === 'pedidos' ? '' : 'none';
+
+  if (utilTab === 'pesos')   renderPesos();
+  if (utilTab === 'conv')    renderConvTab();
+  if (utilTab === 'pedidos') renderPedidos();
+}
+function setUtilTab(tab) { utilTab = tab; renderFichas(); }
+
+function renderPesos() {
   document.getElementById('addWeightBtn').style.display = isAdmin ? '' : 'none';
   document.getElementById('addBrineBtn').style.display  = isAdmin ? '' : 'none';
   renderWeights();
   renderBrines();
+}
+
+function renderConvTab() {
+  initConverter();
+  updateRuleOfThree();
+}
+
+// ─── Regla de tres ─────────────────────
+function updateRuleOfThree() {
+  const a = parseFloat(document.getElementById('rotA').value);
+  const b = parseFloat(document.getElementById('rotB').value);
+  const c = parseFloat(document.getElementById('rotC').value);
+  const box = document.getElementById('rotResult');
+  if (isNaN(a) || isNaN(b) || isNaN(c) || a === 0) { box.style.display = 'none'; return; }
+  const x = b * c / a;
+  const d = Number.isInteger(x) ? x : parseFloat(x.toFixed(3));
+  document.getElementById('rotResultVal').textContent = d;
+  document.getElementById('rotResultLbl').textContent = `${fmtNum(a)} : ${fmtNum(b)}  =  ${fmtNum(c)} : ${d}`;
+  box.style.display = '';
+}
+function fmtNum(n) { return Number.isInteger(n) ? n : parseFloat(n.toFixed(3)); }
+
+// ═══════════════════════════════════════
+//   LISTA DE PEDIDOS
+// ═══════════════════════════════════════
+let _pedIndexByKey = {};
+
+function escAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Reconstruye el estado guardado (check/comentario/grupo/edición) por materia prima.
+function rebuildOrderState() {
+  orderState = {};
+  (orderItems || []).forEach(it => {
+    const key = it.key || normalizeText(it.name);
+    if (!key) return;
+    orderState[key] = {
+      name: it.name || key,
+      supplier_group: it.supplier_group || null,
+      checked: !!it.checked,
+      comment: it.comment || '',
+      hidden: !!it.hidden,
+      manual: !!it.manual,
+      display_name: it.display_name || null,
+    };
+  });
+}
+
+// Lista de materias primas en vivo desde ingredientes de recetas + producciones,
+// más los nombres de pesos de ración y de salmueras.
+function buildMateriasPrimas() {
+  const map = {}; // key normalizada -> nombre a mostrar
+  const addName = (raw) => {
+    const cleaned = cleanIngredientName(raw);
+    if (!cleaned) return;
+    const key = normalizeText(cleaned);
+    if (!key || map[key]) return;
+    map[key] = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  };
+  const addIngredients = (arr) => (arr || []).forEach(e => (e.ingredients || []).forEach(ing => addName(ing.name)));
+  addIngredients(recipes);
+  addIngredients(productions);
+  (weights || []).forEach(w => addName(w.name));     // pesos de ración
+  (brines  || []).forEach(b => addName(b.product));  // salmueras
+  return map;
+}
+
+// La lista de pedidos es 100% manual: se construye solo con los artículos
+// que el admin añade (no se saca de recetas, producciones, pesos ni salmueras).
+function buildPedidoEntries() {
+  const entries = [];
+  Object.keys(orderState).forEach(key => {
+    const st = orderState[key];
+    if (!st || !st.manual) return; // solo ítems añadidos a mano
+    const display = st.display_name || st.name || key;
+    entries.push({
+      key, display,
+      group: st.supplier_group || classifyIngredient(display),
+      checked: !!st.checked, comment: st.comment || '',
+    });
+  });
+  return { entries };
+}
+
+function renderPedidos() {
+  const root = document.getElementById('utilPedidos');
+  if (!root) return;
+  if (!isAdmin) {
+    root.innerHTML = `<div class="ped-locked"><span class="material-symbols-outlined">lock</span>Esta sección es solo para administradores.</div>`;
+    return;
+  }
+  root.innerHTML = `
+    <div class="ped-toolbar">
+      <div class="ped-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="pedSearchInput" placeholder="Buscar en la lista…" oninput="onPedidosSearch(this.value)">
+      </div>
+      ${orderEditCols ? `<button class="btn-pill ${pedidosEdit ? '' : 'ghost'}" id="pedEditBtn" onclick="setPedidosEdit(${!pedidosEdit})">
+        <span class="material-symbols-outlined" style="font-size:15px;">${pedidosEdit ? 'done' : 'edit'}</span> ${pedidosEdit ? 'Listo' : 'Editar'}
+      </button>` : ''}
+      <button class="btn-pill ghost" onclick="resetPedidos()">
+        <span class="material-symbols-outlined" style="font-size:15px;">restart_alt</span> Reiniciar
+      </button>
+    </div>
+    ${!orderEditCols ? `<div class="ped-hint">Para poder crear y editar la lista, ejecuta la pequeña actualización SQL que te paso.</div>` : ''}
+    <div class="ped-count" id="pedCount"></div>
+    <div id="pedList"></div>
+    <div class="ped-send-bar">
+      <button class="btn-action" id="pedSendBtn" onclick="sendPedidoPDF()"></button>
+    </div>`;
+  document.getElementById('pedSearchInput').value = pedidosSearch;
+  renderPedidosList();
+}
+
+function onPedidosSearch(v) { pedidosSearch = v; renderPedidosList(); }
+function setPedidosEdit(on) { pedidosEdit = !!on; renderPedidos(); }
+
+function renderPedidosList() {
+  const listEl = document.getElementById('pedList');
+  if (!listEl) return;
+  const q = normalizeText(pedidosSearch);
+
+  const { entries: all } = buildPedidoEntries();
+  _pedIndexByKey = {};
+  all.forEach(e => { _pedIndexByKey[e.key] = e; });
+
+  const totalItems   = all.length;
+  const totalChecked = all.filter(e => e.checked).length;
+
+  let entries = all;
+  if (q) entries = entries.filter(e => normalizeText(e.display).includes(q));
+
+  const byGroup = {};
+  entries.forEach(e => (byGroup[e.group] = byGroup[e.group] || []).push(e));
+  const order = [...SUPPLIER_GROUPS.map(g => g.id), 'otros'];
+
+  let html = '';
+  if (orderEditCols) {
+    html += `<button class="btn-pill ped-add" onclick="addManualMateriaPrima()">
+      <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir artículo
+    </button>`;
+  }
+
+  if (entries.length === 0) {
+    html += `<div class="empty-state"><span class="material-symbols-outlined">${q ? 'search_off' : 'inventory_2'}</span>${q ? 'Sin coincidencias' : 'Lista vacía. Pulsa "Añadir artículo" para empezar tu lista de pedidos.'}</div>`;
+  } else {
+    order.forEach(gid => {
+      const list = byGroup[gid];
+      if (!list || !list.length) return;
+      const meta = groupMeta(gid);
+      list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base' }));
+      html += `<div class="order-group-head"><span class="gh-emoji">${meta.emoji}</span> ${meta.label} <span class="gh-count">${list.length}</span></div>`;
+      list.forEach(e => {
+        const k = encodeURIComponent(e.key);
+        if (pedidosEdit) {
+          html += `
+            <div class="order-row edit">
+              <span class="order-name">${e.display}</span>
+              <button class="order-act btn-icon" onclick="renamePedido('${k}')" title="Renombrar"><span class="material-symbols-outlined">edit</span></button>
+              <button class="order-act btn-icon" onclick="openGroupPicker('${k}')" title="Cambiar grupo"><span class="material-symbols-outlined">swap_horiz</span></button>
+              <button class="order-act btn-icon" onclick="deletePedido('${k}')" title="Eliminar"><span class="material-symbols-outlined" style="color:var(--danger);">delete</span></button>
+            </div>`;
+        } else {
+          html += `
+            <div class="order-row ${e.checked ? 'checked' : ''}">
+              <span class="order-check material-symbols-outlined" onclick="togglePedido('${k}')">${e.checked ? 'check_circle' : 'radio_button_unchecked'}</span>
+              <span class="order-name">${e.display}</span>
+              <input class="order-comment" type="text" placeholder="Nota…" value="${escAttr(e.comment)}" onchange="setPedidoComment('${k}', this.value)">
+              <button class="order-move btn-icon" onclick="openGroupPicker('${k}')"><span class="material-symbols-outlined">swap_horiz</span></button>
+            </div>`;
+        }
+      });
+    });
+  }
+  listEl.innerHTML = html;
+
+  const countEl = document.getElementById('pedCount');
+  if (countEl) {
+    countEl.textContent = pedidosEdit
+      ? `${totalItems} artículo${totalItems === 1 ? '' : 's'}`
+      : `${totalChecked} marcados · ${totalItems} artículo${totalItems === 1 ? '' : 's'}`;
+  }
+  const sendBtn = document.getElementById('pedSendBtn');
+  if (sendBtn) sendBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:19px; vertical-align:middle;">picture_as_pdf</span> Enviar pedido (${totalChecked})`;
+}
+
+// Guarda (upsert) el estado de una materia prima en Supabase.
+async function upsertOrderItem(key, display, patch) {
+  const cur = orderState[key] || { name: display, supplier_group: null, checked: false, comment: '', hidden: false, manual: false, display_name: null };
+  const next = { ...cur, ...patch, name: cur.name || display };
+  orderState[key] = next;
+  const row = {
+    key, name: next.name, supplier_group: next.supplier_group,
+    checked: next.checked, comment: next.comment, updated_at: new Date().toISOString(),
+  };
+  if (orderEditCols) {
+    row.hidden = !!next.hidden;
+    row.manual = !!next.manual;
+    row.display_name = next.display_name || null;
+  }
+  try {
+    const { error } = await sb.from('order_items').upsert(row, { onConflict: 'key' });
+    if (error) throw error;
+  } catch (e) {
+    console.error('Error guardando order_items:', e);
+    showToast('Error al guardar el pedido');
+  }
+}
+
+async function togglePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  const checked = !(orderState[key]?.checked);
+  orderState[key] = { ...(orderState[key] || { name: display, supplier_group: null, comment: '' }), checked };
+  renderPedidosList();
+  await upsertOrderItem(key, display, { checked });
+}
+
+async function setPedidoComment(enc, value) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  orderState[key] = { ...(orderState[key] || { name: display, supplier_group: null, checked: false }), comment: value };
+  await upsertOrderItem(key, display, { comment: value });
+}
+
+function openGroupPicker(enc) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  const current = e ? e.group : classifyIngredient(display);
+  closeGroupPicker();
+  const all = [...SUPPLIER_GROUPS, OTHER_GROUP];
+  const modal = document.createElement('div');
+  modal.id = 'groupPickerModal';
+  modal.className = 'modal-overlay';
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Grupo de "${escAttr(display)}"</span>
+        <button class="modal-close" onclick="closeGroupPicker()">✕</button>
+      </div>
+      <div>${all.map(g => `
+        <div class="gp-option ${g.id === current ? 'selected' : ''}" onclick="assignIngredientGroup('${enc}','${g.id}')">
+          <span class="gp-emoji">${g.emoji}</span>
+          <span class="gp-label">${g.label}</span>
+          ${g.id === current ? '<span class="material-symbols-outlined" style="margin-left:auto; color:var(--primary);">check</span>' : ''}
+        </div>`).join('')}</div>
+    </div>`;
+  modal.addEventListener('click', ev => { if (ev.target === modal) closeGroupPicker(); });
+  document.body.appendChild(modal);
+}
+function closeGroupPicker() { const m = document.getElementById('groupPickerModal'); if (m) m.remove(); }
+
+async function assignIngredientGroup(enc, gid) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  orderState[key] = { ...(orderState[key] || { name: display, checked: false, comment: '' }), supplier_group: gid };
+  closeGroupPicker();
+  renderPedidosList();
+  await upsertOrderItem(key, display, { supplier_group: gid });
+  showToast('Grupo actualizado');
+}
+
+// ─── Edición de la lista ───────────────
+async function addManualMateriaPrima() {
+  const name = await showPrompt({
+    title:       'Nuevo artículo',
+    label:       'Nombre',
+    placeholder: 'Ej: Sal Maldon',
+    confirmText: 'Añadir',
+    icon:        'add_shopping_cart',
+  });
+  if (!name) return;
+  const clean = cleanIngredientName(name) || name.trim();
+  const key = normalizeText(clean);
+  if (!key) return;
+  const display = clean.charAt(0).toUpperCase() + clean.slice(1);
+  orderState[key] = { ...(orderState[key] || { supplier_group: null, checked: false, comment: '' }), name: display, manual: true, hidden: false };
+  await upsertOrderItem(key, display, { manual: true, hidden: false, name: display });
+  renderPedidosList();
+  showToast('Materia prima añadida ✓');
+}
+
+async function renamePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const current = e ? e.display : (orderState[key]?.name || key);
+  const name = await showPrompt({
+    title:       'Renombrar',
+    label:       'Nombre mostrado',
+    value:       current,
+    placeholder: 'Nombre de la materia prima',
+    confirmText: 'Guardar',
+    icon:        'edit',
+  });
+  if (!name || name === current) return;
+  const display = name.trim();
+  await upsertOrderItem(key, display, { display_name: display });
+  renderPedidosList();
+  showToast('Renombrado ✓');
+}
+
+async function deletePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const display = (_pedIndexByKey[key] && _pedIndexByKey[key].display) || orderState[key]?.name || key;
+  const ok = await showConfirm({
+    title:       'Eliminar artículo',
+    message:     `¿Quitar "${display}" de la lista?`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('order_items').delete().eq('key', key);
+      if (error) throw error;
+      delete orderState[key];
+    },
+  });
+  if (!ok) return;
+  renderPedidosList();
+  showToast('Eliminado');
+}
+
+async function resetPedidos() {
+  const ok = await showConfirm({
+    title:       'Reiniciar lista',
+    message:     'Se desmarcarán todos los artículos y se borrarán los comentarios. Las asignaciones de grupo se mantienen.',
+    confirmText: 'Reiniciar',
+    danger:      true,
+    icon:        'restart_alt',
+    onConfirm:   async () => {
+      const { error } = await sb.from('order_items').update({ checked: false, comment: '' }).not('key', 'is', null);
+      if (error) throw error;
+      Object.keys(orderState).forEach(k => { orderState[k].checked = false; orderState[k].comment = ''; });
+    },
+  });
+  if (!ok) return;
+  showToast('Lista reiniciada');
+  renderPedidosList();
+}
+
+// Genera el PDF con los marcados y abre el menú de compartir (WhatsApp, etc.).
+async function sendPedidoPDF() {
+  const entries = buildPedidoEntries().entries.filter(e => e.checked && !e.hidden);
+
+  if (!entries.length) { showToast('Marca al menos una materia prima'); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) { showToast('No se pudo cargar el generador de PDF'); return; }
+
+  const btn = document.getElementById('pedSendBtn');
+  await runWithLoading(btn, 'Generando…', async () => {
+    const now   = new Date();
+    const fecha = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    const hora  = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const title = `Pedidos carta del ${fecha} a las ${hora}`;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const M = 16, pageH = doc.internal.pageSize.getHeight(), maxW = 210 - M * 2;
+    let y = M;
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+    doc.text('Pedido carta', M, y); y += 7;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(120);
+    doc.text(`${fecha} · ${hora}`, M, y); y += 9;
+    doc.setTextColor(25);
+
+    const byGroup = {};
+    entries.forEach(e => (byGroup[e.group] = byGroup[e.group] || []).push(e));
+    const order = [...SUPPLIER_GROUPS.map(g => g.id), 'otros'];
+
+    order.forEach(gid => {
+      const list = byGroup[gid];
+      if (!list || !list.length) return;
+      list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base' }));
+      const meta = groupMeta(gid);
+      if (y > pageH - 26) { doc.addPage(); y = M; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
+      doc.text(meta.label.toUpperCase(), M, y); y += 2.5;
+      doc.setDrawColor(205); doc.line(M, y, 210 - M, y); y += 5.5;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+      list.forEach(e => {
+        let line = `•  ${e.display}`;
+        if (e.comment) line += `   —  ${e.comment}`;
+        const wrapped = doc.splitTextToSize(line, maxW);
+        if (y + wrapped.length * 5.2 > pageH - 14) { doc.addPage(); y = M; }
+        doc.text(wrapped, M, y);
+        y += wrapped.length * 5.2 + 0.8;
+      });
+      y += 5;
+    });
+
+    const safe = `Pedido ${now.toLocaleDateString('es-ES').replace(/\//g, '-')} ${hora.replace(':', '.')}.pdf`;
+    const blob = doc.output('blob');
+    const file = new File([blob], safe, { type: 'application/pdf' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title, text: title });
+      } else {
+        doc.save(safe);
+        showToast('PDF descargado (este dispositivo no permite compartir archivos)');
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // el usuario canceló
+      console.error('Error al compartir:', err);
+      doc.save(safe);
+      showToast('PDF descargado');
+    }
+  });
+}
+
+// Recalcula la lista si está visible (tras añadir/editar/borrar recetas).
+function refreshPedidosIfVisible() {
+  if (document.getElementById('fichasPage')?.classList.contains('active') && utilTab === 'pedidos') {
+    renderPedidosList();
+  }
 }
 
 function renderWeights() {
