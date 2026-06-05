@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v13';
+const APP_VERSION = 'v14';
 const ADMIN_PASSWORD = 'chef2024';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -391,6 +391,22 @@ function formatAmount(amount) {
 // ═══════════════════════════════════════
 //   RECETAS — LISTA
 // ═══════════════════════════════════════
+function renderRecipeSkeletons(n = 4) {
+  const list = document.getElementById('recipeList');
+  if (!list) return;
+  const card = `
+    <div class="sk-card" aria-hidden="true">
+      <div class="sk-img skeleton"></div>
+      <div class="sk-body">
+        <div class="sk-tag skeleton"></div>
+        <div class="sk-line title skeleton"></div>
+        <div class="sk-line w90 skeleton"></div>
+        <div class="sk-line w70 skeleton"></div>
+      </div>
+    </div>`;
+  list.innerHTML = card.repeat(n);
+}
+
 function renderRecipes() {
   const si = document.getElementById('searchInput');
   const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
@@ -416,7 +432,7 @@ function renderRecipes() {
     return `
     <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
       ${r.photo
-        ? `<img class="recipe-card-img" src="${r.photo}" alt="${r.name}" loading="lazy">`
+        ? `<img class="recipe-card-img" src="${r.photo}" alt="${r.name}" loading="lazy" onload="this.classList.add('loaded')">`
         : `<div class="recipe-card-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`}
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
@@ -488,7 +504,7 @@ function renderRecipeDetail() {
     </div>`).join('');
 
   const photoHtml = r.photo
-    ? `<img class="detail-img" src="${r.photo}" alt="Foto del plato" data-src="${r.photo}" onclick="openLightbox(this.dataset.src)" style="cursor:zoom-in;">`
+    ? `<img class="detail-img" src="${r.photo}" alt="Foto del plato" data-src="${r.photo}" loading="lazy" onload="this.classList.add('loaded')" onclick="openLightbox(this.dataset.src)" style="cursor:zoom-in;">`
     : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
 
   const adminBtns = isAdmin ? `
@@ -2495,6 +2511,7 @@ document.getElementById('searchInputWrap').appendChild(searchInput);
 initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
 const _vEl = document.getElementById('appVersion');
 if (_vEl) _vEl.textContent = APP_VERSION;
+renderRecipeSkeletons();
 loadData();
 
 // Service Worker desactivado temporalmente
