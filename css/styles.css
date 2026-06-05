@@ -550,3 +550,64 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
 .order-act .material-symbols-outlined { font-size: 20px; color: var(--text2); }
 .order-row.is-hidden { opacity: 0.5; }
 .ped-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--primary); background: var(--primary-container); border-radius: var(--shape-full); padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
+
+/* ═══════════════════════════════════════
+   v14 — PULIDO PROFESIONAL
+   (skeletons, números tabulares, imágenes)
+═══════════════════════════════════════ */
+
+/* ── 1. Números tabulares: las cifras no "bailan" al escalar ── */
+.ing-amount,
+.converter-result-val,
+.ref-cell-val,
+.stat-card-num,
+.multiplier-row input {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ── 2. Imágenes: shimmer mientras cargan + placeholder con degradado ── */
+.recipe-card-img,
+.detail-img {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--outline-light) 37%, var(--surface2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+/* Al cargar la foto, paramos el shimmer (la imagen ya la tapa) */
+.recipe-card-img.loaded,
+.detail-img.loaded {
+  animation: none;
+  background: var(--surface2);
+}
+/* Placeholder sin foto: degradado sutil en vez de gris plano */
+.recipe-card-img-placeholder,
+.detail-img-placeholder {
+  background: linear-gradient(135deg, var(--primary-container), var(--surface2));
+}
+
+/* ── 3. Skeletons de carga (tarjetas fantasma) ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--outline-light) 37%, var(--surface2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+.sk-card {
+  background: var(--surface);
+  border-radius: 20px;
+  margin-bottom: 12px;
+  border: 1px solid var(--outline-light);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.sk-img  { width: 100%; height: 200px; }
+.sk-body { padding: 14px 16px 16px; }
+.sk-tag  { width: 72px;  height: 18px; border-radius: var(--shape-full); margin-bottom: 12px; }
+.sk-line { height: 13px; border-radius: 6px; margin-bottom: 10px; }
+.sk-line.title { height: 16px; width: 55%; }
+.sk-line.w90   { width: 90%; }
+.sk-line.w70   { width: 70%; margin-bottom: 0; }
+
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
