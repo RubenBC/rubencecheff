@@ -10,8 +10,8 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v15';
-const ADMIN_PASSWORD = 'chef2024';
+const APP_VERSION = 'v17';
+const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
 
@@ -187,9 +187,9 @@ async function loadData() {
     } catch (e) { orderEditCols = false; }
     rebuildOrderState();
 
+    await restoreAdminSession();
     renderRecipes();
     updateBadges();
-    restoreAdminSession();
 
   } catch (err) {
     console.error('Error cargando datos:', err);
@@ -1283,10 +1283,10 @@ async function sendComment() {
 // ═══════════════════════════════════════
 //   ADMIN / LOGIN
 // ═══════════════════════════════════════
-function toggleAdmin() {
+async function toggleAdmin() {
   if (isAdmin) {
+    try { await sb.auth.signOut(); } catch(e) {}
     isAdmin = false;
-    try { localStorage.removeItem('rubencechef-admin'); } catch(e) {}
     document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
     document.getElementById('adminAddRecipeRow').style.display    = 'none';
     document.getElementById('adminAddProductionRow').style.display = 'none';
@@ -1333,19 +1333,27 @@ function closeLoginModal() {
   if (modal) modal.remove();
 }
 
-function doLogin() {
-  if (document.getElementById('loginInput').value === ADMIN_PASSWORD) {
+async function doLogin() {
+  const input = document.getElementById('loginInput');
+  const err   = document.getElementById('loginError');
+  const btn   = document.querySelector('#loginModal .btn-action');
+  if (err) err.style.display = 'none';
+  const password = input ? input.value : '';
+  if (!password) { if (err) { err.textContent = 'Introduce la contraseña'; err.style.display = ''; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password });
+    if (error) throw error;
     isAdmin = true;
-    try { localStorage.setItem('rubencechef-admin', '1'); } catch(e) {}
     closeLoginModal();
     activateAdminUI();
     showToast('Bienvenido, Chef 👨‍🍳');
     if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
     if (currentPage === 'admin') renderAdmin();
-  } else {
-    const err = document.getElementById('loginError');
-    if (err) err.style.display = '';
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+    if (err) { err.textContent = 'Contraseña incorrecta'; err.style.display = ''; }
   }
 }
 
@@ -1358,13 +1366,14 @@ function activateAdminUI() {
   if (currentPage === 'fichas') renderFichas();
 }
 
-function restoreAdminSession() {
-  let saved = false;
-  try { saved = localStorage.getItem('rubencechef-admin') === '1'; } catch(e) {}
-  if (saved) {
-    isAdmin = true;
-    activateAdminUI();
-  }
+async function restoreAdminSession() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      isAdmin = true;
+      activateAdminUI();
+    }
+  } catch(e) {}
 }
 
 function renderAdmin() {
