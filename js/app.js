@@ -10,10 +10,11 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v18';
+const APP_VERSION = 'v20';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
+const MY_RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres', 'Sopas y salsas'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -216,8 +217,13 @@ async function loadData() {
 // ═══════════════════════════════════════
 //   NAVEGACIÓN
 // ═══════════════════════════════════════
-function showPage(page, btn) {
+function showPage(page, btn, skipPush) {
   exitInnerView();
+  const switchingPage = page !== currentPage;
+  if (switchingPage) {
+    savedScroll[currentPage] = window.scrollY;
+    if (!skipPush) history.pushState({ view: 'tab', page }, '');
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(page + 'Page').classList.add('active');
@@ -237,9 +243,14 @@ function showPage(page, btn) {
 
   if (isRecipes) { initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
   if (isProd)    { const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
-  if (isMyRecipes) { initChips(RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter); renderMyRecipes(); }
+  if (isMyRecipes) { initChips(MY_RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter); renderMyRecipes(); }
   if (page === 'fichas')    renderFichas();
   if (page === 'admin')     renderAdmin();
+
+  if (switchingPage) {
+    const y = savedScroll[page] || 0;
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  }
 }
 
 function exitInnerView() {
@@ -580,6 +591,42 @@ function renderRecipeDetail() {
   `;
 }
 
+// Funciones de restauración: vuelven a mostrar una vista de detalle concreta
+// cuando el botón atrás aterriza sobre ella (p. ej. al cerrar un editor o una
+// receta vinculada que se abrió encima de ese detalle).
+function restoreRecipeDetail(id) {
+  currentRecipeId = id;
+  currentMultiplier = 1;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('detailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderRecipeDetail();
+}
+
+function restoreProdDetail(id, fromPage) {
+  currentProdId = id;
+  currentMultiplier = 1;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('productionDetailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddProductionRow').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderProdDetail(fromPage);
+}
+
+function restoreMyRecipeDetail(id, fromPage) {
+  currentMyRecipeId = id;
+  currentMultiplier = 1;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('myRecipeDetailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderMyRecipeDetail(fromPage);
+}
+
 function backTo(page) {
   exitInnerView();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -597,7 +644,7 @@ function backTo(page) {
     initChips(cats, prodFilter, setProdFilter);
   }
   if (page === 'myrecipes') {
-    initChips(RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter);
+    initChips(MY_RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter);
   }
   // Restaurar la posición de scroll donde estaba el usuario
   const y = savedScroll[page] || 0;
@@ -1261,7 +1308,7 @@ async function deleteProduction(id) {
 // ═══════════════════════════════════════
 function setMyRecipeFilter(cat) {
   myRecipeFilter = cat;
-  initChips(RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter);
+  initChips(MY_RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter);
   renderMyRecipes();
 }
 
@@ -1436,7 +1483,7 @@ function renderMyRecipeEditor() {
       <div class="form-group">
         <div class="form-label">Categoría</div>
         <select class="form-select" onchange="myRecipeEditorData.category=this.value">
-          ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
+          ${MY_RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
             `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
         </select>
       </div>
@@ -2869,7 +2916,7 @@ window.addEventListener('beforeunload', (e) => {
 window.addEventListener('popstate', (e) => {
   const state = e.state;
 
-  // Cerrar modales abiertos primero
+  // 1) Cerrar modales abiertos primero (login, confirmación, etc.)
   const openModal = document.querySelector('.modal-overlay[style*="flex"]');
   if (openModal) {
     if (openModal.id === 'loginModal') closeLoginModal();
@@ -2879,53 +2926,45 @@ window.addEventListener('popstate', (e) => {
     return;
   }
 
-  if (!state || state.view === 'home') {
-    // Volver a la página principal
-    if (document.getElementById('editorPage').classList.contains('active')) {
-      requestExitRecipeEditor().then(exited => history.pushState({ view: exited ? 'home' : 'editor' }, ''));
-      return;
-    }
-    if (document.getElementById('productionEditorPage').classList.contains('active')) {
-      requestExitProdEditor().then(exited => history.pushState({ view: exited ? 'home' : 'editor' }, ''));
-      return;
-    }
-    if (document.getElementById('myRecipeEditorPage').classList.contains('active')) {
-      requestExitMyRecipeEditor().then(exited => history.pushState({ view: exited ? 'home' : 'editor' }, ''));
-      return;
-    }
-    if (document.getElementById('detailPage').classList.contains('active')) {
-      backTo('recipes'); history.pushState({ view: 'home' }, ''); return;
-    }
-    if (document.getElementById('productionDetailPage').classList.contains('active')) {
-      backTo(currentPage || 'productions'); history.pushState({ view: 'home' }, ''); return;
-    }
-    if (document.getElementById('myRecipeDetailPage').classList.contains('active')) {
-      backTo(currentPage || 'myrecipes'); history.pushState({ view: 'home' }, ''); return;
-    }
-    history.pushState({ view: 'home' }, '');
+  // 2) Si hay un editor abierto, SIEMPRE pasar primero por el aviso de
+  //    cambios sin guardar, sin importar a qué vista íbamos a volver.
+  //    Esto evita perder cambios al pulsar atrás desde un editor abierto
+  //    desde dentro de un detalle (no solo desde la lista).
+  if (document.getElementById('editorPage').classList.contains('active')) {
+    requestExitRecipeEditor().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
+    return;
+  }
+  if (document.getElementById('productionEditorPage').classList.contains('active')) {
+    requestExitProdEditor().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
+    return;
+  }
+  if (document.getElementById('myRecipeEditorPage').classList.contains('active')) {
+    requestExitMyRecipeEditor().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
     return;
   }
 
-  if (state.view === 'editor') {
-    const isRecipe   = document.getElementById('editorPage').classList.contains('active');
-    const isMyRecipe = document.getElementById('myRecipeEditorPage').classList.contains('active');
-    const fn = isRecipe ? requestExitRecipeEditor : (isMyRecipe ? requestExitMyRecipeEditor : requestExitProdEditor);
-    fn().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
+  // 3) Restaurar la vista concreta a la que aterrizamos, según su marcador.
+  if (state && state.view === 'tab') {
+    showPage(state.page, null, true);
     return;
   }
 
-  if (state.view === 'recipeDetail') {
-    if (document.getElementById('detailPage').classList.contains('active')) backTo(state.fromPage || 'recipes');
+  if (state && state.view === 'recipeDetail') {
+    restoreRecipeDetail(state.id);
     return;
   }
 
-  if (state.view === 'prodDetail') {
-    if (document.getElementById('productionDetailPage').classList.contains('active')) backTo(state.fromPage || 'productions');
+  if (state && state.view === 'prodDetail') {
+    restoreProdDetail(state.id, state.fromPage);
     return;
   }
 
-  if (state.view === 'myRecipeDetail') {
-    if (document.getElementById('myRecipeDetailPage').classList.contains('active')) backTo(state.fromPage || 'myrecipes');
+  if (state && state.view === 'myRecipeDetail') {
+    restoreMyRecipeDetail(state.id, state.fromPage);
     return;
   }
+
+  // 4) Por defecto (estado nulo o 'home'): pestaña Platos, el punto de partida.
+  showPage('recipes', null, true);
+  history.pushState({ view: 'home' }, '');
 });
