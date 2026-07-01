@@ -4,6 +4,32 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v24 — Auditoría exhaustiva (2ª pasada)
+
+### Corregido
+- **Modales no sincronizados con el botón atrás.** Los modales de Comentar, Peso, Salmuera y Vincular se abrían sin registrar estado en el historial. Al pulsar atrás se cerraban, pero consumían el paso de la pantalla de detalle de debajo, descuadrando la navegación posterior. Ahora todos usan un sistema unificado (`openModalNav`) que registra su propio estado; el botón atrás cierra solo el modal y deja la navegación de fondo intacta.
+- **Crash al abrir recetas/producciones con campos vacíos.** Si un registro tenía `ingredients`, `steps` o `allergens` en `null` (posible al insertar por SQL), abrir su detalle rompía la app entera. Ahora esos campos se normalizan a lista vacía al cargar los datos.
+- **`goToRecipeFromProd`** (ir de una producción al plato que la usa) no guardaba la posición de scroll ni ocultaba la barra de navegación de forma consistente. Corregido.
+- **`formatAmount`** ahora es robusto ante valores no numéricos (devuelve 0 en vez de "NaN").
+
+### Seguridad / robustez
+- **Escapado HTML en todos los campos editables.** Nombres, descripciones, ingredientes, pasos y montaje de platos y producciones ahora se escapan al pintarse (antes solo se hacía en los comentarios). Evita que un carácter `<` en cualquier texto rompa el render o permita inyección.
+
+### Limpieza
+- Eliminada variable de estado muerta (`_pedidosIndex`).
+
+---
+
+## v23 — Auditoría completa (1ª pasada)
+
+### Corregido
+- **B1 · Lightbox no cerraba con el botón atrás de Android.** La foto de un plato quedaba encima mientras la app navegaba por debajo. Ahora `openLightbox` registra estado en el historial y el atrás lo cierra correctamente.
+- **B2 · Selector de grupo de pedidos** tenía el mismo problema; añadido al manejador `popstate`.
+- **B3 · XSS en el mensaje "Sin resultados"** del buscador (query sin escapar). Corregido.
+- **B4 · Nombres con comilla simple** rompían el botón "Comentar". Corregido usando `data-name`.
+
+---
+
 ## v22
 
 ### Eliminado
