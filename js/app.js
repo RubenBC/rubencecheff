@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v24';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -63,6 +63,14 @@ function normalizeText(s) {
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 }
 
+// Escapa texto para insertarlo con seguridad en HTML (contenido y atributos).
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+const escapeAttr = escapeHtml;
+
 // Coletillas de cantidad que a veces se escriben dentro del nombre del
 // ingrediente. Se quitan SOLO para la lista de pedidos (no tocan la receta).
 const AMOUNT_NOTE_PHRASES = ['a ojo', 'al gusto', 'cantidad suficiente', 'c/s', 'qb', 'a discrecion', 'a discreción', 'a demanda', 'to taste'];
@@ -109,7 +117,6 @@ let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos'
 let pedidosSearch = '';
 let pedidosEdit   = false;  // modo edición de la lista de pedidos
 let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
-let _pedidosIndex = [];     // ítems de la lista en el render actual (para los onclick)
 let isAdmin     = false;
 let currentPage = 'recipes';
 let savedScroll = {};
@@ -171,6 +178,20 @@ async function loadData() {
     weights              = wData  || [];
     brines               = bData  || [];
     productionCategories = pcData || [];
+
+    // Blindaje: si algún registro llegó de Supabase con ingredients/steps/
+    // allergens en null (p. ej. insertado por SQL sin esos campos), lo
+    // normalizamos a array vacío para que abrir su detalle no rompa la app.
+    const normalizeItem = it => {
+      it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
+      it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
+      it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
+      if (it.name == null) it.name = '';
+      if (it.description == null) it.description = '';
+      return it;
+    };
+    recipes.forEach(normalizeItem);
+    productions.forEach(normalizeItem);
 
     // La tabla de pedidos puede no existir todavía: cárgala sin romper el resto.
     try {
@@ -289,8 +310,8 @@ function renderSearchDropdown(q) {
       <div class="search-dropdown-item" onclick="goToSearchResult('recipe','${r.id}')">
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">menu_book</span>
         <div class="search-dropdown-info">
-          <div class="search-dropdown-name">${r.name}</div>
-          <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${r.category}</span>
+          <div class="search-dropdown-name">${escapeHtml(r.name)}</div>
+          <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
         </div>
       </div>`).join('');
   }
@@ -300,8 +321,8 @@ function renderSearchDropdown(q) {
       <div class="search-dropdown-item" onclick="goToSearchResult('production','${p.id}')">
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">blender</span>
         <div class="search-dropdown-info">
-          <div class="search-dropdown-name">${p.name}</div>
-          <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+          <div class="search-dropdown-name">${escapeHtml(p.name)}</div>
+          <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
         </div>
       </div>`).join('');
   }
@@ -391,15 +412,17 @@ function initSortable(containerId, arr, rerender) {
 }
 
 function formatAmount(amount) {
+  const num = Number(amount);
+  if (!Number.isFinite(num)) return 0;
   const fractions = {
     0.25: '¼', 0.5: '½', 0.75: '¾',
     0.33: '⅓', 0.333: '⅓', 0.66: '⅔', 0.667: '⅔',
     1.25: '1¼', 1.5: '1½', 1.75: '1¾',
     2.5: '2½', 3.5: '3½',
   };
-  if (Number.isInteger(amount)) return amount;
-  const rounded = parseFloat(amount.toFixed(3));
-  return fractions[rounded] !== undefined ? fractions[rounded] : parseFloat(amount.toFixed(2));
+  if (Number.isInteger(num)) return num;
+  const rounded = parseFloat(num.toFixed(3));
+  return fractions[rounded] !== undefined ? fractions[rounded] : parseFloat(num.toFixed(2));
 }
 
 // ═══════════════════════════════════════
@@ -446,14 +469,14 @@ function renderRecipes() {
     return `
     <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
       ${r.photo
-        ? `<img class="recipe-card-img" src="${r.photo}" alt="${r.name}" loading="lazy" onload="this.classList.add('loaded')">`
+        ? `<img class="recipe-card-img" src="${escapeAttr(r.photo)}" alt="${escapeAttr(r.name)}" loading="lazy" onload="this.classList.add('loaded')">`
         : `<div class="recipe-card-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`}
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
           <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
         </div>
-        <h3>${r.name}</h3>
-        <p>${r.description}</p>
+        <h3>${escapeHtml(r.name)}</h3>
+        <p>${escapeHtml(r.description)}</p>
         ${numProds > 0 ? `<div class="recipe-card-footer"><span><span class="material-symbols-outlined">blender</span>${numProds} ${numProds === 1 ? 'producción' : 'producciones'}</span></div>` : ''}
       </div>
     </div>`;
@@ -497,8 +520,8 @@ function renderRecipeDetail() {
               <button class="reorder-btn" ${idx === linkedProds.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); moveLinkedProd('${r.id}',${idx},1)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
             </div>` : ''}
             <div>
-              <div class="prod-link-name">${p.name}</div>
-              <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+              <div class="prod-link-name">${escapeHtml(p.name)}</div>
+              <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
             </div>
           </div>
           <span class="material-symbols-outlined" style="color:var(--outline);" onclick="showProdDetail('${p.id}')">chevron_right</span>
@@ -507,18 +530,18 @@ function renderRecipeDetail() {
 
   const ings = r.ingredients.map(ing =>
     `<div class="ing-row">
-      <span class="ing-name">${ing.name}</span>
-      <span class="ing-amount">${formatAmount(ing.amount)} ${ing.unit}</span>
+      <span class="ing-name">${escapeHtml(ing.name)}</span>
+      <span class="ing-amount">${formatAmount(ing.amount)} ${escapeHtml(ing.unit)}</span>
     </div>`).join('');
 
   const steps = r.steps.map((s, i) =>
     `<div class="step-row">
       <div class="step-num">${i + 1}</div>
-      <div class="step-text">${s}</div>
+      <div class="step-text">${escapeHtml(s)}</div>
     </div>`).join('');
 
   const photoHtml = r.photo
-    ? `<img class="detail-img" src="${r.photo}" alt="Foto del plato" data-src="${r.photo}" loading="lazy" onload="this.classList.add('loaded')" onclick="openLightbox(this.dataset.src)" style="cursor:zoom-in;">`
+    ? `<img class="detail-img" src="${escapeAttr(r.photo)}" alt="Foto del plato" data-src="${escapeAttr(r.photo)}" loading="lazy" onload="this.classList.add('loaded')" onclick="openLightbox(this.dataset.src)" style="cursor:zoom-in;">`
     : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
 
   const adminBtns = isAdmin ? `
@@ -549,8 +572,8 @@ function renderRecipeDetail() {
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
       </div>
-      <h2 style="font-size:22px; margin-bottom:6px;">${r.name}</h2>
-      <p style="font-size:14px; color:var(--text2); line-height:1.5;">${r.description}</p>
+      <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(r.name)}</h2>
+      <p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(r.description)}</p>
     </div>
     ${r.ingredients.length > 0 ? `
     <div class="card">
@@ -565,7 +588,7 @@ function renderRecipeDetail() {
     ${r.plating ? `
     <div class="card">
       <div class="section-title"><span class="material-symbols-outlined">restaurant</span> Montaje</div>
-      <p style="font-size:14px; line-height:1.6;">${r.plating}</p>
+      <p style="font-size:14px; line-height:1.6;">${escapeHtml(r.plating)}</p>
     </div>` : ''}
     <div class="card">
       <div class="section-title"><span class="material-symbols-outlined">blender</span> Producciones</div>
@@ -840,14 +863,14 @@ function openLinkModal(recipeId) {
     : sortedProds.map(p => `
         <div class="link-prod-row" onclick="toggleProdLink('${p.id}', this)">
           <div>
-            <div style="font-size:14px; font-weight:600;">${p.name}</div>
-            <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${p.category}</span>
+            <div style="font-size:14px; font-weight:600;">${escapeHtml(p.name)}</div>
+            <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
           </div>
           <span class="material-symbols-outlined check-icon" style="color:${selectedProdIds.includes(p.id) ? 'var(--primary)' : 'var(--outline-light)'};">
             ${selectedProdIds.includes(p.id) ? 'check_circle' : 'radio_button_unchecked'}
           </span>
         </div>`).join('');
-  document.getElementById('linkModal').style.display = 'flex';
+  openModalNav('linkModal');
 }
 
 function toggleProdLink(prodId, row) {
@@ -923,7 +946,7 @@ function openLinkRecipesModal(prodId) {
   // Cambiar título y acción del modal
   document.querySelector('#linkModal .modal-title').textContent = 'Vincular platos';
   document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkRecipes()');
-  document.getElementById('linkModal').style.display = 'flex';
+  openModalNav('linkModal');
 }
 
 function toggleRecipeLink(recipeId, row) {
@@ -998,8 +1021,8 @@ function renderProductions() {
         <div class="recipe-card-meta">
           <span class="tag ${CAT_TAG[p.category] || ''}">${p.category}</span>
         </div>
-        <h3>${p.name}</h3>
-        <p>${p.description || ''}</p>
+        <h3>${escapeHtml(p.name)}</h3>
+        <p>${escapeHtml(p.description || '')}</p>
       </div>
     </div>`).join('');
 }
@@ -1035,15 +1058,15 @@ function renderProdDetail(fromPage) {
   const ings = p.ingredients.map(ing => {
     const v = ing.amount * m;
     return `<div class="ing-row">
-      <span class="ing-name">${ing.name}</span>
-      <span class="ing-amount">${formatAmount(v)} ${ing.unit}</span>
+      <span class="ing-name">${escapeHtml(ing.name)}</span>
+      <span class="ing-amount">${formatAmount(v)} ${escapeHtml(ing.unit)}</span>
     </div>`;
   }).join('');
 
   const steps = p.steps.map((s, i) =>
     `<div class="step-row">
       <div class="step-num">${i + 1}</div>
-      <div class="step-text">${s}</div>
+      <div class="step-text">${escapeHtml(s)}</div>
     </div>`).join('');
 
   const adminBtns = isAdmin ? `
@@ -1075,8 +1098,8 @@ function renderProdDetail(fromPage) {
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="tag ${CAT_TAG[p.category] || ''}">${p.category}</span>
       </div>
-      <h2 style="font-size:22px; margin-bottom:6px;">${p.name}</h2>
-      ${p.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${p.description}</p>` : ''}
+      <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(p.name)}</h2>
+      ${p.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(p.description)}</p>` : ''}
     </div>
     <div class="multiplier-card">
       <div class="multiplier-label">
@@ -1110,8 +1133,8 @@ function renderProdDetail(fromPage) {
           ? linkedRecipes.map(r => `
               <div class="prod-link-row" onclick="goToRecipeFromProd('${r.id}')">
                 <div>
-                  <div class="prod-link-name">${r.name}</div>
-                  <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${r.category}</span>
+                  <div class="prod-link-name">${escapeHtml(r.name)}</div>
+                  <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
                 </div>
                 <span class="material-symbols-outlined" style="color:var(--outline);">chevron_right</span>
               </div>`).join('')
@@ -1126,10 +1149,16 @@ function setProdMultiplier(m, fromPage) {
 }
 
 function goToRecipeFromProd(recipeId) {
+  savedScroll[currentPage] = window.scrollY;
   currentRecipeId = recipeId;
+  currentMultiplier = 1;
   history.pushState({ view: 'recipeDetail', id: recipeId, fromPage: 'productions' }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('detailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  window.scrollTo(0, 0);
   renderRecipeDetail();
 }
 
@@ -1291,7 +1320,7 @@ function openCommentModal(name, section, id) {
   document.getElementById('commentInput').value = '';
   document.getElementById('commentFormArea').style.display = '';
   document.getElementById('commentSuccess').style.display  = 'none';
-  document.getElementById('commentModal').style.display    = 'flex';
+  openModalNav('commentModal');
 }
 
 async function sendComment() {
@@ -1419,12 +1448,6 @@ async function restoreAdminSession() {
 // Los comentarios del personal se pueden enviar sin iniciar sesión (RLS lo
 // permite a propósito), así que es texto no confiable: hay que escaparlo
 // antes de insertarlo en el HTML del panel de Admin.
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
 function renderAdmin() {
   const pending  = comments.filter(c => !c.resolved);
   const resolved = comments.filter(c =>  c.resolved);
@@ -1772,7 +1795,7 @@ function renderPedidosList() {
         if (pedidosEdit) {
           html += `
             <div class="order-row edit">
-              <span class="order-name">${e.display}</span>
+              <span class="order-name">${escapeHtml(e.display)}</span>
               <button class="order-act btn-icon" onclick="renamePedido('${k}')" title="Renombrar"><span class="material-symbols-outlined">edit</span></button>
               <button class="order-act btn-icon" onclick="openGroupPicker('${k}')" title="Cambiar grupo"><span class="material-symbols-outlined">swap_horiz</span></button>
               <button class="order-act btn-icon" onclick="deletePedido('${k}')" title="Eliminar"><span class="material-symbols-outlined" style="color:var(--danger);">delete</span></button>
@@ -1781,7 +1804,7 @@ function renderPedidosList() {
           html += `
             <div class="order-row ${e.checked ? 'checked' : ''}">
               <span class="order-check material-symbols-outlined" onclick="togglePedido('${k}')">${e.checked ? 'check_circle' : 'radio_button_unchecked'}</span>
-              <span class="order-name">${e.display}</span>
+              <span class="order-name">${escapeHtml(e.display)}</span>
               <input class="order-comment" type="text" placeholder="Nota…" value="${escAttr(e.comment)}" onchange="setPedidoComment('${k}', this.value)">
               <button class="order-move btn-icon" onclick="openGroupPicker('${k}')"><span class="material-symbols-outlined">swap_horiz</span></button>
             </div>`;
@@ -2116,7 +2139,7 @@ function openWeightModal(id) {
   document.getElementById('weightName').innerText  = w ? w.name  : '';
   document.getElementById('weightGrams').innerText = w ? w.grams : '';
   document.getElementById('weightNotes').innerText = w ? (w.notes || '') : '';
-  document.getElementById('weightModal').style.display = 'flex';
+  openModalNav('weightModal');
 }
 
 async function saveWeight() {
@@ -2170,7 +2193,7 @@ function openBrineModal(id) {
   document.getElementById('brineCategory').value = b ? b.category : 'Aves';
   document.getElementById('brineMinutes').innerText = b ? b.minutes  : '';
   document.getElementById('brineNotes').innerText   = b ? (b.notes || '') : '';
-  document.getElementById('brineModal').style.display = 'flex';
+  openModalNav('brineModal');
 }
 
 async function saveBrine() {
@@ -2490,6 +2513,14 @@ async function requestExitProdEditor() {
   return true;
 }
 
+// Abre un modal estático y registra un estado en el historial, para que el
+// botón atrás de Android lo cierre sin desajustar la navegación de fondo.
+function openModalNav(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'flex';
+  history.pushState({ view: 'staticModal', id }, '');
+}
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 // ═══════════════════════════════════════
@@ -2607,7 +2638,16 @@ window.addEventListener('popstate', (e) => {
   const gp = document.getElementById('groupPickerModal');
   if (gp) { closeGroupPicker(); history.pushState({ view: 'modal' }, ''); return; }
 
-  // 1c) Cerrar modales estándar abiertos (login, confirmación, otros)
+  // 1c) Cerrar modales estáticos (comentar, peso, salmuera, vincular) que
+  //     registraron su estado 'staticModal' al abrirse. El atrás ya consumió
+  //     ese estado, así que solo cerramos: no re-empujamos historial.
+  if (state && state.view === 'staticModal') {
+    const m = document.getElementById(state.id);
+    if (m) m.style.display = 'none';
+    return;
+  }
+
+  // 1d) Cerrar modales dinámicos (login, confirmación) sin estado propio.
   const openModal = document.querySelector('.modal-overlay[style*="flex"]');
   if (openModal) {
     if (openModal.id === 'loginModal') closeLoginModal();
