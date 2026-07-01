@@ -4,6 +4,27 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v22
+
+### Eliminado
+- **Sección "Mis Recetas" eliminada completamente** (pestaña del menú, páginas de lista/detalle/editor, todas las funciones JS y las variables de estado). La tabla `my_recipes` de Supabase se limpia con el archivo `borrar_my_recipes.sql`.
+
+---
+
+## v21
+
+### Seguridad
+- **Comentarios del personal escapados antes de mostrarse.** El formulario de comentarios es público (sin login), así que era texto no confiable; si alguien metía código HTML/script en un comentario, se ejecutaba al verlo el admin. Corregido: ahora se escapa siempre antes de pintarlo.
+
+### Corregido
+- **Botón "Reintentar" en el error de conexión.** Antes, si fallaba la carga inicial, el mensaje de error era un callejón sin salida — había que cerrar y reabrir la app. Ahora tiene un botón para reintentar sin recargar.
+- **Parpadeo de tema al recargar en modo oscuro.** Con el modo oscuro activado, al abrir la app se veía un golpe de blanco durante una fracción de segundo antes de aplicar el tema oscuro. Corregido aplicándolo antes de pintar nada.
+
+### Accesibilidad
+- Añadido `aria-label` a los botones de solo icono (cambiar tema, borrar búsqueda, cerrar modales) para lectores de pantalla.
+
+---
+
 ## v20
 
 ### Corregido
