@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v22';
+const APP_VERSION = 'v23';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -277,7 +277,7 @@ function renderSearchDropdown(q) {
   const matchedProds   = productions.filter(p => p.name.toLowerCase().includes(q));
 
   if (matchedRecipes.length === 0 && matchedProds.length === 0) {
-    dd.innerHTML = `<div class="search-dropdown-empty">Sin resultados para "${q}"</div>`;
+    dd.innerHTML = `<div class="search-dropdown-empty">Sin resultados para &ldquo;${escapeHtml(q)}&rdquo;</div>`;
     dd.style.display = 'block';
     return;
   }
@@ -538,7 +538,7 @@ function renderRecipeDetail() {
         <span class="material-symbols-outlined">arrow_back</span> Volver
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
-        <button class="btn-pill ghost" onclick="openCommentModal('${r.name}','recipe','${r.id}')">
+        <button class="btn-pill ghost" onclick="openCommentModal(this.dataset.name,'recipe','${r.id}')" data-name="${escapeHtml(r.name)}">
           <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
         </button>
         ${adminBtns}
@@ -1065,7 +1065,7 @@ function renderProdDetail(fromPage) {
         <span class="material-symbols-outlined">arrow_back</span> Volver
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
-        <button class="btn-pill ghost" onclick="openCommentModal('${p.name}','production','${p.id}')">
+        <button class="btn-pill ghost" onclick="openCommentModal(this.dataset.name,'production','${p.id}')" data-name="${escapeHtml(p.name)}">
           <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
         </button>
         ${adminBtns}
@@ -2522,7 +2522,7 @@ function openLightbox(src) {
     lb.className = 'lightbox-overlay';
     lb.style.display = 'none';
     lb.innerHTML = `
-      <button class="lightbox-close" onclick="closeLightbox()">
+      <button class="lightbox-close" onclick="closeLightbox()" aria-label="Cerrar imagen">
         <span class="material-symbols-outlined">close</span>
       </button>
       <img id="lightboxImg" class="lightbox-img">`;
@@ -2531,6 +2531,8 @@ function openLightbox(src) {
   }
   document.getElementById('lightboxImg').src = src;
   lb.style.display = 'flex';
+  // Registrar en historial para que el botón atrás de Android lo cierre
+  history.pushState({ view: 'lightbox' }, '');
 }
 
 function closeLightbox() {
@@ -2595,7 +2597,17 @@ window.addEventListener('beforeunload', (e) => {
 window.addEventListener('popstate', (e) => {
   const state = e.state;
 
-  // 1) Cerrar modales abiertos primero (login, confirmación, etc.)
+  // 1a) Cerrar el lightbox si está abierto (B1 — tiene su propio estado en historial)
+  if (state && state.view === 'lightbox') {
+    closeLightbox();
+    return;
+  }
+
+  // 1b) Cerrar el groupPickerModal si está abierto (B2 — no registraba estado)
+  const gp = document.getElementById('groupPickerModal');
+  if (gp) { closeGroupPicker(); history.pushState({ view: 'modal' }, ''); return; }
+
+  // 1c) Cerrar modales estándar abiertos (login, confirmación, otros)
   const openModal = document.querySelector('.modal-overlay[style*="flex"]');
   if (openModal) {
     if (openModal.id === 'loginModal') closeLoginModal();
