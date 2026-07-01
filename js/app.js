@@ -10,11 +10,10 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v20';
+const APP_VERSION = 'v22';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
-const MY_RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres', 'Sopas y salsas'];
 
 const CAT_TAG = {
   'Carnes':          'tag-carnes',
@@ -99,7 +98,6 @@ function groupMeta(id) { return SUPPLIER_GROUPS.find(g => g.id === id) || OTHER_
 
 let recipes              = [];
 let productions          = [];
-let myRecipes             = [];
 let recipeProductions    = [];
 let comments             = [];
 let weights              = [];
@@ -130,12 +128,6 @@ let prodEditorMode     = null;
 let prodEditorData     = null;
 let prodEditorBaseline = null;     // snapshot para detectar cambios sin guardar
 
-// Mis Recetas (privado, solo admin)
-let myRecipeFilter         = 'Todas';
-let currentMyRecipeId      = null;
-let myRecipeEditorMode     = null;
-let myRecipeEditorData     = null;
-let myRecipeEditorBaseline = null;
 let currentMultiplier  = 1;
 
 // Comentarios
@@ -206,6 +198,9 @@ async function loadData() {
       <div class="empty-state">
         <span class="material-symbols-outlined">wifi_off</span>
         Error al conectar con la base de datos
+        <button class="btn-pill filled" style="margin-top:14px;" onclick="loadData()">
+          <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> Reintentar
+        </button>
       </div>`;
     const rl = document.getElementById('recipeList');
     const pl = document.getElementById('productionList');
@@ -233,17 +228,15 @@ function showPage(page, btn, skipPush) {
 
   const isRecipes = page === 'recipes';
   const isProd    = page === 'productions';
-  const isMyRecipes = page === 'myrecipes';
   // El buscador global siempre visible
   document.getElementById('searchSection').style.display = '';
   // Los chips de categoría solo en platos, producciones y mis recetas
-  document.getElementById('chipsRow').style.display = (isRecipes || isProd || isMyRecipes) ? '' : 'none';
+  document.getElementById('chipsRow').style.display = (isRecipes || isProd) ? '' : 'none';
   document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
   document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
 
   if (isRecipes) { initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
   if (isProd)    { const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
-  if (isMyRecipes) { initChips(MY_RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter); renderMyRecipes(); }
   if (page === 'fichas')    renderFichas();
   if (page === 'admin')     renderAdmin();
 
@@ -270,7 +263,6 @@ function onSearch() {
   // Filtrado inline de la lista actual (platos/producciones/mis recetas)
   if (currentPage === 'recipes')     renderRecipes();
   if (currentPage === 'productions') renderProductions();
-  if (currentPage === 'myrecipes')   renderMyRecipes();
 
   // Búsqueda global en desplegable (no incluye Mis Recetas, es privada)
   renderSearchDropdown(q);
@@ -617,16 +609,6 @@ function restoreProdDetail(id, fromPage) {
   renderProdDetail(fromPage);
 }
 
-function restoreMyRecipeDetail(id, fromPage) {
-  currentMyRecipeId = id;
-  currentMultiplier = 1;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('myRecipeDetailPage').classList.add('active');
-  document.getElementById('searchSection').style.display = 'none';
-  document.getElementById('mainNav').style.display = 'none';
-  renderMyRecipeDetail(fromPage);
-}
-
 function backTo(page) {
   exitInnerView();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -642,9 +624,6 @@ function backTo(page) {
     document.getElementById('adminAddProductionRow').style.display = isAdmin ? '' : 'none';
     const cats = ['Todas', ...productionCategories.map(c => c.name)];
     initChips(cats, prodFilter, setProdFilter);
-  }
-  if (page === 'myrecipes') {
-    initChips(MY_RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter);
   }
   // Restaurar la posición de scroll donde estaba el usuario
   const y = savedScroll[page] || 0;
@@ -1304,298 +1283,6 @@ async function deleteProduction(id) {
 }
 
 // ═══════════════════════════════════════
-//   MIS RECETAS (privado, solo admin)
-// ═══════════════════════════════════════
-function setMyRecipeFilter(cat) {
-  myRecipeFilter = cat;
-  initChips(MY_RECIPE_CATEGORIES, myRecipeFilter, setMyRecipeFilter);
-  renderMyRecipes();
-}
-
-function renderMyRecipes() {
-  const si = document.getElementById('searchInput');
-  const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
-  const filtered = myRecipes.filter(r =>
-    (myRecipeFilter === 'Todas' || r.category === myRecipeFilter) &&
-    r.name.toLowerCase().includes(q)
-  ).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-
-  const list = document.getElementById('myRecipeList');
-  if (!list) return;
-
-  if (filtered.length === 0) {
-    let msg;
-    if (myRecipes.length === 0) msg = 'Aún no has guardado ninguna receta personal';
-    else if (q) msg = `Ninguna receta coincide con "${q}"`;
-    else msg = `No hay recetas en "${myRecipeFilter}"`;
-    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">lock</span>${msg}</div>`;
-    return;
-  }
-
-  list.innerHTML = filtered.map(r => `
-    <div class="recipe-card" onclick="showMyRecipeDetail('${r.id}')">
-      <div class="recipe-card-body">
-        <div class="recipe-card-meta">
-          <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
-        </div>
-        <h3>${r.name}</h3>
-        <p>${r.description || ''}</p>
-      </div>
-    </div>`).join('');
-}
-
-function showMyRecipeDetail(id) {
-  savedScroll[currentPage] = window.scrollY;
-  currentMyRecipeId = id;
-  currentMultiplier = 1;
-  const fromPage = currentPage;
-  history.pushState({ view: 'myRecipeDetail', id, fromPage }, '');
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('myRecipeDetailPage').classList.add('active');
-  document.getElementById('searchSection').style.display = 'none';
-  document.getElementById('mainNav').style.display = 'none';
-  window.scrollTo(0, 0);
-  renderMyRecipeDetail(fromPage);
-}
-
-function renderMyRecipeDetail(fromPage) {
-  const r = myRecipes.find(x => x.id === currentMyRecipeId);
-  if (!r) return;
-  const m = currentMultiplier;
-
-  const mBtns = [0.5, 1, 2, 3, 4].map(x =>
-    `<button class="chip ${m === x ? 'active' : ''}" onclick="setMyRecipeMultiplier(${x}, '${fromPage || 'myrecipes'}')">${x === 0.5 ? '½' : '×' + x}</button>`
-  ).join('');
-
-  const ings = r.ingredients.map(ing => {
-    const v = ing.amount * m;
-    return `<div class="ing-row">
-      <span class="ing-name">${ing.name}</span>
-      <span class="ing-amount">${formatAmount(v)} ${ing.unit}</span>
-    </div>`;
-  }).join('');
-
-  const steps = r.steps.map((s, i) =>
-    `<div class="step-row">
-      <div class="step-num">${i + 1}</div>
-      <div class="step-text">${s}</div>
-    </div>`).join('');
-
-  const backPage = fromPage || 'myrecipes';
-
-  document.getElementById('myRecipeDetailPage').innerHTML = `
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
-      <button class="back-btn" onclick="backTo('${backPage}')">
-        <span class="material-symbols-outlined">arrow_back</span> Volver
-      </button>
-      <div style="display:flex; gap:6px; flex-wrap:wrap;">
-        <button class="btn-pill" onclick="openEditMyRecipe()">
-          <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Editar
-        </button>
-        <button class="btn-pill danger" onclick="deleteMyRecipe('${r.id}')">
-          <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
-        </button>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
-      </div>
-      <h2 style="font-size:22px; margin-bottom:6px;">${r.name}</h2>
-      ${r.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${r.description}</p>` : ''}
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
-        <div style="display:flex; gap:6px;">${mBtns}</div>
-      </div>
-      ${ings}
-    </div>
-    <div class="card">
-      <div class="section-title"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
-      ${steps}
-    </div>
-    <div class="card">
-      <div class="section-title"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
-      ${renderAllergenBadges(r.allergens)}
-    </div>`;
-}
-
-function setMyRecipeMultiplier(m, fromPage) {
-  currentMultiplier = m;
-  renderMyRecipeDetail(fromPage);
-}
-
-function openAddMyRecipe() {
-  myRecipeEditorMode = 'add';
-  myRecipeEditorData = { id: Date.now().toString(), name: '', category: 'Carnes', description: '', ingredients: [], steps: [], allergens: [] };
-  myRecipeEditorBaseline = JSON.stringify(myRecipeEditorData);
-  renderMyRecipeEditor();
-  enterEditor('myRecipeEditorPage');
-}
-
-function openEditMyRecipe() {
-  myRecipeEditorMode = 'edit';
-  myRecipeEditorData = JSON.parse(JSON.stringify(myRecipes.find(r => r.id === currentMyRecipeId)));
-  myRecipeEditorBaseline = JSON.stringify(myRecipeEditorData);
-  renderMyRecipeEditor();
-  enterEditor('myRecipeEditorPage');
-}
-
-function renderMyRecipeEditor() {
-  const r = myRecipeEditorData;
-  const isNew = myRecipeEditorMode === 'add';
-
-  const ings = r.ingredients.map((ing, i) => `
-    <div class="ing-edit-row" data-index="${i}">
-      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
-      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="myRecipeEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
-      <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="myRecipeEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
-      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="myRecipeEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
-      <button class="btn-remove" onclick="myRecipeEditorData.ingredients.splice(${i},1); renderMyRecipeEditor();">
-        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
-      </button>
-    </div>`).join('');
-
-  const stps = r.steps.map((s, i) => `
-    <div class="step-edit-row" data-index="${i}">
-      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
-      <div class="step-edit-num">${i + 1}</div>
-      <textarea rows="2" oninput="myRecipeEditorData.steps[${i}]=this.value">${s}</textarea>
-      <button class="btn-remove" onclick="myRecipeEditorData.steps.splice(${i},1); renderMyRecipeEditor();">
-        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
-      </button>
-    </div>`).join('');
-
-  document.getElementById('myRecipeEditorPage').innerHTML = `
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-      <button class="back-btn" onclick="cancelMyRecipeEditor()">
-        <span class="material-symbols-outlined">close</span> Cancelar
-      </button>
-      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva receta personal' : 'Editar receta personal'}</span>
-      <button class="btn-pill filled" id="saveMyRecipeBtn" onclick="saveMyRecipe()">Guardar</button>
-    </div>
-    <div class="card">
-      <div class="form-group">
-        <div class="form-label">Nombre</div>
-        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="myRecipeEditorData.name=this.innerText.trim()">${r.name}</div>
-      </div>
-      <div class="form-group">
-        <div class="form-label">Categoría</div>
-        <select class="form-select" onchange="myRecipeEditorData.category=this.value">
-          ${MY_RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
-            `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <div class="form-label">Descripción (opcional)</div>
-        <textarea class="form-textarea" rows="2" oninput="myRecipeEditorData.description=this.value">${r.description || ''}</textarea>
-      </div>
-    </div>
-    <div class="card">
-      <div class="section-title" style="margin-bottom:12px;"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
-      ${renderAllergenSelector(r.allergens || [], 'toggleMyRecipeAllergen')}
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
-        <button class="btn-pill" onclick="myRecipeEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderMyRecipeEditor();">
-          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
-        </button>
-      </div>
-      <div id="myRecipeIngList">${ings}</div>
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
-        <button class="btn-pill" onclick="myRecipeEditorData.steps.push(''); renderMyRecipeEditor();">
-          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
-        </button>
-      </div>
-      <div id="myRecipeStepList">${stps}</div>
-    </div>`;
-
-  initSortable('myRecipeIngList', myRecipeEditorData.ingredients, renderMyRecipeEditor);
-  initSortable('myRecipeStepList', myRecipeEditorData.steps, renderMyRecipeEditor);
-}
-
-function toggleMyRecipeAllergen(id) {
-  const arr = myRecipeEditorData.allergens || [];
-  myRecipeEditorData.allergens = arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id];
-  renderMyRecipeEditor();
-}
-
-async function saveMyRecipe() {
-  if (!myRecipeEditorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
-  const btn = document.getElementById('saveMyRecipeBtn');
-  const ok = await runWithLoading(btn, 'Guardando...', async () => {
-    const { error } = await sb.from('my_recipes').upsert(myRecipeEditorData);
-    if (error) { showToast('Error al guardar'); return false; }
-    return true;
-  });
-  if (!ok) return;
-  if (myRecipeEditorMode === 'add') myRecipes.push(myRecipeEditorData);
-  else myRecipes = myRecipes.map(r => r.id === myRecipeEditorData.id ? myRecipeEditorData : r);
-  currentMyRecipeId = myRecipeEditorData.id;
-  myRecipeEditorBaseline = JSON.stringify(myRecipeEditorData);
-  showToast('Receta guardada ✓');
-  exitMyRecipeEditor(true);
-}
-
-function cancelMyRecipeEditor() { return requestExitMyRecipeEditor(); }
-
-function exitMyRecipeEditor(goToDetail) {
-  exitInnerView();
-  if (goToDetail && currentMyRecipeId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('myRecipeDetailPage').classList.add('active');
-    renderMyRecipeDetail('myrecipes');
-  } else {
-    backTo('myrecipes');
-    renderMyRecipes();
-  }
-  myRecipeEditorMode = null; myRecipeEditorData = null; myRecipeEditorBaseline = null;
-}
-
-function isMyRecipeEditorDirty() {
-  return !!myRecipeEditorData && myRecipeEditorBaseline !== null
-    && JSON.stringify(myRecipeEditorData) !== myRecipeEditorBaseline;
-}
-
-async function requestExitMyRecipeEditor() {
-  if (isMyRecipeEditorDirty()) {
-    const ok = await showConfirm({
-      title:       'Cambios sin guardar',
-      message:     'Si sales ahora perderás los cambios que no has guardado.',
-      confirmText: 'Salir sin guardar',
-      cancelText:  'Seguir editando',
-      icon:        'edit_off',
-    });
-    if (!ok) return false;
-  }
-  exitMyRecipeEditor(myRecipeEditorMode === 'edit');
-  return true;
-}
-
-async function deleteMyRecipe(id) {
-  const ok = await showConfirm({
-    title:       'Eliminar receta',
-    message:     '¿Seguro que quieres eliminar esta receta? Esta acción no se puede deshacer.',
-    confirmText: 'Eliminar',
-    danger:      true,
-    icon:        'delete',
-    onConfirm:   async () => {
-      const { error } = await sb.from('my_recipes').delete().eq('id', id);
-      if (error) throw error;
-      myRecipes = myRecipes.filter(r => r.id !== id);
-    },
-  });
-  if (!ok) return;
-  showToast('Receta eliminada');
-  backTo('myrecipes'); renderMyRecipes();
-}
-
-// ═══════════════════════════════════════
 //   COMENTARIOS
 // ═══════════════════════════════════════
 function openCommentModal(name, section, id) {
@@ -1645,9 +1332,6 @@ async function toggleAdmin() {
     document.getElementById('adminAddProductionRow').style.display = 'none';
     document.getElementById('addWeightBtn').style.display = 'none';
     document.getElementById('addBrineBtn').style.display  = 'none';
-    document.getElementById('nav-myrecipes').style.display = 'none';
-    myRecipes = [];
-    if (currentPage === 'myrecipes') showPage('recipes', document.getElementById('nav-recipes'));
     if (currentPage === 'fichas') renderFichas();
     showToast('Sesión cerrada');
   } else {
@@ -1703,7 +1387,6 @@ async function doLogin() {
     isAdmin = true;
     closeLoginModal();
     activateAdminUI();
-    await refreshMyRecipes();
     showToast('Bienvenido, Chef 👨‍🍳');
     if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
@@ -1718,21 +1401,9 @@ function activateAdminUI() {
   document.getElementById('adminBtn').innerHTML =
     `<span class="material-symbols-outlined" style="font-size:16px;">person</span> Chef
      <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
-  document.getElementById('nav-myrecipes').style.display = '';
   if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
   if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
   if (currentPage === 'fichas') renderFichas();
-}
-
-async function refreshMyRecipes() {
-  try {
-    const { data, error } = await sb.from('my_recipes').select('*').order('name');
-    if (error) throw error;
-    myRecipes = data || [];
-  } catch (e) {
-    myRecipes = [];
-  }
-  if (currentPage === 'myrecipes') renderMyRecipes();
 }
 
 async function restoreAdminSession() {
@@ -1741,9 +1412,17 @@ async function restoreAdminSession() {
     if (session) {
       isAdmin = true;
       activateAdminUI();
-      await refreshMyRecipes();
     }
   } catch(e) {}
+}
+
+// Los comentarios del personal se pueden enviar sin iniciar sesión (RLS lo
+// permite a propósito), así que es texto no confiable: hay que escaparlo
+// antes de insertarlo en el HTML del panel de Admin.
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
 function renderAdmin() {
@@ -1780,9 +1459,9 @@ function renderAdmin() {
     : pending.map(c => `
         <div class="comment-card">
           <div style="flex:1;">
-            <div class="comment-recipe">${c.section_name}</div>
-            <div class="comment-text">${c.text}</div>
-            <div class="comment-date">${c.date}</div>
+            <div class="comment-recipe">${escapeHtml(c.section_name)}</div>
+            <div class="comment-text">${escapeHtml(c.text)}</div>
+            <div class="comment-date">${escapeHtml(c.date)}</div>
           </div>
           <button class="btn-pill" onclick="resolveComment('${c.id}', this)">
             <span class="material-symbols-outlined" style="font-size:15px;">check</span> Resolver
@@ -1793,7 +1472,7 @@ function renderAdmin() {
     <div class="section-title" style="margin-top:8px;"><span class="material-symbols-outlined">task_alt</span> Resueltos</div>
     ${resolved.map(c => `
       <div class="comment-card" style="opacity:0.55;">
-        <div><div class="comment-recipe">${c.section_name} ✓</div><div class="comment-text" style="font-size:13px;">${c.text}</div></div>
+        <div><div class="comment-recipe">${escapeHtml(c.section_name)} ✓</div><div class="comment-text" style="font-size:13px;">${escapeHtml(c.text)}</div></div>
       </div>`).join('')}`;
 
   // Categorías de producción
@@ -2938,10 +2617,6 @@ window.addEventListener('popstate', (e) => {
     requestExitProdEditor().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
     return;
   }
-  if (document.getElementById('myRecipeEditorPage').classList.contains('active')) {
-    requestExitMyRecipeEditor().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
-    return;
-  }
 
   // 3) Restaurar la vista concreta a la que aterrizamos, según su marcador.
   if (state && state.view === 'tab') {
@@ -2959,10 +2634,6 @@ window.addEventListener('popstate', (e) => {
     return;
   }
 
-  if (state && state.view === 'myRecipeDetail') {
-    restoreMyRecipeDetail(state.id, state.fromPage);
-    return;
-  }
 
   // 4) Por defecto (estado nulo o 'home'): pestaña Platos, el punto de partida.
   showPage('recipes', null, true);
