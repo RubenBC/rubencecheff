@@ -63,6 +63,25 @@ function normalizeText(s) {
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 }
 
+// Detecta si un error de Supabase se debe a sesión caducada / falta de permisos
+// (RLS rechaza la escritura) y, en ese caso, avisa claramente y reabre el login.
+// Devuelve true si el error era de sesión (ya gestionado), false si es otro error.
+function handleAuthError(error) {
+  const msg  = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '');
+  const isAuth = code === '42501' || code === 'PGRST301' ||
+    msg.includes('row-level security') || msg.includes('jwt') ||
+    msg.includes('not authenticated') || msg.includes('refresh token');
+  if (!isAuth) return false;
+  isAdmin = false;
+  try { sb.auth.signOut(); } catch(e) {}
+  document.getElementById('adminBtn').innerHTML =
+    `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+  showToast('Tu sesión ha caducado. Inicia sesión de nuevo.');
+  setTimeout(() => toggleAdmin(), 600);
+  return true;
+}
+
 // Escapa texto para insertarlo con seguridad en HTML (contenido y atributos).
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({
@@ -70,6 +89,16 @@ function escapeHtml(s) {
   }[c]));
 }
 const escapeAttr = escapeHtml;
+
+// Enfoca el último elemento que casa con el selector (p. ej. el ingrediente
+// recién añadido en el editor) para poder escribir sin un toque extra.
+function focusLast(selector) {
+  requestAnimationFrame(() => {
+    const els = document.querySelectorAll(selector);
+    const el = els[els.length - 1];
+    if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  });
+}
 
 // Coletillas de cantidad que a veces se escriben dentro del nombre del
 // ingrediente. Se quitan SOLO para la lista de pedidos (no tocan la receta).
@@ -235,6 +264,7 @@ async function loadData() {
 // ═══════════════════════════════════════
 function showPage(page, btn, skipPush) {
   exitInnerView();
+  hideSearchDropdown();
   const switchingPage = page !== currentPage;
   if (switchingPage) {
     savedScroll[currentPage] = window.scrollY;
@@ -335,6 +365,16 @@ function goToSearchResult(type, id) {
   if (type === 'recipe') showRecipeDetail(id);
   else showProdDetail(id);
 }
+
+// Cierra solo el desplegable de resultados (sin borrar el texto buscado)
+function hideSearchDropdown() {
+  const dd = document.getElementById('searchDropdown');
+  if (dd) dd.style.display = 'none';
+}
+// Al tocar fuera del buscador, cerrar el desplegable
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#searchSection')) hideSearchDropdown();
+});
 
 function clearSearch() {
   const si = document.getElementById('searchInput');
@@ -763,7 +803,7 @@ function renderRecipeEditor() {
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
-        <button class="btn-pill" onclick="recipeEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderRecipeEditor();">
+        <button class="btn-pill" onclick="recipeEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderRecipeEditor(); focusLast('#recipeIngList .ing-edit-name');">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
         </button>
       </div>
@@ -772,7 +812,7 @@ function renderRecipeEditor() {
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
-        <button class="btn-pill" onclick="recipeEditorData.steps.push(''); renderRecipeEditor();">
+        <button class="btn-pill" onclick="recipeEditorData.steps.push(''); renderRecipeEditor(); focusLast('#recipeStepList textarea');">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
         </button>
       </div>
@@ -802,7 +842,7 @@ async function saveRecipe() {
   const btn = document.getElementById('saveRecipeBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('recipes').upsert(recipeEditorData);
-    if (error) { showToast('Error al guardar'); return false; }
+    if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
     return true;
   });
   if (!ok) return;
@@ -1144,7 +1184,8 @@ function renderProdDetail(fromPage) {
 }
 
 function setProdMultiplier(m, fromPage) {
-  currentMultiplier = m;
+  // Blindaje: nada de multiplicadores negativos o cero (pondrían cantidades absurdas)
+  currentMultiplier = Math.max(0.1, Number(m) || 1);
   renderProdDetail(fromPage);
 }
 
@@ -1239,7 +1280,7 @@ function renderProdEditor() {
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
-        <button class="btn-pill" onclick="prodEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderProdEditor();">
+        <button class="btn-pill" onclick="prodEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderProdEditor(); focusLast('#prodIngList .ing-edit-name');">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
         </button>
       </div>
@@ -1248,7 +1289,7 @@ function renderProdEditor() {
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
-        <button class="btn-pill" onclick="prodEditorData.steps.push(''); renderProdEditor();">
+        <button class="btn-pill" onclick="prodEditorData.steps.push(''); renderProdEditor(); focusLast('#prodStepList textarea');">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
         </button>
       </div>
@@ -1264,7 +1305,7 @@ async function saveProduction() {
   const btn = document.getElementById('saveProdBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('productions').upsert(prodEditorData);
-    if (error) { showToast('Error al guardar'); return false; }
+    if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
     return true;
   });
   if (!ok) return;
@@ -1843,7 +1884,7 @@ async function upsertOrderItem(key, display, patch) {
     if (error) throw error;
   } catch (e) {
     console.error('Error guardando order_items:', e);
-    showToast('Error al guardar el pedido');
+    if (!handleAuthError(error)) showToast('Error al guardar el pedido');
   }
 }
 
@@ -2152,12 +2193,12 @@ async function saveWeight() {
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     if (editingWeightId) {
       const { error } = await sb.from('weights').update(payload).eq('id', editingWeightId);
-      if (error) { showToast('Error al guardar'); return false; }
+      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
       weights = weights.map(w => w.id === editingWeightId ? { ...w, ...payload } : w);
     } else {
       payload.id = Date.now().toString();
       const { error } = await sb.from('weights').insert(payload);
-      if (error) { showToast('Error al guardar'); return false; }
+      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
       weights.push(payload);
     }
     return true;
@@ -2207,12 +2248,12 @@ async function saveBrine() {
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     if (editingBrineId) {
       const { error } = await sb.from('brines').update(payload).eq('id', editingBrineId);
-      if (error) { showToast('Error al guardar'); return false; }
+      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
       brines = brines.map(b => b.id === editingBrineId ? { ...b, ...payload } : b);
     } else {
       payload.id = Date.now().toString();
       const { error } = await sb.from('brines').insert(payload);
-      if (error) { showToast('Error al guardar'); return false; }
+      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
       brines.push(payload);
     }
     return true;
@@ -2356,6 +2397,7 @@ function showConfirm(opts = {}) {
         finish(true);
       } catch (err) {
         console.error(err);
+        if (handleAuthError(err)) { finish(false); return; }
         showToast('Error, inténtalo de nuevo');
         okBtn.disabled = false; cancelBtn.disabled = false;
         okBtn.classList.remove('btn-loading');
@@ -2437,6 +2479,7 @@ function showPrompt(opts = {}) {
         finish(text);
       } catch (err) {
         console.error(err);
+        if (handleAuthError(err)) { finish(null); return; }
         showToast('Error, inténtalo de nuevo');
         okBtn.disabled = false; cancelBtn.disabled = false; input.disabled = false;
         okBtn.classList.remove('btn-loading');
