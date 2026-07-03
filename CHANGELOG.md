@@ -9,8 +9,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 ### Corregido
 - **Modales no sincronizados con el botón atrás.** Los modales de Comentar, Peso, Salmuera y Vincular se abrían sin registrar estado en el historial. Al pulsar atrás se cerraban, pero consumían el paso de la pantalla de detalle de debajo, descuadrando la navegación posterior. Ahora todos usan un sistema unificado (`openModalNav`) que registra su propio estado; el botón atrás cierra solo el modal y deja la navegación de fondo intacta.
 - **Crash al abrir recetas/producciones con campos vacíos.** Si un registro tenía `ingredients`, `steps` o `allergens` en `null` (posible al insertar por SQL), abrir su detalle rompía la app entera. Ahora esos campos se normalizan a lista vacía al cargar los datos.
+- **El multiplicador de cantidades aceptaba valores negativos**, mostrando todas las cantidades en negativo. Ahora se limita a un mínimo de 0,1.
+- **El desplegable de búsqueda no se cerraba** al tocar fuera de él ni al cambiar de pestaña: quedaba flotando encima de la página nueva. Ahora se cierra en ambos casos (el texto buscado se conserva).
 - **`goToRecipeFromProd`** (ir de una producción al plato que la usa) no guardaba la posición de scroll ni ocultaba la barra de navegación de forma consistente. Corregido.
 - **`formatAmount`** ahora es robusto ante valores no numéricos (devuelve 0 en vez de "NaN").
+
+### Usabilidad
+- **Aviso claro cuando la sesión caduca.** Antes, si la sesión de admin expiraba, guardar o borrar fallaba con un genérico "Error al guardar" sin explicación, y podías reintentar sin fin creyendo que la app estaba rota. Ahora se detecta el fallo de permisos, se avisa "Tu sesión ha caducado" y se reabre el login automáticamente.
+- **Foco automático al añadir ingredientes o pasos** en los editores: al pulsar "Añadir", el cursor va directo al campo nuevo, sin necesidad de un toque extra.
 
 ### Seguridad / robustez
 - **Escapado HTML en todos los campos editables.** Nombres, descripciones, ingredientes, pasos y montaje de platos y producciones ahora se escapan al pintarse (antes solo se hacía en los comentarios). Evita que un carácter `<` en cualquier texto rompa el render o permita inyección.
