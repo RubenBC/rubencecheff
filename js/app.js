@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v24';
+const APP_VERSION = 'v25';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -602,7 +602,7 @@ function renderRecipeDetail() {
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn-pill ghost" onclick="openCommentModal(this.dataset.name,'recipe','${r.id}')" data-name="${escapeHtml(r.name)}">
-          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error
         </button>
         ${adminBtns}
       </div>
@@ -1129,7 +1129,7 @@ function renderProdDetail(fromPage) {
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn-pill ghost" onclick="openCommentModal(this.dataset.name,'production','${p.id}')" data-name="${escapeHtml(p.name)}">
-          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Error
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error
         </button>
         ${adminBtns}
       </div>
@@ -1527,16 +1527,24 @@ function renderAdmin() {
             <div class="comment-text">${escapeHtml(c.text)}</div>
             <div class="comment-date">${escapeHtml(c.date)}</div>
           </div>
-          <button class="btn-pill" onclick="resolveComment('${c.id}', this)">
-            <span class="material-symbols-outlined" style="font-size:15px;">check</span> Resolver
-          </button>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="btn-pill" onclick="resolveComment('${c.id}', this)">
+              <span class="material-symbols-outlined" style="font-size:15px;">check</span> Resolver
+            </button>
+            <button class="btn-icon" onclick="deleteComment('${c.id}')" aria-label="Eliminar comentario">
+              <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+            </button>
+          </div>
         </div>`).join('');
 
   document.getElementById('resolvedSection').innerHTML = resolved.length === 0 ? '' : `
     <div class="section-title" style="margin-top:8px;"><span class="material-symbols-outlined">task_alt</span> Resueltos</div>
     ${resolved.map(c => `
-      <div class="comment-card" style="opacity:0.55;">
-        <div><div class="comment-recipe">${escapeHtml(c.section_name)} ✓</div><div class="comment-text" style="font-size:13px;">${escapeHtml(c.text)}</div></div>
+      <div class="comment-card" style="opacity:0.7;">
+        <div style="flex:1;"><div class="comment-recipe">${escapeHtml(c.section_name)} ✓</div><div class="comment-text" style="font-size:13px;">${escapeHtml(c.text)}</div></div>
+        <button class="btn-icon" onclick="deleteComment('${c.id}')" aria-label="Eliminar comentario">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>
       </div>`).join('')}`;
 
   // Categorías de producción
@@ -1571,9 +1579,27 @@ function renderAdmin() {
 async function resolveComment(id, btn) {
   await runWithLoading(btn, '', async () => {
     const { error } = await sb.from('comments').update({ resolved: true }).eq('id', id);
-    if (error) { showToast('Error al resolver'); throw error; }
+    if (error) { if (!handleAuthError(error)) showToast('Error al resolver'); throw error; }
     comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
   }).catch(() => {});
+  updateBadges(); renderAdmin();
+}
+
+async function deleteComment(id) {
+  const ok = await showConfirm({
+    title:       'Eliminar aviso',
+    message:     '¿Seguro que quieres eliminar este aviso? No se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('comments').delete().eq('id', id);
+      if (error) throw error;
+      comments = comments.filter(c => c.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Aviso eliminado');
   updateBadges(); renderAdmin();
 }
 
