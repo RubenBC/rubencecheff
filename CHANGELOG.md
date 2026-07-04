@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v25
+
+### Añadido
+- **Eliminar avisos desde el panel Admin.** Además de "Resolver", ahora cada aviso (pendiente o resuelto) tiene un botón de papelera para borrarlo definitivamente, con confirmación previa.
+
+### Usabilidad
+- **El botón "Error" de las fichas ahora se llama "Reportar un error".** El texto anterior se confundía con un fallo de la app; el nuevo deja claro que sirve para avisar de un problema en la receta.
+
+---
+
 ## v24 — Auditoría exhaustiva (2ª pasada)
 
 ### Corregido
