@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v25';
+const APP_VERSION = 'v26';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -490,7 +490,7 @@ function renderRecipes() {
   const filtered = recipes.filter(r =>
     (recipeFilter === 'Todas' || r.category === recipeFilter) &&
     r.name.toLowerCase().includes(q)
-  ).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('recipeList');
   if (!list) return;
@@ -838,7 +838,8 @@ async function handleRecipePhoto(event) {
 }
 
 async function saveRecipe() {
-  if (!recipeEditorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
+  recipeEditorData.name = (recipeEditorData.name || '').trim();
+  if (!recipeEditorData.name) { showToast('El nombre es obligatorio'); return; }
   const btn = document.getElementById('saveRecipeBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('recipes').upsert(recipeEditorData);
@@ -897,7 +898,7 @@ function openLinkModal(recipeId) {
   document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
   document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
   selectedProdIds = recipeProductions.filter(rp => rp.recipe_id === recipeId).map(rp => rp.production_id);
-  const sortedProds = [...productions].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  const sortedProds = [...productions].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
   document.getElementById('linkProductionList').innerHTML = sortedProds.length === 0
     ? '<p style="color:var(--text2); font-size:13px;">No hay producciones creadas aún.</p>'
     : sortedProds.map(p => `
@@ -970,7 +971,7 @@ let selectedRecipeIds = [];
 function openLinkRecipesModal(prodId) {
   linkingProdId = prodId;
   selectedRecipeIds = recipeProductions.filter(rp => rp.production_id === prodId).map(rp => rp.recipe_id);
-  const sortedRecipes = [...recipes].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  const sortedRecipes = [...recipes].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
   document.getElementById('linkProductionList').innerHTML = sortedRecipes.length === 0
     ? '<p style="color:var(--text2); font-size:13px;">No hay platos creados aún.</p>'
     : sortedRecipes.map(r => `
@@ -1041,7 +1042,7 @@ function renderProductions() {
   const filtered = productions.filter(p =>
     (prodFilter === 'Todas' || p.category === prodFilter) &&
     p.name.toLowerCase().includes(q)
-  ).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('productionList');
   if (!list) return;
@@ -1168,7 +1169,7 @@ function renderProdDetail(fromPage) {
       ${(() => {
         const linkedRecipeIds = recipeProductions.filter(rp => rp.production_id === p.id).map(rp => rp.recipe_id);
         const linkedRecipes = recipes.filter(r => linkedRecipeIds.includes(r.id))
-          .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+          .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
         return linkedRecipes.length > 0
           ? linkedRecipes.map(r => `
               <div class="prod-link-row" onclick="goToRecipeFromProd('${r.id}')">
@@ -1301,7 +1302,8 @@ function renderProdEditor() {
 }
 
 async function saveProduction() {
-  if (!prodEditorData.name.trim()) { showToast('El nombre es obligatorio'); return; }
+  prodEditorData.name = (prodEditorData.name || '').trim();
+  if (!prodEditorData.name) { showToast('El nombre es obligatorio'); return; }
   const btn = document.getElementById('saveProdBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('productions').upsert(prodEditorData);
@@ -2313,7 +2315,31 @@ const CONV_TYPES = {
   Peso:        { units: ['g','kg','oz','lb'],                   toBase: { g:1, kg:1000, oz:28.3495, lb:453.592 } },
   Volumen:     { units: ['ml','L','taza','fl oz','tbsp','tsp'], toBase: { ml:1, L:1000, taza:236.588, 'fl oz':29.5735, tbsp:14.7868, tsp:4.92892 } },
   Temperatura: { units: ['°C','°F'], toBase: null },
+  'Tazas → g': { units: ['taza','tbsp','tsp','g'], toBase: null, byIngredient: true },
 };
+
+// Gramos por TAZA (236 ml) de cada ingrediente. De ahí se derivan tbsp y tsp.
+// 1 taza = 16 tbsp = 48 tsp.
+const ING_GRAMS_PER_CUP = {
+  'Harina':           120,
+  'Azúcar blanco':    200,
+  'Azúcar moreno':    220,
+  'Azúcar glass':     130,
+  'Mantequilla':      227,
+  'Arroz':            195,
+  'Sal fina':         290,
+  'Sal gruesa':       220,
+  'Miel':             340,
+  'Cacao en polvo':   100,
+  'Agua / líquidos':  236,
+  'Leche':            245,
+  'Nata':             240,
+  'Aceite':           218,
+  'Almendra molida':  96,
+  'Pan rallado':      108,
+};
+// Factor de cada unidad respecto a 1 taza (cuánta taza es 1 unidad de esa)
+const CUP_FRACTION = { taza: 1, tbsp: 1/16, tsp: 1/48 };
 let convType = 'Peso';
 
 function initConverter() {
@@ -2326,6 +2352,19 @@ function initConverter() {
     s.innerHTML = units.map(u => `<option>${u}</option>`).join('');
     s.value = units[i === 0 ? 0 : 1];
   });
+
+  // Selector de ingrediente: solo visible en el modo "Tazas → g"
+  const ingRow = document.getElementById('convIngredientRow');
+  const ingSel = document.getElementById('convIngredient');
+  if (CONV_TYPES[convType].byIngredient) {
+    if (!ingSel.options.length) {
+      ingSel.innerHTML = Object.keys(ING_GRAMS_PER_CUP).map(n => `<option>${n}</option>`).join('');
+    }
+    ingRow.style.display = '';
+  } else {
+    ingRow.style.display = 'none';
+  }
+
   updateConverter();
   document.getElementById('tempRef').innerHTML = [
     ['Bajo','150°C','300°F'],['Medio','180°C','356°F'],['Fuerte','200°C','392°F'],
@@ -2344,8 +2383,20 @@ function updateConverter() {
   if (isNaN(val)) { document.getElementById('convResult').textContent = '—'; return; }
   let result;
   if (convType === 'Temperatura') result = from === to ? val : from === '°C' ? val*9/5+32 : (val-32)*5/9;
+  else if (CONV_TYPES[convType].byIngredient) {
+    // Conversión taza/tbsp/tsp ⇄ gramos según el ingrediente elegido
+    const ing = document.getElementById('convIngredient').value;
+    const gPerCup = ING_GRAMS_PER_CUP[ing] || 0;
+    // pasar 'from' a gramos
+    const gFrom = from === 'g' ? val : val * CUP_FRACTION[from] * gPerCup;
+    // pasar gramos al 'to'
+    result = to === 'g' ? gFrom : gFrom / (CUP_FRACTION[to] * gPerCup);
+  }
   else { const b = CONV_TYPES[convType].toBase; result = val*b[from]/b[to]; }
-  const d = Number.isInteger(result) ? result : parseFloat(result.toFixed(4));
+  let d;
+  if (Number.isInteger(result)) d = result;
+  else if (to === 'g' || to === 'ml') d = parseFloat(result.toFixed(1));
+  else d = parseFloat(result.toFixed(2));
   document.getElementById('convResult').textContent     = d + ' ' + to;
   document.getElementById('convResultLabel').textContent = `${val} ${from} = ${d} ${to}`;
 }
