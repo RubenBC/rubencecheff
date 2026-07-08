@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v26
+
+### Añadido
+- **Conversor "Tazas → g" por ingrediente.** Nueva pestaña en Utilidades → Conversión que convierte tazas, cucharadas (tbsp) y cucharaditas (tsp) a gramos —y al revés— según el ingrediente elegido, porque una taza de harina (120 g) no pesa lo mismo que una de azúcar (200 g) o de miel (340 g). Incluye 16 ingredientes habituales (harina, azúcares, mantequilla, arroz, sal, miel, cacao, líquidos, aceite, almendra molida, pan rallado...).
+
+---
+
 ## v25
 
 ### Añadido
