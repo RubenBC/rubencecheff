@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v27
+
+### Añadido
+- **Avisos de partidos y conciertos importantes (Paso 1).** Nueva tabla `important_dates` en Supabase con estados pendiente/aprobado/descartado.
+  - **Banner en la pantalla principal**, visible para todo el personal sin necesidad de login, que muestra los eventos aprobados dentro de los próximos 3 días (⚽ partido / 🎤 concierto / 📅 evento).
+  - **Panel nuevo en Admin** ("Partidos y conciertos") para aprobar o descartar sugerencias, y para retirar avisos ya activos si un evento se aplaza o cancela.
+  - Pendiente el **Paso 2**: el robot de GitHub Actions que llama a la IA a diario para generar esas sugerencias automáticamente.
+
+---
+
 ## v26
 
 ### Añadido
