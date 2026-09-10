@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v26';
+const APP_VERSION = 'v27';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -137,6 +137,7 @@ let recipes              = [];
 let productions          = [];
 let recipeProductions    = [];
 let comments             = [];
+let importantDates       = [];
 let weights              = [];
 let brines               = [];
 let productionCategories = [];
@@ -222,6 +223,17 @@ async function loadData() {
     recipes.forEach(normalizeItem);
     productions.forEach(normalizeItem);
 
+    // La tabla de avisos (partidos/conciertos) puede no existir todavía:
+    // cárgala sin romper el resto si aún no se ha creado en Supabase.
+    try {
+      const { data: idData, error: idErr } = await sb.from('important_dates').select('*').order('event_date');
+      if (idErr) throw idErr;
+      importantDates = idData || [];
+    } catch (e) {
+      console.warn('important_dates no disponible (¿falta crear la tabla?):', e?.message || e);
+      importantDates = [];
+    }
+
     // La tabla de pedidos puede no existir todavía: cárgala sin romper el resto.
     try {
       const { data: oData, error: oErr } = await sb.from('order_items').select('*');
@@ -240,6 +252,7 @@ async function loadData() {
 
     await restoreAdminSession();
     renderRecipes();
+    renderEventBanner();
     updateBadges();
 
   } catch (err) {
@@ -1491,7 +1504,101 @@ async function restoreAdminSession() {
 // Los comentarios del personal se pueden enviar sin iniciar sesión (RLS lo
 // permite a propósito), así que es texto no confiable: hay que escaparlo
 // antes de insertarlo en el HTML del panel de Admin.
+// Panel de Admin: sugerencias de la IA pendientes de aprobar, y avisos ya
+// activos (aprobados) por si hay que retirar alguno (partido aplazado, etc.)
+function renderImportantDatesAdmin() {
+  const el = document.getElementById('importantDatesSection');
+  if (!el) return;
+  if (!isAdmin) { el.innerHTML = ''; return; }
+
+  const pending = importantDates.filter(d => d.status === 'pendiente')
+    .sort((a, b) => a.event_date.localeCompare(b.event_date));
+  const today = new Date().toISOString().slice(0, 10);
+  const active = importantDates.filter(d => d.status === 'aprobado' && d.event_date >= today)
+    .sort((a, b) => a.event_date.localeCompare(b.event_date));
+
+  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
+  const fmtDate = iso => new Date(iso + 'T00:00:00')
+    .toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  const row = (d, actions) => `
+    <div class="comment-card">
+      <div style="flex:1;">
+        <div class="comment-recipe">${ICONS[d.category] || '📅'} ${escapeHtml(fmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''}</div>
+        <div class="comment-text">${escapeHtml(d.title)}</div>
+        ${d.note ? `<div class="comment-date">${escapeHtml(d.note)}</div>` : ''}
+      </div>
+      <div style="display:flex; gap:6px; flex-shrink:0;">${actions}</div>
+    </div>`;
+
+  const pendingHtml = pending.length === 0
+    ? `<div class="card" style="text-align:center; padding:20px; color:var(--text2); font-size:13px;">Sin sugerencias pendientes</div>`
+    : pending.map(d => row(d, `
+        <button class="btn-pill" onclick="approveImportantDate('${d.id}', this)">
+          <span class="material-symbols-outlined" style="font-size:15px;">check</span> Aprobar
+        </button>
+        <button class="btn-icon" onclick="discardImportantDate('${d.id}', this)" aria-label="Descartar sugerencia">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">close</span>
+        </button>`)).join('');
+
+  const activeHtml = active.length === 0 ? '' : `
+    <div class="section-title" style="margin-top:14px;">
+      <span class="material-symbols-outlined">event_available</span> Avisos activos
+    </div>
+    ${active.map(d => row(d, `
+        <button class="btn-icon" onclick="deleteImportantDate('${d.id}')" aria-label="Eliminar aviso">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>`)).join('')}`;
+
+  el.innerHTML = `
+    <div class="section-title">
+      <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
+      ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
+    </div>
+    ${pendingHtml}
+    ${activeHtml}`;
+}
+
+async function approveImportantDate(id, btn) {
+  await runWithLoading(btn, '', async () => {
+    const { error } = await sb.from('important_dates').update({ status: 'aprobado' }).eq('id', id);
+    if (error) { if (!handleAuthError(error)) showToast('Error al aprobar'); throw error; }
+    importantDates = importantDates.map(d => d.id === id ? { ...d, status: 'aprobado' } : d);
+  }).catch(() => {});
+  renderImportantDatesAdmin();
+  renderEventBanner();
+}
+
+async function discardImportantDate(id, btn) {
+  await runWithLoading(btn, '', async () => {
+    const { error } = await sb.from('important_dates').update({ status: 'descartado' }).eq('id', id);
+    if (error) { if (!handleAuthError(error)) showToast('Error al descartar'); throw error; }
+    importantDates = importantDates.map(d => d.id === id ? { ...d, status: 'descartado' } : d);
+  }).catch(() => {});
+  renderImportantDatesAdmin();
+}
+
+async function deleteImportantDate(id) {
+  const ok = await showConfirm({
+    title:       'Eliminar aviso',
+    message:     '¿Seguro que quieres eliminar este aviso? No se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('important_dates').delete().eq('id', id);
+      if (error) throw error;
+      importantDates = importantDates.filter(d => d.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Aviso eliminado');
+  renderImportantDatesAdmin();
+  renderEventBanner();
+}
+
 function renderAdmin() {
+  renderImportantDatesAdmin();
   const pending  = comments.filter(c => !c.resolved);
   const resolved = comments.filter(c =>  c.resolved);
 
@@ -1664,6 +1771,56 @@ async function deleteProdCategory(id) {
   if (!ok) return;
   showToast('Categoría eliminada');
   renderAdmin();
+}
+
+// ═══════════════════════════════════════
+//   AVISO DE EVENTOS (partidos/conciertos importantes)
+// ═══════════════════════════════════════
+// Muestra, en la pantalla principal y visible sin login, los eventos ya
+// aprobados que caen dentro de los próximos días (para que cocina y sala
+// se preparen). Vive dentro de #searchSection, así que hereda su mismo
+// mostrar/ocultar al entrar en fichas de detalle o editores.
+function renderEventBanner() {
+  const el = document.getElementById('eventBanner');
+  if (!el) return;
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const limit = new Date(today); limit.setDate(limit.getDate() + 3); // aviso con 3 días de antelación
+
+  const upcoming = importantDates
+    .filter(d => d.status === 'aprobado')
+    .filter(d => {
+      const ed = new Date(d.event_date + 'T00:00:00');
+      return ed >= today && ed <= limit;
+    })
+    .sort((a, b) => a.event_date.localeCompare(b.event_date));
+
+  if (upcoming.length === 0) { el.innerHTML = ''; return; }
+
+  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
+  const fmtDate = iso => {
+    const d = new Date(iso + 'T00:00:00');
+    const diffDays = Math.round((d - today) / 86400000);
+    if (diffDays === 0) return 'Hoy';
+    if (diffDays === 1) return 'Mañana';
+    return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+  };
+
+  el.innerHTML = `
+    <div class="event-banner">
+      <div class="event-banner-title">
+        <span class="material-symbols-outlined">campaign</span>
+        Días con más trabajo previstos
+      </div>
+      ${upcoming.map(d => `
+        <div class="event-banner-row">
+          <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
+          <div class="event-banner-info">
+            <div class="event-banner-name">${escapeHtml(fmtDate(d.event_date))} — ${escapeHtml(d.title)}</div>
+            ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>`;
 }
 
 function updateBadges() {
