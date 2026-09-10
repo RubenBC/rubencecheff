@@ -1,1 +1,24 @@
+name: Avisos de partidos y conciertos
 
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC ≈ 07:00-08:00 en Madrid (según horario de verano/invierno)
+  workflow_dispatch:        # permite lanzarlo a mano desde la pestaña "Actions" de GitHub, para probarlo
+
+jobs:
+  check-events:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Buscar partidos y conciertos importantes
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/check-important-dates.mjs
