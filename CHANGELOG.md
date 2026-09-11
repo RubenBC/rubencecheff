@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v28
+
+### Añadido
+- **Importar eventos por CSV (sustituye al robot automático).** Nuevo botón "Importar CSV" en Admin → Partidos y conciertos: se pega ahí el CSV que genera Gemini (chat, no API) siguiendo un prompt fijo, separado por punto y coma. La app valida el formato, **descarta automáticamente los eventos que ya existan** (comparando fecha + categoría + título, sin distinguir mayúsculas ni tildes) y guarda el resto como sugerencias pendientes, dentro del mismo flujo de aprobación que ya existía.
+- Se abandona el robot de GitHub Actions + API de Gemini (problemas recurrentes de cuota/facturación); el flujo manual con el chat de Gemini es más simple y fiable.
+
+---
+
 ## v27
 
 ### Añadido
