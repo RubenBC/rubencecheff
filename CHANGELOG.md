@@ -4,6 +4,17 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v30
+
+### Añadido
+- **El banner de eventos del personal ahora es plegable, llamativo y editable.**
+  - Empieza plegado (solo el título), para no ocupar espacio.
+  - Cuando hay un evento nuevo que ese dispositivo aún no ha visto, se pone en **naranja y parpadea** hasta que alguien lo despliega; en ese momento se marca como visto (guardado por dispositivo, ya que el personal no inicia sesión) y vuelve a su color normal.
+  - Cada evento tiene ahora un botón de **borrar**, utilizable por cualquiera **sin necesidad de login**, para poder limpiar la lista manualmente (eventos ya pasados, o simplemente para ordenar).
+- Nueva política de seguridad en Supabase (`important_dates_borrado_publico.sql`): permite borrar sin login, pero **solo** eventos ya aprobados — nunca sugerencias pendientes ni el resto de la base de datos.
+
+---
+
 ## v29
 
 ### Cambiado
