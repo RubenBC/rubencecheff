@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v28';
+const APP_VERSION = 'v29';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -138,6 +138,7 @@ let productions          = [];
 let recipeProductions    = [];
 let comments             = [];
 let importantDates       = [];
+let importantDatesExpanded = false; // el panel de Admin arranca plegado para no ocupar toda la pantalla
 let weights              = [];
 let brines               = [];
 let productionCategories = [];
@@ -1551,15 +1552,25 @@ function renderImportantDatesAdmin() {
         </button>`)).join('')}`;
 
   el.innerHTML = `
-    <div class="section-title">
-      <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
-      ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
+    <div class="section-title" style="cursor:pointer; justify-content:space-between;" onclick="toggleImportantDatesSection()">
+      <span style="display:flex; align-items:center; gap:6px;">
+        <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
+        ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
+      </span>
+      <span class="material-symbols-outlined">${importantDatesExpanded ? 'expand_less' : 'expand_more'}</span>
     </div>
-    <button class="btn-pill" style="margin-bottom:10px;" onclick="openImportCsvModal()">
-      <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
-    </button>
-    ${pendingHtml}
-    ${activeHtml}`;
+    ${importantDatesExpanded ? `
+      <button class="btn-pill" style="margin-bottom:10px;" onclick="openImportCsvModal()">
+        <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
+      </button>
+      ${pendingHtml}
+      ${activeHtml}
+    ` : ''}`;
+}
+
+function toggleImportantDatesSection() {
+  importantDatesExpanded = !importantDatesExpanded;
+  renderImportantDatesAdmin();
 }
 
 async function approveImportantDate(id, btn) {
