@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v29';
+const APP_VERSION = 'v30';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -139,6 +139,7 @@ let recipeProductions    = [];
 let comments             = [];
 let importantDates       = [];
 let importantDatesExpanded = false; // el panel de Admin arranca plegado para no ocupar toda la pantalla
+let eventBannerExpanded    = false; // el banner del personal también arranca plegado
 let weights              = [];
 let brines               = [];
 let productionCategories = [];
@@ -1863,22 +1864,47 @@ async function deleteProdCategory(id) {
 // aprobados que caen dentro de los próximos días (para que cocina y sala
 // se preparen). Vive dentro de #searchSection, así que hereda su mismo
 // mostrar/ocultar al entrar en fichas de detalle o editores.
-function renderEventBanner() {
-  const el = document.getElementById('eventBanner');
-  if (!el) return;
+//
+// Es plegable y arranca cerrado. Si hay algún evento que este dispositivo
+// no ha visto todavía, se pone en modo "alerta" (color llamativo + parpadeo)
+// hasta que alguien lo despliega; en ese momento se marca como visto (en
+// localStorage, por dispositivo, ya que el personal no inicia sesión) y
+// vuelve a su color normal.
 
+function getSeenEventIds() {
+  try { return JSON.parse(localStorage.getItem('rubencechef-seen-events') || '[]'); }
+  catch (e) { return []; }
+}
+function markEventsSeen(ids) {
+  try {
+    const seen = new Set(getSeenEventIds());
+    ids.forEach(id => seen.add(id));
+    localStorage.setItem('rubencechef-seen-events', JSON.stringify([...seen]));
+  } catch (e) {}
+}
+
+function getUpcomingBannerEvents() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const limit = new Date(today); limit.setDate(limit.getDate() + 3); // aviso con 3 días de antelación
-
-  const upcoming = importantDates
+  return importantDates
     .filter(d => d.status === 'aprobado')
     .filter(d => {
       const ed = new Date(d.event_date + 'T00:00:00');
       return ed >= today && ed <= limit;
     })
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
+}
 
+function renderEventBanner() {
+  const el = document.getElementById('eventBanner');
+  if (!el) return;
+
+  const upcoming = getUpcomingBannerEvents();
   if (upcoming.length === 0) { el.innerHTML = ''; return; }
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const seenIds = getSeenEventIds();
+  const hasNew  = upcoming.some(d => !seenIds.includes(d.id));
 
   const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
   const fmtDate = iso => {
@@ -1889,21 +1915,39 @@ function renderEventBanner() {
     return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
   };
 
-  el.innerHTML = `
-    <div class="event-banner">
-      <div class="event-banner-title">
-        <span class="material-symbols-outlined">campaign</span>
-        Días con más trabajo previstos
+  const rowsHtml = upcoming.map(d => `
+    <div class="event-banner-row">
+      <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
+      <div class="event-banner-info">
+        <div class="event-banner-name">${escapeHtml(fmtDate(d.event_date))} — ${escapeHtml(d.title)}</div>
+        ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
       </div>
-      ${upcoming.map(d => `
-        <div class="event-banner-row">
-          <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
-          <div class="event-banner-info">
-            <div class="event-banner-name">${escapeHtml(fmtDate(d.event_date))} — ${escapeHtml(d.title)}</div>
-            ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
-          </div>
-        </div>`).join('')}
+      <button class="btn-icon" onclick="deleteImportantDate('${d.id}')" aria-label="Eliminar aviso">
+        <span class="material-symbols-outlined" style="font-size:18px; color:var(--outline);">delete</span>
+      </button>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div class="event-banner ${hasNew ? 'alert' : ''}">
+      <div class="event-banner-header" onclick="toggleEventBanner()">
+        <span class="event-banner-title">
+          <span class="material-symbols-outlined">campaign</span>
+          Días con más trabajo previstos
+        </span>
+        <span class="material-symbols-outlined">${eventBannerExpanded ? 'expand_less' : 'expand_more'}</span>
+      </div>
+      ${eventBannerExpanded ? `<div class="event-banner-body">${rowsHtml}</div>` : ''}
     </div>`;
+}
+
+function toggleEventBanner() {
+  eventBannerExpanded = !eventBannerExpanded;
+  if (eventBannerExpanded) {
+    // Al abrir, se marca como "visto" todo lo que hay ahora mismo en el
+    // banner: deja de parpadear y vuelve a su color natural.
+    markEventsSeen(getUpcomingBannerEvents().map(d => d.id));
+  }
+  renderEventBanner();
 }
 
 function updateBadges() {
