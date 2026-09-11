@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v29
+
+### Cambiado
+- **"Partidos y conciertos" ahora es desplegable en Admin.** Empieza plegado (mostrando solo el título y el número de pendientes, si hay) para no ocupar toda la pantalla; se toca para abrir y ver el botón de importar y las listas.
+
+---
+
 ## v28
 
 ### Añadido
