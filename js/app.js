@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v28';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -1555,6 +1555,9 @@ function renderImportantDatesAdmin() {
       <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
       ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
     </div>
+    <button class="btn-pill" style="margin-bottom:10px;" onclick="openImportCsvModal()">
+      <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
+    </button>
     ${pendingHtml}
     ${activeHtml}`;
 }
@@ -1595,6 +1598,75 @@ async function deleteImportantDate(id) {
   showToast('Aviso eliminado');
   renderImportantDatesAdmin();
   renderEventBanner();
+}
+
+function openImportCsvModal() {
+  document.getElementById('csvImportInput').value = '';
+  document.getElementById('csvImportResult').textContent = '';
+  openModalNav('importCsvModal');
+}
+
+// Pega el CSV separado por ";" que ha dado Gemini (fecha;hora;titulo;categoria;nota),
+// filtra las filas que no cumplan el formato mínimo, descarta las que ya
+// existan en la base de datos (en cualquier estado: pendiente/aprobado/
+// descartado) comparando fecha + categoría + título sin acentos ni
+// mayúsculas, y guarda el resto como sugerencias pendientes de aprobar.
+async function importCsvEvents(btn) {
+  const input    = document.getElementById('csvImportInput');
+  const resultEl = document.getElementById('csvImportResult');
+  const raw = (input.value || '').trim();
+  if (!raw) { resultEl.textContent = 'Pega el CSV primero.'; return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+  const rows = [];
+  for (const line of lines) {
+    const parts = line.split(';').map(p => p.trim());
+    if (parts.length < 4) continue;
+    const [fecha, hora, titulo, categoria, nota] = parts;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) continue; // descarta la cabecera y líneas raras
+    if (!titulo) continue;
+    rows.push({
+      event_date: fecha,
+      event_time: hora || null,
+      title:      titulo,
+      category:   ['futbol', 'concierto', 'evento'].includes(categoria) ? categoria : 'evento',
+      note:       nota || null,
+      status:     'pendiente',
+      source:     'ia',
+    });
+  }
+
+  if (rows.length === 0) {
+    resultEl.textContent = '⚠️ No se ha reconocido ninguna fila válida. Revisa que las fechas estén en formato AAAA-MM-DD y separadas por ";".';
+    return;
+  }
+
+  const isDuplicate = ev => importantDates.some(d =>
+    d.event_date === ev.event_date &&
+    d.category   === ev.category &&
+    normalizeText(d.title) === normalizeText(ev.title)
+  );
+  const newRows = rows.filter(r => !isDuplicate(r));
+  const skipped = rows.length - newRows.length;
+
+  if (newRows.length === 0) {
+    resultEl.textContent = `Las ${rows.length} fila(s) ya estaban guardadas. Nada nuevo que importar.`;
+    return;
+  }
+
+  const ok = await runWithLoading(btn, 'Importando...', async () => {
+    const { data, error } = await sb.from('important_dates').insert(newRows).select();
+    if (error) { if (!handleAuthError(error)) resultEl.textContent = 'Error al guardar en la base de datos.'; throw error; }
+    importantDates = importantDates.concat(data || []);
+  }).then(() => true).catch(() => false);
+
+  if (!ok) return;
+
+  resultEl.textContent = `✅ ${newRows.length} evento(s) nuevo(s) importado(s) como pendiente(s).` +
+    (skipped > 0 ? ` (${skipped} ya existían y se han omitido.)` : '');
+  input.value = '';
+  renderImportantDatesAdmin();
+  showToast('Eventos importados ✓');
 }
 
 function renderAdmin() {
