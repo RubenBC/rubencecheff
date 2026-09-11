@@ -13,7 +13,7 @@ const SUPABASE_URL         = 'https://rswzirygkeyainerfzjx.supabase.co';
 
 // Modelo con soporte de búsqueda web en tiempo real y nivel gratuito.
 // Si Google lo retira en el futuro, basta con cambiar esta línea.
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3.6-flash';
 
 if (!GEMINI_API_KEY || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Faltan variables de entorno (GEMINI_API_KEY / SUPABASE_SERVICE_KEY). Revisa los secretos del repositorio.');
