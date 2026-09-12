@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v31';
+const APP_VERSION = 'v32';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -1655,10 +1655,21 @@ async function importCsvEvents(btn) {
     return;
   }
 
+  // Compara títulos de forma resistente a variaciones de redacción: separa
+  // por guion/"vs"/"v." y ordena los trozos alfabéticamente, así "Real
+  // Madrid - Barcelona" y "Barcelona vs Real Madrid" se reconocen como el
+  // mismo evento aunque Gemini los redacte distinto entre una consulta y otra.
+  const canonicalTitle = title => normalizeText(title)
+    .split(/\s*(?:-|vs\.?|v\.)\s*/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .sort()
+    .join('|');
+
   const isDuplicate = ev => importantDates.some(d =>
     d.event_date === ev.event_date &&
     d.category   === ev.category &&
-    normalizeText(d.title) === normalizeText(ev.title)
+    canonicalTitle(d.title) === canonicalTitle(ev.title)
   );
   const newRows = rows.filter(r => !isDuplicate(r));
   const skipped = rows.length - newRows.length;
@@ -1876,7 +1887,7 @@ async function deleteProdCategory(id) {
 
 function getUpcomingBannerEvents() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const limit = new Date(today); limit.setDate(limit.getDate() + 3); // aviso con 3 días de antelación
+  const limit = new Date(today); limit.setDate(limit.getDate() + 5); // aviso con 5 días de antelación
   return importantDates
     .filter(d => d.status === 'aprobado')
     .filter(d => {
@@ -1900,9 +1911,10 @@ function renderEventBanner() {
   const fmtDate = iso => {
     const d = new Date(iso + 'T00:00:00');
     const diffDays = Math.round((d - today) / 86400000);
-    if (diffDays === 0) return 'Hoy';
-    if (diffDays === 1) return 'Mañana';
-    return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+    const dayLabel = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+    if (diffDays === 0) return `Hoy, ${dayLabel}`;
+    if (diffDays === 1) return `Mañana, ${dayLabel}`;
+    return dayLabel;
   };
 
   const rowsHtml = upcoming.map(d => `
