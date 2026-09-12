@@ -4,6 +4,15 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v32
+
+### Cambiado
+- **Ventana del banner ampliada a 5 días** de antelación (antes 3).
+- **Detección de duplicados al importar CSV más robusta.** Ahora reconoce el mismo evento aunque Gemini lo redacte distinto entre una consulta y otra (equipos en otro orden, "vs" en vez de guion, etc.), comparando por contenido en vez de por texto exacto.
+- **El banner del personal muestra siempre el día y la fecha**, incluso cuando es "Hoy" o "Mañana" (antes esas dos palabras sustituían al día; ahora van delante, ej. "Hoy, viernes 12 sept").
+
+---
+
 ## v31
 
 ### Cambiado
