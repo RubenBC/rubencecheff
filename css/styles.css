@@ -619,43 +619,32 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
 /* ═══════════════════════════════════════
    AVISO DE EVENTOS (partidos/conciertos)
 ═══════════════════════════════════════ */
-.event-banner {
-  background: var(--primary-container);
-  border-radius: 16px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  border: 2px solid transparent;
-  transition: background 0.3s, border-color 0.3s;
-}
-.event-banner-header {
-  display: flex; align-items: center; justify-content: space-between;
-  cursor: pointer;
-}
-.event-banner-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 800; color: var(--primary);
-  text-transform: uppercase; letter-spacing: 0.3px;
-}
-.event-banner-title .material-symbols-outlined { font-size: 16px; }
-.event-banner-body { margin-top: 10px; }
-.event-banner-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
+.event-banner-row { display: flex; align-items: flex-start; gap: 8px; padding: 10px 0; }
 .event-banner-row + .event-banner-row { border-top: 1px solid var(--outline-light); }
 .event-banner-icon { font-size: 20px; line-height: 1.3; }
 .event-banner-info { flex: 1; }
 .event-banner-name { font-size: 14px; font-weight: 700; color: var(--text); }
 .event-banner-note { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
-/* Estado de alerta: algo nuevo que aún no se ha visto */
-.event-banner.alert {
-  background: var(--alert-light);
-  border-color: var(--alert);
-  animation: eventBannerPulse 1.6s ease-in-out infinite;
+/* Icono de aviso en la cabecera: sustituye al banner desplegable para no
+   robar altura a la lista de recetas. */
+.events-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 16px; height: 16px; padding: 0 3px;
+  border-radius: var(--shape-full);
+  background: var(--text2); color: var(--surface);
+  font-size: 10px; font-weight: 800; line-height: 16px; text-align: center;
 }
-.event-banner.alert .event-banner-title { color: var(--alert); }
+/* Algo nuevo sin ver: el icono se pone llamativo y parpadea */
+#eventsBtn.alert .events-badge {
+  background: var(--alert);
+  animation: eventBannerPulse 1.4s ease-in-out infinite;
+}
+#eventsBtn.alert .material-symbols-outlined { color: var(--alert); }
 
 @keyframes eventBannerPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 81, 0, 0.45); }
-  50%      { box-shadow: 0 0 0 7px rgba(230, 81, 0, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 81, 0, 0.55); }
+  50%      { box-shadow: 0 0 0 5px rgba(230, 81, 0, 0); }
 }
 
 /* ═══════════════════════════════════════
@@ -666,8 +655,17 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
    un ancho de lectura cómodo en vez de ocupar toda la pantalla.
 ═══════════════════════════════════════ */
 @media (min-width: 900px) {
-  .main { max-width: 1400px; padding: 24px 32px; }
+  .main { max-width: 1400px; padding: 16px 32px; }
   .topbar-row, #searchSection { max-width: 1400px; margin-left: auto; margin-right: auto; }
+
+  /* Cabecera más compacta: en un monitor no hace falta tanto aire como en
+     un móvil manejado con el pulgar, y aquí cada píxel de alto cuenta. */
+  .topbar { padding: 10px 32px; }
+  .topbar-row { margin-bottom: 8px; }
+  .brand-icon { padding: 6px; }
+  .brand-icon .material-symbols-outlined { font-size: 18px; }
+  .brand-name { font-size: 16px; }
+  .app-brand > div:last-child { display: flex; align-items: baseline; gap: 8px; }
 
   #recipeList, #productionList {
     display: grid;
@@ -690,12 +688,13 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   }
 
   /* El menú inferior sigue siendo táctil igual que en el móvil, pero
-     centrado y compacto para que los botones no queden muy separados
-     entre sí en una pantalla muy ancha. */
+     centrado, compacto y con menos alto para dejar más sitio a las
+     recetas en una pantalla que no es muy alta. */
   .bottom-nav {
     max-width: 900px;
     left: 0; right: 0;
     margin: 0 auto;
     border-radius: 20px 20px 0 0;
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
   }
 }
