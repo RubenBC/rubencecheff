@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v34
+
+### Cambiado
+- **"Días con más trabajo previstos" ya no ocupa espacio en la pantalla.** Sustituido el banner desplegable por un icono discreto en la cabecera (junto al tema/Admin), con un contador y el mismo parpadeo naranja cuando hay algo nuevo sin ver. Al tocarlo se abre como ventana emergente, sin robar altura a la lista de recetas.
+- **Más espacio vertical en pantallas anchas (monitor del curro).** Cabecera más compacta (nombre y subtítulo en una línea, menos relleno), menú inferior más ajustado — pensado para las pantallas panorámicas y no muy altas, donde antes quedaba poco hueco para ver las recetas cómodamente. En móvil vertical no cambia nada.
+
+---
+
 ## v33
 
 ### Añadido
