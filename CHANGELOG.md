@@ -4,6 +4,17 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v33
+
+### Añadido
+- **Diseño adaptable a pantallas anchas** (monitor táctil del curro, tablets), sin crear una app aparte — la misma app se reorganiza sola a partir de 900px de ancho:
+  - Platos y Producción pasan de lista en columna única a una **rejilla de varias columnas**, aprovechando el espacio.
+  - Fichas de detalle, editores, Utilidades y Admin mantienen un **ancho de lectura cómodo** (no se estiran de borde a borde).
+  - Cabecera y menú inferior se centran y quedan compactos en vez de separarse a los extremos de una pantalla muy ancha.
+  - En móvil (menos de 900px) todo sigue exactamente igual que hasta ahora.
+
+---
+
 ## v32
 
 ### Cambiado
