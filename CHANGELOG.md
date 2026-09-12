@@ -4,6 +4,15 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v31
+
+### Cambiado
+- **"Visto" del banner de eventos ahora es compartido**, no por dispositivo: en cuanto alguien lo despliega en cualquier móvil, se marca como visto en la base de datos y deja de parpadear para todo el equipo, no solo para quien lo abrió.
+- **Borrar un evento desde el banner del personal ahora requiere sesión de admin** (se revierte lo de v30): el icono de papelera solo aparece si has iniciado sesión como Chef. La lectura del banner y el "marcar como visto" siguen sin necesitar login.
+- **Criterio de fútbol restringido a primera división masculina.** Excluidos explícitamente el fútbol femenino (Liga F, competiciones femeninas de cualquier tipo) y las categorías inferiores o filiales (Segunda División, Castilla, juveniles). Actualizado en `prompt_gemini_eventos.txt`.
+
+---
+
 ## v30
 
 ### Añadido
