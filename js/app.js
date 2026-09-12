@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v34';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -139,7 +139,6 @@ let recipeProductions    = [];
 let comments             = [];
 let importantDates       = [];
 let importantDatesExpanded = false; // el panel de Admin arranca plegado para no ocupar toda la pantalla
-let eventBannerExpanded    = false; // el banner del personal también arranca plegado
 let weights              = [];
 let brines               = [];
 let productionCategories = [];
@@ -254,7 +253,7 @@ async function loadData() {
 
     await restoreAdminSession();
     renderRecipes();
-    renderEventBanner();
+    renderEventsButton();
     updateBadges();
 
   } catch (err) {
@@ -1420,7 +1419,7 @@ async function toggleAdmin() {
     document.getElementById('addWeightBtn').style.display = 'none';
     document.getElementById('addBrineBtn').style.display  = 'none';
     if (currentPage === 'fichas') renderFichas();
-    renderEventBanner();
+    renderEventsButton();
     showToast('Sesión cerrada');
   } else {
     // Crear modal dinámicamente — el campo password no existe en el DOM
@@ -1479,7 +1478,7 @@ async function doLogin() {
     if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
     if (currentPage === 'admin') renderAdmin();
-    renderEventBanner();
+    renderEventsButton();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     if (err) { err.textContent = 'Contraseña incorrecta'; err.style.display = ''; }
@@ -1583,7 +1582,7 @@ async function approveImportantDate(id, btn) {
     importantDates = importantDates.map(d => d.id === id ? { ...d, status: 'aprobado' } : d);
   }).catch(() => {});
   renderImportantDatesAdmin();
-  renderEventBanner();
+  renderEventsButton();
 }
 
 async function discardImportantDate(id, btn) {
@@ -1611,7 +1610,9 @@ async function deleteImportantDate(id) {
   if (!ok) return;
   showToast('Aviso eliminado');
   renderImportantDatesAdmin();
-  renderEventBanner();
+  renderEventsButton();
+  const modal = document.getElementById('eventsModal');
+  if (modal && modal.style.display === 'flex') renderEventsModalBody();
 }
 
 function openImportCsvModal() {
@@ -1873,17 +1874,13 @@ async function deleteProdCategory(id) {
 // ═══════════════════════════════════════
 //   AVISO DE EVENTOS (partidos/conciertos importantes)
 // ═══════════════════════════════════════
-// Muestra, en la pantalla principal y visible sin login, los eventos ya
-// aprobados que caen dentro de los próximos días (para que cocina y sala
-// se preparen). Vive dentro de #searchSection, así que hereda su mismo
-// mostrar/ocultar al entrar en fichas de detalle o editores.
-//
-// Es plegable y arranca cerrado. Si hay algún evento que NADIE del equipo
-// ha visto todavía, se pone en modo "alerta" (color llamativo + parpadeo)
-// hasta que alguien lo despliega; en ese momento se marca como visto para
+// Un icono discreto en la cabecera (visible sin login) avisa de los
+// eventos aprobados dentro de los próximos días. Si hay algo que NADIE
+// del equipo ha visto todavía, el icono se pone llamativo y parpadea.
+// Al tocarlo se abre un modal con el detalle, y se marca como visto para
 // TODO el equipo (columna "seen" en Supabase, no localStorage — un toque
-// en cualquier móvil lo apaga para todos) y vuelve a su color normal.
-// Borrar un evento desde aquí solo está disponible con sesión de admin.
+// en cualquier dispositivo lo apaga para todos). Borrar un evento desde
+// aquí solo está disponible con sesión de admin.
 
 function getUpcomingBannerEvents() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1897,31 +1894,42 @@ function getUpcomingBannerEvents() {
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
 }
 
-function renderEventBanner() {
-  const el = document.getElementById('eventBanner');
-  if (!el) return;
+function renderEventsButton() {
+  const btn   = document.getElementById('eventsBtn');
+  const badge = document.getElementById('eventsBadge');
+  if (!btn || !badge) return;
 
   const upcoming = getUpcomingBannerEvents();
-  if (upcoming.length === 0) { el.innerHTML = ''; return; }
+  if (upcoming.length === 0) { btn.style.display = 'none'; return; }
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
   const hasNew = upcoming.some(d => !d.seen);
+  btn.style.display = '';
+  btn.classList.toggle('alert', hasNew);
+  badge.style.display = '';
+  badge.textContent = upcoming.length;
+}
 
+function eventBannerFmtDate(iso) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(iso + 'T00:00:00');
+  const diffDays = Math.round((d - today) / 86400000);
+  const dayLabel = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+  if (diffDays === 0) return `Hoy, ${dayLabel}`;
+  if (diffDays === 1) return `Mañana, ${dayLabel}`;
+  return dayLabel;
+}
+
+function renderEventsModalBody() {
+  const body = document.getElementById('eventsModalBody');
+  if (!body) return;
+  const upcoming = getUpcomingBannerEvents();
   const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
-  const fmtDate = iso => {
-    const d = new Date(iso + 'T00:00:00');
-    const diffDays = Math.round((d - today) / 86400000);
-    const dayLabel = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
-    if (diffDays === 0) return `Hoy, ${dayLabel}`;
-    if (diffDays === 1) return `Mañana, ${dayLabel}`;
-    return dayLabel;
-  };
 
-  const rowsHtml = upcoming.map(d => `
+  body.innerHTML = upcoming.map(d => `
     <div class="event-banner-row">
       <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
       <div class="event-banner-info">
-        <div class="event-banner-name">${escapeHtml(fmtDate(d.event_date))} — ${escapeHtml(d.title)}</div>
+        <div class="event-banner-name">${escapeHtml(eventBannerFmtDate(d.event_date))} — ${escapeHtml(d.title)}</div>
         ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
       </div>
       ${isAdmin ? `
@@ -1929,39 +1937,25 @@ function renderEventBanner() {
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--outline);">delete</span>
       </button>` : ''}
     </div>`).join('');
-
-  el.innerHTML = `
-    <div class="event-banner ${hasNew ? 'alert' : ''}">
-      <div class="event-banner-header" onclick="toggleEventBanner()">
-        <span class="event-banner-title">
-          <span class="material-symbols-outlined">campaign</span>
-          Días con más trabajo previstos
-        </span>
-        <span class="material-symbols-outlined">${eventBannerExpanded ? 'expand_less' : 'expand_more'}</span>
-      </div>
-      ${eventBannerExpanded ? `<div class="event-banner-body">${rowsHtml}</div>` : ''}
-    </div>`;
 }
 
-async function toggleEventBanner() {
-  eventBannerExpanded = !eventBannerExpanded;
+async function openEventsModal() {
+  const upcoming = getUpcomingBannerEvents();
+  renderEventsModalBody();
+  openModalNav('eventsModal');
 
-  if (eventBannerExpanded) {
-    const unseenIds = getUpcomingBannerEvents().filter(d => !d.seen).map(d => d.id);
-    if (unseenIds.length > 0) {
-      // Actualización optimista: se nota al instante en pantalla, aunque
-      // el guardado en Supabase (compartido para todo el equipo) tarde
-      // un pelín más en confirmarse.
-      importantDates = importantDates.map(d => unseenIds.includes(d.id) ? { ...d, seen: true } : d);
-      renderEventBanner();
-      try {
-        const { error } = await sb.from('important_dates').update({ seen: true }).in('id', unseenIds);
-        if (error) console.warn('No se pudo marcar como visto:', error.message);
-      } catch (e) { console.warn('No se pudo marcar como visto:', e); }
-      return;
-    }
+  const unseenIds = upcoming.filter(d => !d.seen).map(d => d.id);
+  if (unseenIds.length > 0) {
+    // Actualización optimista: el icono deja de parpadear al instante,
+    // aunque el guardado en Supabase (compartido para todo el equipo)
+    // tarde un pelín más en confirmarse.
+    importantDates = importantDates.map(d => unseenIds.includes(d.id) ? { ...d, seen: true } : d);
+    renderEventsButton();
+    try {
+      const { error } = await sb.from('important_dates').update({ seen: true }).in('id', unseenIds);
+      if (error) console.warn('No se pudo marcar como visto:', error.message);
+    } catch (e) { console.warn('No se pudo marcar como visto:', e); }
   }
-  renderEventBanner();
 }
 
 function updateBadges() {
