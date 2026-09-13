@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v39';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -1974,7 +1974,7 @@ function renderEventsModalBody() {
     <div class="event-banner-row ${d.high_risk ? 'high-risk' : ''}">
       <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
       <div class="event-banner-info">
-        <div class="event-banner-name">${escapeHtml(eventBannerFmtDate(d.event_date))} — ${escapeHtml(d.title)}</div>
+        <div class="event-banner-name">${escapeHtml(eventBannerFmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''} — ${escapeHtml(d.title)}</div>
         ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
       </div>
       ${isAdmin ? `
