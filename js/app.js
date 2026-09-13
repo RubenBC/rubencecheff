@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v35';
+const APP_VERSION = 'v36';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -138,6 +138,7 @@ let productions          = [];
 let recipeProductions    = [];
 let comments             = [];
 let importantDates       = [];
+let eventsWindowDays     = 5; // se sobreescribe con el ajuste guardado en Supabase (app_settings)
 let importantDatesExpanded = false; // el panel de Admin arranca plegado para no ocupar toda la pantalla
 let weights              = [];
 let brines               = [];
@@ -231,6 +232,17 @@ async function loadData() {
     } catch (e) {
       console.warn('important_dates no disponible (¿falta crear la tabla?):', e?.message || e);
       importantDates = [];
+    }
+
+    // Ajustes de admin (p. ej. días de antelación del aviso de eventos).
+    // La tabla puede no existir todavía: si falla, se usa el valor por
+    // defecto (5 días) sin romper el resto de la app.
+    try {
+      const { data: setData, error: setErr } = await sb.from('app_settings').select('*').eq('key', 'events_window_days').maybeSingle();
+      if (setErr) throw setErr;
+      if (setData) eventsWindowDays = parseInt(setData.value, 10) || 5;
+    } catch (e) {
+      console.warn('app_settings no disponible (¿falta crear la tabla?):', e?.message || e);
     }
 
     // La tabla de pedidos puede no existir todavía: cárgala sin romper el resto.
@@ -872,8 +884,9 @@ async function deleteRecipe(id) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('recipes').delete().eq('id', id);
+      const { data, error } = await sb.from('recipes').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       recipes = recipes.filter(r => r.id !== id);
     },
   });
@@ -1334,8 +1347,9 @@ async function deleteProduction(id) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('productions').delete().eq('id', id);
+      const { data, error } = await sb.from('productions').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       productions = productions.filter(p => p.id !== id);
     },
   });
@@ -1539,9 +1553,16 @@ function renderImportantDatesAdmin() {
       <span class="material-symbols-outlined">${importantDatesExpanded ? 'expand_less' : 'expand_more'}</span>
     </div>
     ${importantDatesExpanded ? `
-      <button class="btn-pill" style="margin-bottom:10px;" onclick="openImportCsvModal()">
-        <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
-      </button>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+        <button class="btn-pill" onclick="openImportCsvModal()">
+          <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
+        </button>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2);">
+          Días de antelación
+          <input type="number" class="form-input" min="1" max="30" value="${eventsWindowDays}"
+                 onchange="updateEventsWindowDays(this.value)" style="width:64px; padding:6px 8px;">
+        </label>
+      </div>
       ${pendingHtml}
       ${activeHtml}
     ` : ''}`;
@@ -1579,8 +1600,9 @@ async function deleteImportantDate(id) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('important_dates').delete().eq('id', id);
+      const { data, error } = await sb.from('important_dates').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       importantDates = importantDates.filter(d => d.id !== id);
     },
   });
@@ -1590,6 +1612,16 @@ async function deleteImportantDate(id) {
   renderEventsButton();
   const modal = document.getElementById('eventsModal');
   if (modal && modal.style.display === 'flex') renderEventsModalBody();
+}
+
+async function updateEventsWindowDays(value) {
+  const days = Math.max(1, Math.min(30, parseInt(value, 10) || 5));
+  eventsWindowDays = days;
+  renderEventsButton(); // se aplica al instante, sin esperar a guardar
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: 'events_window_days', value: String(days) });
+    if (error) { if (!handleAuthError(error)) showToast('Error al guardar el ajuste'); }
+  } catch (e) { showToast('Error al guardar el ajuste'); }
 }
 
 function openImportCsvModal() {
@@ -1777,8 +1809,9 @@ async function deleteComment(id) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('comments').delete().eq('id', id);
+      const { data, error } = await sb.from('comments').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       comments = comments.filter(c => c.id !== id);
     },
   });
@@ -1838,8 +1871,9 @@ async function deleteProdCategory(id) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('production_categories').delete().eq('id', id);
+      const { data, error } = await sb.from('production_categories').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       productionCategories = productionCategories.filter(c => c.id !== id);
     },
   });
@@ -1861,7 +1895,7 @@ async function deleteProdCategory(id) {
 
 function getUpcomingBannerEvents() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const limit = new Date(today); limit.setDate(limit.getDate() + 5); // aviso con 5 días de antelación
+  const limit = new Date(today); limit.setDate(limit.getDate() + eventsWindowDays);
   return importantDates
     .filter(d => d.status === 'aprobado')
     .filter(d => {
@@ -2292,8 +2326,9 @@ async function deletePedido(enc) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('order_items').delete().eq('key', key);
+      const { data, error } = await sb.from('order_items').delete().eq('key', key).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       delete orderState[key];
     },
   });
@@ -2513,8 +2548,9 @@ async function deleteWeight(id) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('weights').delete().eq('id', id);
+      const { data, error } = await sb.from('weights').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       weights = weights.filter(w => w.id !== id);
     },
   });
@@ -2568,8 +2604,9 @@ async function deleteBrine(id) {
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { error } = await sb.from('brines').delete().eq('id', id);
+      const { data, error } = await sb.from('brines').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       brines = brines.filter(b => b.id !== id);
     },
   });
