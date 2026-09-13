@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v39
+
+### Corregido
+- **La hora del evento no aparecía en la lista general** (solo se veía en Admin). Ahora sale en ambos sitios, con el mismo formato: "Hoy, viernes 12 sept · 21:00 — Real Madrid - Barcelona".
+
+---
+
 ## v38
 
 ### Añadido
