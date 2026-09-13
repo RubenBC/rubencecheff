@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v36
+
+### Añadido
+- **Días de antelación configurables por el admin.** Nuevo control dentro de Admin → Partidos y conciertos: elige cuántos días hacia delante se muestran en el aviso de eventos (antes fijo en 5). El ajuste es compartido para todo el equipo (guardado en Supabase, tabla nueva `app_settings`), no por dispositivo.
+- **Etiqueta "Próximos eventos"** junto al icono del aviso, visible solo en pantallas anchas (monitor del curro); en móvil sigue siendo solo el icono, sin texto, para no ocupar espacio.
+
+---
+
 ## v35
 
 ### Cambiado
