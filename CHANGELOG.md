@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v37
+
+### Corregido
+- **Bug real: "Eliminar" podía no borrar nada, sin avisar.** Si la sesión de admin había caducado, Supabase bloqueaba el borrado por seguridad (RLS) pero no devolvía ningún error — la app decía "Eliminado" y lo quitaba de la pantalla, aunque la fila seguía intacta en la base de datos. Corregido en los 8 sitios donde se borra algo con confirmación (platos, producciones, avisos de eventos, comentarios, categorías de producción, pedidos, pesos y salmueras): ahora se comprueba que de verdad se borró una fila: si no, salta el aviso de "sesión caducada" y se reabre el login, en vez de mentir sobre si funcionó.
+
+---
+
 ## v36
 
 ### Añadido
