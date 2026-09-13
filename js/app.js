@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v37';
+const APP_VERSION = 'v38';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -1500,6 +1500,35 @@ async function restoreAdminSession() {
 // antes de insertarlo en el HTML del panel de Admin.
 // Panel de Admin: sugerencias de la IA pendientes de aprobar, y avisos ya
 // activos (aprobados) por si hay que retirar alguno (partido aplazado, etc.)
+// Marca/desmarca un evento como de alto riesgo (mucho trabajo previsto).
+// Solo tiene efecto real con sesión de admin (RLS lo exige); optimista en
+// pantalla, se revierte si el guardado falla.
+async function toggleHighRisk(id) {
+  const item = importantDates.find(d => d.id === id);
+  if (!item) return;
+  const newValue = !item.high_risk;
+
+  const applyLocally = val => {
+    importantDates = importantDates.map(d => d.id === id ? { ...d, high_risk: val } : d);
+    renderImportantDatesAdmin();
+    renderEventsButton();
+    const modal = document.getElementById('eventsModal');
+    if (modal && modal.style.display === 'flex') renderEventsModalBody();
+  };
+
+  applyLocally(newValue);
+  try {
+    const { error } = await sb.from('important_dates').update({ high_risk: newValue }).eq('id', id);
+    if (error) {
+      if (!handleAuthError(error)) showToast('Error al guardar');
+      applyLocally(!newValue); // revertir
+    }
+  } catch (e) {
+    showToast('Error al guardar');
+    applyLocally(!newValue);
+  }
+}
+
 function renderImportantDatesAdmin() {
   const el = document.getElementById('importantDatesSection');
   if (!el) return;
@@ -1515,14 +1544,19 @@ function renderImportantDatesAdmin() {
   const fmtDate = iso => new Date(iso + 'T00:00:00')
     .toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
 
+  const highRiskBtn = d => `
+        <button class="btn-icon" onclick="toggleHighRisk('${d.id}')" aria-label="${d.high_risk ? 'Quitar alto riesgo' : 'Marcar alto riesgo'}">
+          <span class="material-symbols-outlined" style="font-size:18px; color:${d.high_risk ? 'var(--danger)' : 'var(--outline)'};">warning</span>
+        </button>`;
+
   const row = (d, actions) => `
-    <div class="comment-card">
+    <div class="comment-card ${d.high_risk ? 'high-risk' : ''}">
       <div style="flex:1;">
         <div class="comment-recipe">${ICONS[d.category] || '📅'} ${escapeHtml(fmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''}</div>
         <div class="comment-text">${escapeHtml(d.title)}</div>
         ${d.note ? `<div class="comment-date">${escapeHtml(d.note)}</div>` : ''}
       </div>
-      <div style="display:flex; gap:6px; flex-shrink:0;">${actions}</div>
+      <div style="display:flex; gap:6px; flex-shrink:0;">${highRiskBtn(d)}${actions}</div>
     </div>`;
 
   const pendingHtml = pending.length === 0
@@ -1937,13 +1971,16 @@ function renderEventsModalBody() {
   const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
 
   body.innerHTML = upcoming.map(d => `
-    <div class="event-banner-row">
+    <div class="event-banner-row ${d.high_risk ? 'high-risk' : ''}">
       <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
       <div class="event-banner-info">
         <div class="event-banner-name">${escapeHtml(eventBannerFmtDate(d.event_date))} — ${escapeHtml(d.title)}</div>
         ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
       </div>
       ${isAdmin ? `
+      <button class="btn-icon" onclick="toggleHighRisk('${d.id}')" aria-label="${d.high_risk ? 'Quitar alto riesgo' : 'Marcar alto riesgo'}">
+        <span class="material-symbols-outlined" style="font-size:18px; color:${d.high_risk ? 'var(--danger)' : 'var(--outline)'};">warning</span>
+      </button>
       <button class="btn-icon" onclick="deleteImportantDate('${d.id}')" aria-label="Eliminar aviso">
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--outline);">delete</span>
       </button>` : ''}
