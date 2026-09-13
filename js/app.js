@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v34';
+const APP_VERSION = 'v35';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -153,14 +153,12 @@ let currentPage = 'recipes';
 let savedScroll = {};
 
 // Recetas
-let recipeFilter        = 'Todas';
 let currentRecipeId     = null;
 let recipeEditorMode    = null;
 let recipeEditorData    = null;
 let recipeEditorBaseline = null;   // snapshot para detectar cambios sin guardar
 
 // Producciones
-let prodFilter         = 'Todas';
 let currentProdId      = null;
 let prodEditorMode     = null;
 let prodEditorData     = null;
@@ -295,13 +293,11 @@ function showPage(page, btn, skipPush) {
   const isProd    = page === 'productions';
   // El buscador global siempre visible
   document.getElementById('searchSection').style.display = '';
-  // Los chips de categoría solo en platos, producciones y mis recetas
-  document.getElementById('chipsRow').style.display = (isRecipes || isProd) ? '' : 'none';
   document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
   document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
 
-  if (isRecipes) { initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
-  if (isProd)    { const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
+  if (isRecipes) renderRecipes();
+  if (isProd)    renderProductions();
   if (page === 'fichas')    renderFichas();
   if (page === 'admin')     renderAdmin();
 
@@ -402,18 +398,6 @@ function clearSearch() {
 }
 
 // ═══════════════════════════════════════
-//   CHIPS
-// ═══════════════════════════════════════
-function initChips(cats, active, setter) {
-  document.getElementById('chipsRow').innerHTML = cats.map(c =>
-    `<button class="chip ${c === active ? 'active' : ''}" onclick="${setter.name}('${c}')">${c}</button>`
-  ).join('');
-}
-
-function setRecipeFilter(cat) { recipeFilter = cat; initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter); renderRecipes(); }
-function setProdFilter(cat)   { prodFilter = cat; const cats = ['Todas', ...productionCategories.map(c => c.name)]; initChips(cats, prodFilter, setProdFilter); renderProductions(); }
-
-// ═══════════════════════════════════════
 //   ALÉRGENOS HELPERS
 // ═══════════════════════════════════════
 function renderAllergenBadges(allergens) {
@@ -502,18 +486,16 @@ function renderRecipes() {
   const si = document.getElementById('searchInput');
   const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
   const filtered = recipes.filter(r =>
-    (recipeFilter === 'Todas' || r.category === recipeFilter) &&
-    r.name.toLowerCase().includes(q)
+    !q || r.name.toLowerCase().includes(q) || (r.category || '').toLowerCase().includes(q)
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('recipeList');
   if (!list) return;
 
   if (filtered.length === 0) {
-    let msg;
-    if (recipes.length === 0) msg = 'Aún no hay platos creados';
-    else if (q) msg = `Ningún plato coincide con "${q}"`;
-    else msg = `No hay platos en "${recipeFilter}"`;
+    const msg = recipes.length === 0
+      ? 'Aún no hay platos creados'
+      : `Ningún plato coincide con "${q}"`;
     list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">restaurant</span>${msg}</div>`;
     return;
   }
@@ -695,12 +677,9 @@ function backTo(page) {
   currentPage = page;
   if (page === 'recipes') {
     document.getElementById('adminAddRecipeRow').style.display = isAdmin ? '' : 'none';
-    initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
   }
   if (page === 'productions') {
     document.getElementById('adminAddProductionRow').style.display = isAdmin ? '' : 'none';
-    const cats = ['Todas', ...productionCategories.map(c => c.name)];
-    initChips(cats, prodFilter, setProdFilter);
   }
   // Restaurar la posición de scroll donde estaba el usuario
   const y = savedScroll[page] || 0;
@@ -1054,18 +1033,16 @@ function renderProductions() {
   const si = document.getElementById('searchInput');
   const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
   const filtered = productions.filter(p =>
-    (prodFilter === 'Todas' || p.category === prodFilter) &&
-    p.name.toLowerCase().includes(q)
+    !q || p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('productionList');
   if (!list) return;
 
   if (filtered.length === 0) {
-    let msg;
-    if (productions.length === 0) msg = 'Aún no hay producciones creadas';
-    else if (q) msg = `Ninguna producción coincide con "${q}"`;
-    else msg = `No hay producciones en "${prodFilter}"`;
+    const msg = productions.length === 0
+      ? 'Aún no hay producciones creadas'
+      : `Ninguna producción coincide con "${q}"`;
     list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">blender</span>${msg}</div>`;
     return;
   }
@@ -3011,7 +2988,6 @@ searchInput.getValue = function() { return this.innerText.trim(); };
 searchInput.addEventListener('input', onSearch);
 document.getElementById('searchInputWrap').appendChild(searchInput);
 
-initChips(RECIPE_CATEGORIES, recipeFilter, setRecipeFilter);
 const _vEl = document.getElementById('appVersion');
 if (_vEl) _vEl.textContent = APP_VERSION;
 renderRecipeSkeletons();
