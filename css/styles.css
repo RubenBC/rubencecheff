@@ -635,6 +635,7 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   background: var(--text2); color: var(--surface);
   font-size: 10px; font-weight: 800; line-height: 16px; text-align: center;
 }
+.events-btn-label { display: none; font-size: 13px; font-weight: 700; }
 /* Algo nuevo sin ver: el icono se pone llamativo y parpadea */
 #eventsBtn.alert .events-badge {
   background: var(--alert);
@@ -666,6 +667,7 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   .brand-icon .material-symbols-outlined { font-size: 18px; }
   .brand-name { font-size: 16px; }
   .app-brand > div:last-child { display: flex; align-items: baseline; gap: 8px; }
+  .events-btn-label { display: inline; }
 
   #recipeList, #productionList {
     display: grid;
