@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v35
+
+### Cambiado
+- **Las etiquetas de categoría ya no ocupan una línea propia.** Quitada la fila de chips debajo del buscador; ahora escribir una categoría en el buscador (p. ej. "carne") filtra directamente todos los platos y producciones con esa categoría, igual que buscar por nombre. Gana una línea entera de pantalla en Platos y Producción.
+
+---
+
 ## v34
 
 ### Cambiado
