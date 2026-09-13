@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v38
+
+### Añadido
+- **Marcar eventos de "alto riesgo"** (mucho trabajo seguro). Nuevo icono de aviso (⚠️) en cada fila, tanto en Admin como en el modal general de eventos — solo tocable con sesión de admin. Al marcarlo, la fila se resalta en rojo en **toda la app**, incluida la lista que ve el personal sin login, para que salte a la vista de un vistazo.
+
+---
+
 ## v37
 
 ### Corregido
