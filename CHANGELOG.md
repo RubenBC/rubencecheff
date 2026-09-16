@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v40 — Revisión general
+
+### Corregido
+- **`manifest.json` bloqueaba la orientación en "portrait".** Esto podía impedir que el modo pantalla ancha (v33-v39) llegara a mostrarse en el monitor táctil del curro si el sistema respeta ese bloqueo al instalar la PWA. Cambiado a `"any"`.
+- **CSV import: dedupe también dentro del mismo pegado.** Si el CSV pegado repetía sin querer la misma fila dos veces, antes se colaban ambas (solo se comparaba contra lo ya guardado, no entre las propias líneas del pegado). Ahora también se comparan entre sí.
+
+---
+
 ## v39
 
 ### Corregido
