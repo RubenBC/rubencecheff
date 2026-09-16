@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v39';
+const APP_VERSION = 'v40';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -1718,21 +1718,33 @@ async function importCsvEvents(btn) {
   const newRows = rows.filter(r => !isDuplicate(r));
   const skipped = rows.length - newRows.length;
 
-  if (newRows.length === 0) {
+  // Además de comparar con lo que ya había guardado, evita meter dos veces
+  // el mismo evento si el propio CSV pegado lo repite por error.
+  const seenInBatch = new Set();
+  const dedupedRows = newRows.filter(r => {
+    const key = `${r.event_date}|${r.category}|${canonicalTitle(r.title)}`;
+    if (seenInBatch.has(key)) return false;
+    seenInBatch.add(key);
+    return true;
+  });
+  const skippedInBatch = newRows.length - dedupedRows.length;
+
+  if (dedupedRows.length === 0) {
     resultEl.textContent = `Las ${rows.length} fila(s) ya estaban guardadas. Nada nuevo que importar.`;
     return;
   }
 
   const ok = await runWithLoading(btn, 'Importando...', async () => {
-    const { data, error } = await sb.from('important_dates').insert(newRows).select();
+    const { data, error } = await sb.from('important_dates').insert(dedupedRows).select();
     if (error) { if (!handleAuthError(error)) resultEl.textContent = 'Error al guardar en la base de datos.'; throw error; }
     importantDates = importantDates.concat(data || []);
   }).then(() => true).catch(() => false);
 
   if (!ok) return;
 
-  resultEl.textContent = `✅ ${newRows.length} evento(s) nuevo(s) importado(s) como pendiente(s).` +
-    (skipped > 0 ? ` (${skipped} ya existían y se han omitido.)` : '');
+  const omitted = skipped + skippedInBatch;
+  resultEl.textContent = `✅ ${dedupedRows.length} evento(s) nuevo(s) importado(s) como pendiente(s).` +
+    (omitted > 0 ? ` (${omitted} repetido(s) y se han omitido.)` : '');
   input.value = '';
   renderImportantDatesAdmin();
   showToast('Eventos importados ✓');
