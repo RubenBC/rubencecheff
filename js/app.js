@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v40';
+const APP_VERSION = 'v41';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -1518,9 +1518,10 @@ async function toggleHighRisk(id) {
 
   applyLocally(newValue);
   try {
-    const { error } = await sb.from('important_dates').update({ high_risk: newValue }).eq('id', id);
-    if (error) {
-      if (!handleAuthError(error)) showToast('Error al guardar');
+    const { data, error } = await sb.from('important_dates').update({ high_risk: newValue }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al guardar');
       applyLocally(!newValue); // revertir
     }
   } catch (e) {
@@ -1609,8 +1610,12 @@ function toggleImportantDatesSection() {
 
 async function approveImportantDate(id, btn) {
   await runWithLoading(btn, '', async () => {
-    const { error } = await sb.from('important_dates').update({ status: 'aprobado' }).eq('id', id);
-    if (error) { if (!handleAuthError(error)) showToast('Error al aprobar'); throw error; }
+    const { data, error } = await sb.from('important_dates').update({ status: 'aprobado' }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al aprobar');
+      throw effectiveError;
+    }
     importantDates = importantDates.map(d => d.id === id ? { ...d, status: 'aprobado' } : d);
   }).catch(() => {});
   renderImportantDatesAdmin();
@@ -1619,8 +1624,12 @@ async function approveImportantDate(id, btn) {
 
 async function discardImportantDate(id, btn) {
   await runWithLoading(btn, '', async () => {
-    const { error } = await sb.from('important_dates').update({ status: 'descartado' }).eq('id', id);
-    if (error) { if (!handleAuthError(error)) showToast('Error al descartar'); throw error; }
+    const { data, error } = await sb.from('important_dates').update({ status: 'descartado' }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al descartar');
+      throw effectiveError;
+    }
     importantDates = importantDates.map(d => d.id === id ? { ...d, status: 'descartado' } : d);
   }).catch(() => {});
   renderImportantDatesAdmin();
@@ -1840,8 +1849,12 @@ function renderAdmin() {
 
 async function resolveComment(id, btn) {
   await runWithLoading(btn, '', async () => {
-    const { error } = await sb.from('comments').update({ resolved: true }).eq('id', id);
-    if (error) { if (!handleAuthError(error)) showToast('Error al resolver'); throw error; }
+    const { data, error } = await sb.from('comments').update({ resolved: true }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al resolver');
+      throw effectiveError;
+    }
     comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
   }).catch(() => {});
   updateBadges(); renderAdmin();
@@ -1896,8 +1909,9 @@ async function renameProdCategory(id) {
     confirmText: 'Guardar',
     onConfirm:   async (name) => {
       if (name === currentName) return;
-      const { error } = await sb.from('production_categories').update({ name }).eq('id', id);
+      const { data, error } = await sb.from('production_categories').update({ name }).eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
       productionCategories = productionCategories.map(c => c.id === id ? { ...c, name } : c);
       productions = productions.map(p => p.category === currentName ? { ...p, category: name } : p);
     },
@@ -2012,8 +2026,9 @@ async function openEventsModal() {
     importantDates = importantDates.map(d => unseenIds.includes(d.id) ? { ...d, seen: true } : d);
     renderEventsButton();
     try {
-      const { error } = await sb.from('important_dates').update({ seen: true }).in('id', unseenIds);
+      const { data, error } = await sb.from('important_dates').update({ seen: true }).in('id', unseenIds).select();
       if (error) console.warn('No se pudo marcar como visto:', error.message);
+      else if (!data || data.length === 0) console.warn('No se pudo marcar como visto: revisa la sesión (row-level security)');
     } catch (e) { console.warn('No se pudo marcar como visto:', e); }
   }
 }
@@ -2573,8 +2588,12 @@ async function saveWeight() {
   const btn = document.querySelector('#weightModal .btn-action');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     if (editingWeightId) {
-      const { error } = await sb.from('weights').update(payload).eq('id', editingWeightId);
-      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+      const { data, error } = await sb.from('weights').update(payload).eq('id', editingWeightId).select();
+      if (error || !data || data.length === 0) {
+        const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+        if (!handleAuthError(effectiveError)) showToast('Error al guardar');
+        return false;
+      }
       weights = weights.map(w => w.id === editingWeightId ? { ...w, ...payload } : w);
     } else {
       payload.id = Date.now().toString();
@@ -2629,8 +2648,12 @@ async function saveBrine() {
   const btn = document.querySelector('#brineModal .btn-action');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     if (editingBrineId) {
-      const { error } = await sb.from('brines').update(payload).eq('id', editingBrineId);
-      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+      const { data, error } = await sb.from('brines').update(payload).eq('id', editingBrineId).select();
+      if (error || !data || data.length === 0) {
+        const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+        if (!handleAuthError(effectiveError)) showToast('Error al guardar');
+        return false;
+      }
       brines = brines.map(b => b.id === editingBrineId ? { ...b, ...payload } : b);
     } else {
       payload.id = Date.now().toString();
