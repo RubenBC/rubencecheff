@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v41';
+const APP_VERSION = 'v42';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -265,6 +265,29 @@ async function loadData() {
     renderRecipes();
     renderEventsButton();
     updateBadges();
+
+    // Si veníamos de la auto-recarga cada 15 min, volver exactamente a la
+    // ficha/pestaña donde estaba, en vez de aterrizar siempre en Platos.
+    try {
+      const raw = sessionStorage.getItem('rubencechef-reload-restore');
+      if (raw) {
+        sessionStorage.removeItem('rubencechef-reload-restore');
+        const saved = JSON.parse(raw);
+        if (saved.view === 'recipe' && recipes.some(r => r.id === saved.id)) {
+          const fromPage = saved.fromPage || 'recipes';
+          if (fromPage !== 'recipes') showPage(fromPage, null, true);
+          restoreRecipeDetail(saved.id);
+          history.pushState({ view: 'recipeDetail', id: saved.id, fromPage }, '');
+        } else if (saved.view === 'production' && productions.some(p => p.id === saved.id)) {
+          const fromPage = saved.fromPage || 'productions';
+          if (fromPage !== 'recipes') showPage(fromPage, null, true);
+          restoreProdDetail(saved.id, fromPage);
+          history.pushState({ view: 'prodDetail', id: saved.id, fromPage }, '');
+        } else if (saved.view === 'tab' && saved.page && saved.page !== 'recipes') {
+          showPage(saved.page, null, false);
+        }
+      }
+    } catch (e) { console.warn('No se pudo restaurar la vista tras recargar:', e); }
 
   } catch (err) {
     console.error('Error cargando datos:', err);
@@ -3108,6 +3131,29 @@ loadData();
 //     navigator.serviceWorker.register('/rubencecheff/sw.js').catch(() => {});
 //   });
 // }
+
+// Recarga automática cada 15 min, para que los datos (recetas, eventos,
+// pedidos...) no se queden desactualizados en una pantalla que se deja
+// abierta horas. No interrumpe si hay una edición sin guardar (se salta
+// ese ciclo y lo vuelve a intentar en el siguiente). Antes de recargar
+// guarda en qué ficha/pestaña estabas para volver justo ahí (ver el
+// bloque de restauración al final de loadData()).
+const RELOAD_INTERVAL_MS = 15 * 60 * 1000;
+setInterval(() => {
+  if (isRecipeEditorDirty() || isProdEditorDirty()) return;
+  try {
+    let restoreState;
+    if (document.getElementById('detailPage').classList.contains('active') && currentRecipeId) {
+      restoreState = { view: 'recipe', id: currentRecipeId, fromPage: currentPage };
+    } else if (document.getElementById('productionDetailPage').classList.contains('active') && currentProdId) {
+      restoreState = { view: 'production', id: currentProdId, fromPage: currentPage };
+    } else {
+      restoreState = { view: 'tab', page: currentPage };
+    }
+    sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify(restoreState));
+  } catch (e) {}
+  location.reload();
+}, RELOAD_INTERVAL_MS);
 
 // Botón atrás de Android
 history.pushState({ view: 'home' }, '');
