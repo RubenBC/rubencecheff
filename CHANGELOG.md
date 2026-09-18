@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v42
+
+### Añadido
+- **Recarga automática cada 15 minutos**, para que una pantalla dejada abierta horas (el monitor del curro, por ejemplo) no se quede con datos desactualizados. No interrumpe si hay una edición sin guardar (se salta ese ciclo).
+- **Al recargar, vuelve exactamente a donde estabas**: si estabas viendo la ficha de un plato o de una producción, sigue ahí después de la recarga en vez de saltar a la pantalla principal; el botón atrás se sigue comportando con normalidad.
+
+---
+
 ## v41 — Revisión general (2ª pasada)
 
 ### Corregido
