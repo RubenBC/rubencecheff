@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v41 — Revisión general (2ª pasada)
+
+### Corregido
+- **El mismo bug silencioso de v37, pero en "actualizar" en vez de "borrar".** Aprobar, descartar, marcar alto riesgo, resolver comentarios, renombrar categorías de producción y editar pesos/salmueras tenían el mismo fallo: si la sesión de admin había caducado, Supabase bloqueaba el cambio sin dar error, y la app decía "Guardado" aunque no se hubiera guardado nada. Arreglado en los 8 sitios donde se actualiza una fila por su id: ahora se comprueba que de verdad cambió algo, y si no, salta el aviso de sesión caducada en vez de mentir.
+
+### Pendiente (menor, no urgente)
+- Dos actualizaciones en bloque (reordenar producciones vinculadas, limpiar la lista de pedidos) se quedan fuera de este arreglo a propósito: ahí "0 filas afectadas" puede ser un resultado normal (lista vacía), no un fallo, así que habría que diseñarlo con más cuidado para no dar falsos avisos.
+
+---
+
 ## v40 — Revisión general
 
 ### Corregido
