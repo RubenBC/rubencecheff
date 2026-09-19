@@ -4,6 +4,15 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v45
+
+### Cambiado
+- **El panel Admin ahora está dentro de Utilidades** (cuarta pestaña junto a Pesos, Conversión y Pedidos) y desaparece del menú inferior, que queda más limpio: Platos · Producción · Utilidades · Timer.
+- El globo rojo de comentarios pendientes ahora aparece sobre **Utilidades** y sobre la pestaña Admin.
+- Si al recargar la app estabas en el panel Admin, vuelve a él (ahora dentro de Utilidades).
+
+---
+
 ## v44
 
 ### Mejorado
