@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v46
+
+### Añadido
+- **Nombre opcional en el timer y la alarma**: casilla "Nombre (opcional)" en el panel. Si la rellenas, el nombre sale arriba mientras corre y en grande cuando suena (y en el título de la pestaña y en el aviso del Reloj de Android). Si no escribes nada, funciona igual que antes.
+
+---
+
 ## v45
 
 ### Cambiado
