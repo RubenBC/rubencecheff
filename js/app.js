@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v42';
+const APP_VERSION = 'v44';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -3141,6 +3141,7 @@ loadData();
 const RELOAD_INTERVAL_MS = 15 * 60 * 1000;
 setInterval(() => {
   if (isRecipeEditorDirty() || isProdEditorDirty()) return;
+  if (typeof timerBlocksReload === 'function' && timerBlocksReload()) return; // hay un timer/alarma a punto de sonar o sonando
   try {
     let restoreState;
     if (document.getElementById('detailPage').classList.contains('active') && currentRecipeId) {
@@ -3185,6 +3186,11 @@ window.addEventListener('popstate', (e) => {
   //     registraron su estado 'staticModal' al abrirse. El atrás ya consumió
   //     ese estado, así que solo cerramos: no re-empujamos historial.
   if (state && state.view === 'staticModal') {
+    // El timer no se puede cerrar con "atrás" mientras está sonando: hay que pulsar Detener
+    if (state.id === 'timerModal' && typeof timerIsRinging === 'function' && timerIsRinging()) {
+      history.pushState({ view: 'staticModal', id: 'timerModal' }, '');
+      return;
+    }
     const m = document.getElementById(state.id);
     if (m) m.style.display = 'none';
     return;
