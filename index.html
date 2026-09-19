@@ -226,7 +226,7 @@
   <button class="nav-btn" id="nav-fichas" onclick="showPage('fichas',this)">
     <span class="material-symbols-outlined">handyman</span><span>Utilidades</span>
   </button>
-  <button class="nav-btn" id="nav-timer" onclick="openTimerModal()">
+  <button class="nav-btn" id="nav-timer" onclick="window.openTimerModal ? openTimerModal() : showToast('Falta subir js/timer.js')">
     <span class="material-symbols-outlined">notifications</span><span>Timer</span>
   </button>
   <button class="nav-btn" id="nav-admin" onclick="showPage('admin',this)">
