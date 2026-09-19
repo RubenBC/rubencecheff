@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v44';
+const APP_VERSION = 'v45';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -145,7 +145,7 @@ let brines               = [];
 let productionCategories = [];
 let orderItems = [];        // filas de la tabla order_items (estado guardado)
 let orderState = {};        // key normalizada -> { name, supplier_group, checked, comment }
-let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos'
+let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos' | 'admin'
 let pedidosSearch = '';
 let pedidosEdit   = false;  // modo edición de la lista de pedidos
 let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
@@ -310,6 +310,9 @@ async function loadData() {
 //   NAVEGACIÓN
 // ═══════════════════════════════════════
 function showPage(page, btn, skipPush) {
+  // El panel Admin ya no es una pestaña del menú: vive dentro de Utilidades.
+  // Se mantiene esta redirección por si un estado guardado (recarga, historial) aún dice 'admin'.
+  if (page === 'admin') { utilTab = 'admin'; page = 'fichas'; btn = null; }
   exitInnerView();
   hideSearchDropdown();
   const switchingPage = page !== currentPage;
@@ -334,7 +337,6 @@ function showPage(page, btn, skipPush) {
   if (isRecipes) renderRecipes();
   if (isProd)    renderProductions();
   if (page === 'fichas')    renderFichas();
-  if (page === 'admin')     renderAdmin();
 
   if (switchingPage) {
     const y = savedScroll[page] || 0;
@@ -1491,7 +1493,7 @@ async function doLogin() {
     showToast('Bienvenido, Chef 👨‍🍳');
     if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
-    if (currentPage === 'admin') renderAdmin();
+    if (currentPage === 'fichas' && utilTab === 'admin') renderAdmin();
     renderEventsButton();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
@@ -2059,7 +2061,9 @@ async function openEventsModal() {
 function updateBadges() {
   const n = comments.filter(c => !c.resolved).length;
   const nb = document.getElementById('navBadge');
+  const sb2 = document.getElementById('segAdminBadge');
   const tb = document.getElementById('commentBadgeTop');
+  if (sb2) { sb2.textContent = n; sb2.style.display = n > 0 ? '' : 'none'; }
   if (n > 0) { nb.textContent = n; nb.style.display = ''; tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
   else       { nb.style.display = 'none'; tb.style.display = 'none'; }
 }
@@ -2078,14 +2082,17 @@ function renderFichas() {
   document.getElementById('seg-pesos').classList.toggle('active', utilTab === 'pesos');
   document.getElementById('seg-conv').classList.toggle('active', utilTab === 'conv');
   if (segPed) segPed.classList.toggle('active', utilTab === 'pedidos');
+  document.getElementById('seg-admin').classList.toggle('active', utilTab === 'admin');
 
   document.getElementById('utilPesos').style.display   = utilTab === 'pesos'   ? '' : 'none';
   document.getElementById('utilConv').style.display    = utilTab === 'conv'    ? '' : 'none';
   document.getElementById('utilPedidos').style.display = utilTab === 'pedidos' ? '' : 'none';
+  document.getElementById('utilAdmin').style.display   = utilTab === 'admin'   ? '' : 'none';
 
   if (utilTab === 'pesos')   renderPesos();
   if (utilTab === 'conv')    renderConvTab();
   if (utilTab === 'pedidos') renderPedidos();
+  if (utilTab === 'admin')   renderAdmin();
 }
 function setUtilTab(tab) { utilTab = tab; renderFichas(); }
 
