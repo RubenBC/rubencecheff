@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v47
+
+### Corregido
+- **Ahora puedes tener varios timers y alarmas a la vez** (antes, al poner una alarma no podías poner un timer, y viceversa). Nueva pestaña **"Activos"** en el panel con todos los que están en marcha, cada uno con su tiempo, su barra, y sus botones Pausar / Cancelar. Para añadir otro, vuelve a la pestaña Timer o Alarma.
+- Cuando suenan a la vez, se muestra uno cada vez ("+1 más") y la melodía sigue hasta detener todos.
+
+---
+
 ## v46
 
 ### Añadido
