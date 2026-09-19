@@ -1,13 +1,13 @@
 /* ═══════════════════════════════════════
-   TEMPORIZADOR / ALARMA  (v44)
-   - Solo cuenta atrás (5 · 7 · 9 · 12 min o tiempo manual)
-   - Alarma a una hora concreta
+   TEMPORIZADORES Y ALARMAS  (v47)
+   - Puedes tener VARIOS a la vez (timers y alarmas mezclados)
+   - Timer: 5 · 7 · 9 · 12 min o tiempo manual, con nombre opcional
+   - Alarma a una hora concreta, con nombre opcional
    - Al terminar suena una melodía fuerte en bucle hasta pulsar "Detener"
-   - Puntualidad con la pestaña en segundo plano (PC):
-       · el conteo lo lleva un Web Worker (no lo frena el navegador)
-       · la melodía se programa por adelantado en el reloj de audio
+   - Puntualidad con la pestaña en segundo plano (PC): conteo en Web Worker
+     y melodía programada por adelantado en el reloj de audio
    - Solo Android: opción "Reloj" → avisa también en la app Reloj del móvil
-   - Usa la hora real (Date.now) y se guarda en localStorage (sobrevive a recargas)
+   - Usa la hora real (Date.now) y se guarda en localStorage
 ═══════════════════════════════════════ */
 (function () {
   'use strict';
@@ -20,15 +20,16 @@
   const IS_ANDROID = /Android/i.test(navigator.userAgent);
   const $ = id => document.getElementById(id);
 
-  let tab = 'timer';                 // pestaña visible cuando está parado
-  let run = null;                    // { type, endAt, totalMs, pausedLeft, label, clock }
-  let ringing = false;
+  let tab = 'timer';                 // 'timer' | 'alarm' | 'list'
+  let runs = [];                     // [{ id, type, endAt, totalMs, pausedLeft, label, name, clock, ringing }]
   let tickId = null, worker = null, vibId = null, lastPre = 0;
   let audioCtx = null, master = null, sched = null, wakeLock = null;
   let baseTitle = document.title;
 
   /* ───────── utilidades ───────── */
   function pad(n) { return String(n).padStart(2, '0'); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
   function fmtClock(ms) {
     const t = Math.max(0, Math.ceil(ms / 1000));
@@ -58,7 +59,7 @@
 
   function save() {
     try {
-      if (run) localStorage.setItem(LS_KEY, JSON.stringify(run));
+      if (runs.length) localStorage.setItem(LS_KEY, JSON.stringify(runs.map(r => Object.assign({}, r, { ringing: false }))));
       else localStorage.removeItem(LS_KEY);
     } catch (e) {}
   }
@@ -66,6 +67,11 @@
   function clockEnabled() {
     try { return IS_ANDROID && localStorage.getItem(LS_CLOCK) === '1'; } catch (e) { return false; }
   }
+
+  const anyRinging = () => runs.some(r => r.ringing);
+  const firstRinging = () => runs.find(r => r.ringing) || null;
+  const nextRun = () => runs.filter(r => r.pausedLeft == null && !r.ringing).sort((a, b) => a.endAt - b.endAt)[0] || null;
+  const findRun = id => runs.find(r => r.id === id) || null;
 
   /* ───────── audio ───────── */
   function ensureAudio() {
@@ -113,11 +119,11 @@
   }
 
   // Programa ciclos en el reloj de audio a partir de 'base' (segundos del AudioContext)
-  function scheduleFrom(base, minLoops) {
+  function scheduleFrom(base, minLoops, forEnd) {
     cancelScheduled();
     const bus = audioCtx.createGain();
     bus.connect(master);
-    sched = { bus, oscs: [], base, n: 0, min: minLoops };
+    sched = { bus, oscs: [], base, n: 0, min: minLoops, forEnd: forEnd || 0 };
     topUp();
   }
 
@@ -139,16 +145,23 @@
     sched = null;
   }
 
-  // Deja la melodía lista para que suene EXACTAMENTE al terminar, aunque la pestaña esté dormida
-  function preschedule() {
-    if (!run || run.pausedLeft != null || ringing || sched) return;
+  // Deja la melodía lista para que suene EXACTAMENTE cuando termine el próximo timer/alarma,
+  // aunque la pestaña esté dormida. Solo hay una melodía programada: la del más cercano.
+  function refreshSched() {
+    if (anyRinging()) return;                       // ya hay melodía sonando
+    const n = nextRun();
+    if (!n) { cancelScheduled(); return; }
+    if (sched && sched.forEnd === n.endAt) return;  // ya está programada para este
+    cancelScheduled();
     const ctx = ensureAudio();
     if (!ctx) return;
     const doIt = () => {
-      if (!run || ringing || run.pausedLeft != null || sched || audioCtx.state !== 'running') return;
-      const left = run.endAt - Date.now();
+      if (sched || anyRinging() || audioCtx.state !== 'running') return;
+      const nx = nextRun();
+      if (!nx) return;
+      const left = nx.endAt - Date.now();
       if (left <= 0 || left > PRE_MS) return;
-      scheduleFrom(audioCtx.currentTime + left / 1000, 10);
+      scheduleFrom(audioCtx.currentTime + left / 1000, 10, nx.endAt);
     };
     if (ctx.state === 'running') doIt();
     else ctx.resume().then(doIt).catch(() => {});
@@ -161,8 +174,8 @@
     if (!vibId) vibId = setInterval(vibrate, LOOP_MS);
     const ctx = ensureAudio();
     const go = () => {
-      if (!ringing || !audioCtx || audioCtx.state !== 'running') return false;
-      if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1);
+      if (!anyRinging() || !audioCtx || audioCtx.state !== 'running') return false;
+      if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0);
       topUp();
       return true;
     };
@@ -217,13 +230,14 @@
   }
 
   function tick() {
-    if (!run) return;
-    if (ringing) { topUp(); return; }
-    if (run.pausedLeft != null) return;
-    const left = run.endAt - Date.now();
-    if (left <= 0) { ring(); return; }
-    if (!sched && left <= PRE_MS && Date.now() - lastPre > 5000) { lastPre = Date.now(); preschedule(); }
-    renderClock(left);
+    if (!runs.length) return;
+    const now = Date.now();
+    runs.slice().forEach(r => {
+      if (!r.ringing && r.pausedLeft == null && r.endAt <= now) ring(r);
+    });
+    if (anyRinging()) topUp();
+    else if (now - lastPre > 5000) { lastPre = now; refreshSched(); }
+    updateTimes(now);
   }
 
   function begin() {
@@ -231,44 +245,55 @@
     acquireWakeLock();
     save();
     startTick();
+    refreshSched();
     render();
-    preschedule();
   }
 
-  function ring() {
-    ringing = true;                 // el Worker sigue vivo para mantener la melodía programada
-    document.title = '⏰ ¡Tiempo!' + (run && run.name ? ' ' + run.name : '') + ' — ' + baseTitle;
+  function ring(r) {
+    r.ringing = true;
+    updateTitle();
     startMelody();
     acquireWakeLock();
     openTimerModal();
     render();
   }
 
-  function clearAll() {
-    ringing = false;
-    stopMelody();
-    stopTick();
-    run = null;
+  function updateTitle() {
+    const r = firstRinging();
+    document.title = r ? '⏰ ¡Tiempo!' + (r.name ? ' ' + r.name : '') + ' — ' + baseTitle : baseTitle;
+  }
+
+  // Quita un timer/alarma (cancelar o detener cuando suena)
+  function removeRun(id) {
+    const r = findRun(id);
+    if (!r) return null;
+    const wasRinging = r.ringing;
+    runs = runs.filter(x => x.id !== id);
+    if (!anyRinging()) stopMelody();
+    if (wasRinging && !anyRinging()) tab = runs.length ? 'list' : 'timer';
+    updateTitle();
     save();
-    releaseWakeLock();
-    document.title = baseTitle;
+    if (!runs.length) { stopTick(); releaseWakeLock(); }
+    refreshSched();
     render();
+    return r;
   }
 
   /* ───────── Android: avisar también en la app Reloj ───────── */
   function launchClock(r) {
     let url;
+    const msg = encodeURIComponent(r.name || 'RubenceChef');
     if (r.type === 'timer') {
       url = 'intent:#Intent;action=android.intent.action.SET_TIMER;'
           + 'i.android.intent.extra.alarm.LENGTH=' + Math.round(r.totalMs / 1000) + ';'
-          + 'S.android.intent.extra.alarm.MESSAGE=' + encodeURIComponent(r.name || 'RubenceChef') + ';'
+          + 'S.android.intent.extra.alarm.MESSAGE=' + msg + ';'
           + 'B.android.intent.extra.alarm.SKIP_UI=true;end';
     } else {
       const [h, m] = r.label.split(':').map(Number);
       url = 'intent:#Intent;action=android.intent.action.SET_ALARM;'
           + 'i.android.intent.extra.alarm.HOUR=' + h + ';'
           + 'i.android.intent.extra.alarm.MINUTES=' + m + ';'
-          + 'S.android.intent.extra.alarm.MESSAGE=' + encodeURIComponent(r.name || 'RubenceChef') + ';'
+          + 'S.android.intent.extra.alarm.MESSAGE=' + msg + ';'
           + 'B.android.intent.extra.alarm.SKIP_UI=true;end';
     }
     try {
@@ -281,14 +306,17 @@
     } catch (e) {}
   }
 
-  // Arranca un timer/alarma (siempre desde un toque del usuario)
+  // Arranca un timer/alarma nuevo (siempre desde un toque del usuario). Los anteriores siguen en marcha.
   function startRun(r) {
     const nameEl = $('timerNameInput');
     const nm = nameEl ? nameEl.value.trim().slice(0, 40) : '';
+    r.id = newId();
+    r.ringing = false;
     if (nm) r.name = nm;              // sin nombre: no se guarda nada
     if (nameEl) nameEl.value = '';
     if (clockEnabled()) r.clock = true;
-    run = r;
+    runs.push(r);
+    tab = 'list';
     begin();
     if (r.clock) launchClock(r);
   }
@@ -297,12 +325,15 @@
   window.openTimerModal = function () {
     ensureAudio(); // este toque desbloquea el audio para cuando suene
     const m = $('timerModal');
-    if (m.style.display !== 'flex') openModalNav('timerModal');
+    if (m.style.display !== 'flex') {
+      if (!anyRinging()) tab = runs.length ? 'list' : 'timer';
+      openModalNav('timerModal');
+    }
     render();
   };
 
   window.closeTimerModal = function () {
-    if (ringing) return; // sonando solo se cierra con "Detener"
+    if (anyRinging()) return; // sonando solo se cierra con "Detener"
     closeModal('timerModal');
   };
 
@@ -335,29 +366,28 @@
     startRun({ type: 'alarm', endAt: d.getTime(), totalMs: d.getTime() - Date.now(), pausedLeft: null, label: v });
   };
 
-  window.timerPause = function () {
-    if (!run || run.type !== 'timer' || run.pausedLeft != null) return;
-    run.pausedLeft = Math.max(0, run.endAt - Date.now());
-    cancelScheduled();
-    stopTick(); save(); render();
+  window.timerPause = function (id) {
+    const r = findRun(id);
+    if (!r || r.type !== 'timer' || r.pausedLeft != null || r.ringing) return;
+    r.pausedLeft = Math.max(0, r.endAt - Date.now());
+    save(); refreshSched(); render();
   };
 
-  window.timerResume = function () {
-    if (!run || run.pausedLeft == null) return;
-    run.endAt = Date.now() + run.pausedLeft;
-    run.pausedLeft = null;
-    begin();
+  window.timerResume = function (id) {
+    const r = findRun(id);
+    if (!r || r.pausedLeft == null) return;
+    r.endAt = Date.now() + r.pausedLeft;
+    r.pausedLeft = null;
+    save(); refreshSched(); render();
   };
 
-  window.timerCancel = function () {
-    const c = run && run.clock;
-    clearAll();
-    if (c) showToast('Cancélalo también en el Reloj');
+  window.timerCancel = function (id) {
+    const r = removeRun(id);
+    if (r && r.clock) showToast('Cancélalo también en el Reloj');
   };
-  window.timerStop = function () {   // "Detener" cuando suena
-    const c = run && run.clock;
-    clearAll();
-    if (c) showToast('Si el Reloj también suena, páralo allí');
+  window.timerStop = function (id) {   // "Detener" cuando suena
+    const r = removeRun(id);
+    if (r && r.clock) showToast('Si el Reloj también suena, páralo allí');
   };
 
   window.timerManualPreview = function () {
@@ -376,98 +406,127 @@
   };
 
   // Para app.js: no recargar la app si algo está sonando o va a sonar pronto
-  window.timerIsRinging = () => ringing;
+  window.timerIsRinging = () => anyRinging();
   window.timerBlocksReload = () =>
-    ringing || (!!run && run.pausedLeft == null && run.endAt - Date.now() < 20 * 60000);
+    anyRinging() || runs.some(r => r.pausedLeft == null && r.endAt - Date.now() < 20 * 60000);
 
   /* ───────── pintado ───────── */
-  function renderClock(left) {
-    $('timerDisplay').textContent = run.type === 'alarm' ? run.label : fmtClock(left);
-    if (run.type === 'timer') {
-      $('timerBarFill').style.width = Math.max(0, Math.min(100, (left / run.totalMs) * 100)) + '%';
-      $('timerSub').textContent = 'Termina a las ' + fmtHM(run.endAt) + (run.clock ? ' · también en el Reloj' : '');
-    } else {
-      $('timerSub').textContent = 'Faltan ' + fmtLeftHuman(left) + (run.clock ? ' · también en el Reloj' : '');
+  function rowTexts(r, now) {
+    const isT = r.type === 'timer';
+    const left = r.pausedLeft != null ? r.pausedLeft : Math.max(0, r.endAt - now);
+    const ck = r.clock ? ' · Reloj' : '';
+    return {
+      time: isT ? fmtClock(left) : r.label,
+      sub: r.pausedLeft != null ? 'En pausa' : (isT ? 'Termina a las ' + fmtHM(r.endAt) + ck : 'Faltan ' + fmtLeftHuman(left) + ck),
+      pct: isT ? Math.max(0, Math.min(100, (left / r.totalMs) * 100)) : 0
+    };
+  }
+
+  // Solo actualiza los textos de las filas (no las reconstruye, para no perder toques en los botones)
+  function updateTimes(now) {
+    runs.forEach(r => {
+      const t = $('tt-' + r.id);
+      if (!t) return;
+      const x = rowTexts(r, now);
+      t.textContent = x.time;
+      const s = $('ts-' + r.id); if (s) s.textContent = x.sub;
+      const b = $('tb-' + r.id); if (b) b.style.width = x.pct + '%';
+    });
+  }
+
+  function rowHtml(r, now) {
+    const isT = r.type === 'timer';
+    const x = rowTexts(r, now);
+    const name = (isT ? '⏱ ' : '⏰ ') + esc(r.name || (isT ? 'Timer' : 'Alarma'));
+    let btns = '';
+    if (isT && !r.clock) {
+      btns += r.pausedLeft != null
+        ? `<button class="trow-btn" onclick="timerResume('${r.id}')">Continuar</button>`
+        : `<button class="trow-btn" onclick="timerPause('${r.id}')">Pausar</button>`;
     }
+    btns += `<button class="trow-btn ghost" onclick="timerCancel('${r.id}')">Cancelar</button>`;
+    return `<div class="trow">
+      <div class="trow-name">${name}</div>
+      <div class="trow-line">
+        <div class="trow-time${r.pausedLeft != null ? ' dim' : ''}" id="tt-${r.id}">${x.time}</div>
+        <div class="trow-btns">${btns}</div>
+      </div>
+      ${isT ? `<div class="timer-bar"><div class="timer-bar-fill" id="tb-${r.id}" style="width:${x.pct}%"></div></div>` : ''}
+      <div class="trow-sub" id="ts-${r.id}">${x.sub}</div>
+    </div>`;
   }
 
   function show(id, on) { const el = $(id); if (el) el.style.display = on ? '' : 'none'; }
 
-  function btn(cls, label, fn) { return `<button class="timer-btn ${cls}" onclick="${fn}()">${label}</button>`; }
+  function btn(cls, label, fn) { return `<button class="timer-btn ${cls}" onclick="${fn}">${label}</button>`; }
 
   function render() {
     const sheet = $('timerSheet');
     if (!sheet) return;
-    const idle = !run && !ringing;
-    const paused = !!run && run.pausedLeft != null && !ringing;
-    const idleTimer = idle && tab === 'timer';
-    const idleAlarm = idle && tab === 'alarm';
+    const rr = firstRinging();
+    const ring = !!rr;
+    if (!ring && tab === 'list' && !runs.length) tab = 'timer';
+    const now = Date.now();
 
-    sheet.classList.toggle('ringing', ringing);
+    sheet.classList.toggle('ringing', ring);
     $('timerDisplay').classList.remove('dim');
+    $('timerSub').classList.toggle('big', ring);
 
     // cabecera
-    show('timerTabs', idle);
-    show('timerTitle', !idle);
-    show('timerClose', !ringing);
-    show('timerClockToggle', idle && IS_ANDROID);
+    show('timerTabs', !ring);
+    show('timerTitle', ring);
+    show('timerClose', !ring);
+    show('timerTabList', runs.length > 0);
+    $('timerTabList').textContent = 'Activos ' + runs.length;
+    show('timerClockToggle', !ring && tab !== 'list' && IS_ANDROID);
     $('timerClockToggle').classList.toggle('on', clockEnabled());
-    $('timerTabTimer').classList.toggle('active', tab === 'timer');
-    $('timerTabAlarm').classList.toggle('active', tab === 'alarm');
-    if (!idle) {
-      const ico = run && run.type === 'alarm' ? '⏰' : '⏱';
-      $('timerTitle').textContent = ico + ' ' + (run && run.name ? run.name : (run && run.type === 'alarm' ? 'Alarma' : 'Timer'));
-    }
+    ['timer', 'alarm', 'list'].forEach(t => {
+      const el = $('timerTab' + t.charAt(0).toUpperCase() + t.slice(1));
+      if (el) el.classList.toggle('active', tab === t);
+    });
+    if (ring) $('timerTitle').textContent = (rr.type === 'alarm' ? '⏰ ' : '⏱ ') + (rr.name || (rr.type === 'alarm' ? 'Alarma' : 'Timer'));
 
-    // cuerpo
-    show('timerNameInput', idle);
-    show('timerSub', !idleTimer);
-    $('timerSub').classList.toggle('big', ringing);
-    show('timerDisplay', !idleAlarm);
-    show('alarmInput', idleAlarm);
-    show('timerBar', !!run && run.type === 'timer' && !ringing);
-    show('timerPresets', idleTimer);
-    show('timerManual', idleTimer);
-    show('timerActions', !idleTimer);
+    // qué se ve en cada modo
+    const mode = ring ? 'ring' : tab;
+    show('timerDisplay', mode === 'ring' || mode === 'timer');
+    show('alarmInput', mode === 'alarm');
+    show('timerNameInput', mode === 'timer' || mode === 'alarm');
+    show('timerSub', mode === 'ring' || mode === 'alarm');
+    show('timerPresets', mode === 'timer');
+    show('timerManual', mode === 'timer');
+    show('timerList', mode === 'list');
+    show('timerActions', mode === 'ring' || mode === 'alarm');
 
     const actions = $('timerActions');
-    if (idleTimer) {
+    if (mode === 'ring') {
+      $('timerDisplay').textContent = rr.type === 'alarm' ? '¡Alarma!' : '¡Tiempo!';
+      const more = runs.filter(r => r.ringing).length - 1;
+      $('timerSub').textContent = [rr.name, rr.type === 'alarm' ? 'Son las ' + rr.label : '', more > 0 ? `(+${more} más)` : ''].filter(Boolean).join(' · ');
+      actions.innerHTML = btn('stop', 'Detener', `timerStop('${rr.id}')`);
+    } else if (mode === 'timer') {
       $('timerDisplay').textContent = '00:00';
       $('timerDisplay').classList.add('dim');
       $('timerManualInput').value = '';
-    } else if (idleAlarm) {
-      actions.innerHTML = btn('', 'Activar alarma', 'timerStartAlarm');
+    } else if (mode === 'alarm') {
+      actions.innerHTML = btn('', 'Activar alarma', 'timerStartAlarm()');
       window.timerAlarmPreview();
-    } else if (ringing) {
-      $('timerDisplay').textContent = run && run.type === 'alarm' ? '¡Alarma!' : '¡Tiempo!';
-      $('timerSub').textContent = [run && run.name, run && run.type === 'alarm' ? 'Son las ' + run.label : ''].filter(Boolean).join(' · ');
-      actions.innerHTML = btn('stop', 'Detener', 'timerStop');
-    } else if (paused) {
-      $('timerDisplay').textContent = fmtClock(run.pausedLeft);
-      $('timerBarFill').style.width = Math.max(0, Math.min(100, (run.pausedLeft / run.totalMs) * 100)) + '%';
-      $('timerSub').textContent = 'En pausa';
-      actions.innerHTML = btn('', 'Continuar', 'timerResume') + btn('ghost', 'Cancelar', 'timerCancel');
-    } else if (run.type === 'timer') {
-      renderClock(Math.max(0, run.endAt - Date.now()));
-      // Si también está en el Reloj no se puede pausar (el del Reloj seguiría corriendo)
-      actions.innerHTML = (run.clock ? '' : btn('', 'Pausar', 'timerPause')) + btn('ghost', 'Cancelar', 'timerCancel');
     } else {
-      renderClock(Math.max(0, run.endAt - Date.now()));
-      actions.innerHTML = btn('ghost', 'Cancelar alarma', 'timerCancel');
+      $('timerList').innerHTML = runs.slice().sort((a, b) => (a.pausedLeft != null) - (b.pausedLeft != null) || a.endAt - b.endAt)
+        .map(r => rowHtml(r, now)).join('');
     }
 
     // icono del menú inferior
     const nav = $('nav-timer');
     if (nav) {
-      nav.classList.toggle('timer-active', !!run && !ringing);
-      nav.classList.toggle('timer-ringing', ringing);
+      nav.classList.toggle('timer-active', runs.length > 0 && !ring);
+      nav.classList.toggle('timer-ringing', ring);
     }
   }
 
   /* ───────── arranque ───────── */
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
-    if (run || ringing) acquireWakeLock(); // el sistema suelta el wake lock al ocultar la app
+    if (runs.length) acquireWakeLock(); // el sistema suelta el wake lock al ocultar la app
     tick();
   });
 
@@ -475,13 +534,16 @@
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
-        const r = JSON.parse(raw);
-        const stale = r && r.pausedLeft == null && r.endAt < Date.now() - 30 * 60000; // caducó hace >30 min
-        if (r && (r.type === 'timer' || r.type === 'alarm') && !stale) run = r;
-        else localStorage.removeItem(LS_KEY);
+        let arr = JSON.parse(raw);
+        if (arr && !Array.isArray(arr)) arr = [arr];           // formato antiguo: un solo timer
+        runs = (arr || []).filter(r => r && (r.type === 'timer' || r.type === 'alarm')
+          && !(r.pausedLeft == null && r.endAt < Date.now() - 30 * 60000)) // caducó hace >30 min
+          .map(r => Object.assign({}, r, { id: r.id || newId(), ringing: false }));
+        save();
       }
-    } catch (e) { run = null; }
-    if (run && run.pausedLeft == null) { acquireWakeLock(); startTick(); }
+    } catch (e) { runs = []; }
+    if (runs.some(r => r.pausedLeft == null)) { acquireWakeLock(); startTick(); }
+    else if (runs.length) startTick();
     render();
   })();
 })();
