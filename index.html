@@ -16,7 +16,7 @@
   <title>RubenceChef</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=42">
+  <link rel="stylesheet" href="css/styles.css?v=44">
 </head>
 <body>
 <script>
@@ -226,11 +226,49 @@
   <button class="nav-btn" id="nav-fichas" onclick="showPage('fichas',this)">
     <span class="material-symbols-outlined">handyman</span><span>Utilidades</span>
   </button>
+  <button class="nav-btn" id="nav-timer" onclick="openTimerModal()">
+    <span class="material-symbols-outlined">notifications</span><span>Timer</span>
+  </button>
   <button class="nav-btn" id="nav-admin" onclick="showPage('admin',this)">
     <span class="material-symbols-outlined">admin_panel_settings</span><span>Admin</span>
     <span class="nav-badge" id="navBadge" style="display:none;"></span>
   </button>
 </nav>
+
+<!-- MODAL TEMPORIZADOR / ALARMA -->
+<div class="modal-overlay" id="timerModal" style="display:none;" onclick="closeTimerModal()">
+  <div class="timer-sheet" id="timerSheet" onclick="event.stopPropagation()">
+    <div class="timer-top">
+      <div class="timer-tabs" id="timerTabs">
+        <button class="timer-tab active" id="timerTabTimer" onclick="setTimerTab('timer')">Timer</button>
+        <button class="timer-tab" id="timerTabAlarm" onclick="setTimerTab('alarm')">Alarma</button>
+      </div>
+      <div class="timer-title" id="timerTitle" style="display:none;"></div>
+      <div class="timer-top-right">
+        <button class="timer-clock-toggle" id="timerClockToggle" style="display:none;" onclick="timerToggleClock()" title="Avisar también en la app Reloj del móvil">⏰ Reloj</button>
+        <button class="modal-close" id="timerClose" onclick="closeTimerModal()" aria-label="Cerrar">✕</button>
+      </div>
+    </div>
+
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <input type="time" class="timer-alarm-input" id="alarmInput" style="display:none;" oninput="timerAlarmPreview()" aria-label="Hora de la alarma">
+    <div class="timer-bar" id="timerBar" style="display:none;"><div class="timer-bar-fill" id="timerBarFill"></div></div>
+    <div class="timer-sub" id="timerSub"></div>
+
+    <div class="timer-presets" id="timerPresets">
+      <button class="timer-chip" onclick="timerStartMinutes(5)">5</button>
+      <button class="timer-chip" onclick="timerStartMinutes(7)">7</button>
+      <button class="timer-chip" onclick="timerStartMinutes(9)">9</button>
+      <button class="timer-chip" onclick="timerStartMinutes(12)">12</button>
+    </div>
+    <div class="timer-manual" id="timerManual">
+      <input type="text" class="timer-manual-input" id="timerManualInput" inputmode="decimal" placeholder="min (ej. 3,5 o 1:30)" autocomplete="off"
+             oninput="timerManualPreview()" onkeydown="if(event.key==='Enter')timerStartManual()">
+      <button class="timer-go" onclick="timerStartManual()">Iniciar</button>
+    </div>
+    <div class="timer-actions" id="timerActions" style="display:none;"></div>
+  </div>
+</div>
 
 <!-- MODAL COMENTARIO -->
 <div class="modal-overlay" id="commentModal" style="display:none;" onclick="closeModal('commentModal')">
@@ -358,6 +396,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="js/app.js?v=42"></script>
+<script src="js/app.js?v=44"></script>
+<script src="js/timer.js?v=44"></script>
 </body>
 </html>

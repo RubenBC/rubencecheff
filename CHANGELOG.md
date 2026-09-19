@@ -4,6 +4,29 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v44
+
+### Mejorado
+- **Timer y alarma más puntuales con la pestaña en segundo plano (PC)**: el conteo lo lleva un Web Worker y la melodía se programa por adelantado en el reloj de audio del navegador, así que suena a su hora aunque estés en otra pestaña o ventana. Además, la pestaña muestra "⏰ ¡Tiempo!" en el título mientras suena.
+
+### Añadido
+- **Opción "⏰ Reloj" (solo en Android)**: si está activada, al iniciar un timer o alarma se envía también a la app Reloj del móvil para que suene aunque la pantalla esté apagada. Si está activada no se puede pausar (el del Reloj seguiría corriendo), y al cancelar hay que cancelarlo también en el Reloj. En PC el botón no aparece.
+
+---
+
+## v43
+
+### Añadido
+- **Timer / Alarma** en el menú inferior (campana, entre Utilidades y Admin). Se abre como panel desde abajo (~30 % de la pantalla):
+  - **Timer**: cuenta atrás con atajos de 5 · 7 · 9 · 12 min (un toque y arranca) o tiempo manual (`3,5` = 3 min 30 s, o `1:30`). Con pausa/continuar y cancelar.
+  - **Alarma**: a una hora concreta (si ya pasó hoy, suena mañana).
+  - Al terminar suena una melodía fuerte en bucle, con vibración, hasta pulsar **Detener** (no se cierra con el botón atrás ni con la X mientras suena).
+  - Usa la hora real del móvil, se guarda si recargas la app y mantiene la pantalla encendida mientras corre.
+  - El icono muestra un punto naranja si hay algo en marcha y la campana tiembla cuando suena.
+  - La recarga automática de 15 min se salta si hay algo sonando o a punto de sonar.
+
+---
+
 ## v42
 
 ### Añadido

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chefbook-v42';
+const CACHE_NAME = 'chefbook-v44';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
