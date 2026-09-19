@@ -774,3 +774,9 @@ body.dark .timer-btn.stop { color: #1a0000; }
   .seg-btn { font-size: 12.5px; gap: 3px; padding: 9px 2px; }
   .seg-btn .material-symbols-outlined { display: none; } /* con 4 pestañas en móvil solo texto, para que quepan */
 }
+
+/* v46 — nombre opcional del timer */
+.timer-name-input { width: 100%; text-align: center; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); background: none; border: 1.5px dashed var(--outline-light); border-radius: 10px; padding: 4px 10px; outline: none; }
+.timer-name-input:focus { border-style: solid; border-color: var(--primary); }
+.timer-title { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer-sub.big { font-size: 19px; font-weight: 800; color: var(--danger); }
