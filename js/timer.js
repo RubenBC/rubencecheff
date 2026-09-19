@@ -237,7 +237,7 @@
 
   function ring() {
     ringing = true;                 // el Worker sigue vivo para mantener la melodía programada
-    document.title = '⏰ ¡Tiempo! — ' + baseTitle;
+    document.title = '⏰ ¡Tiempo!' + (run && run.name ? ' ' + run.name : '') + ' — ' + baseTitle;
     startMelody();
     acquireWakeLock();
     openTimerModal();
@@ -261,14 +261,14 @@
     if (r.type === 'timer') {
       url = 'intent:#Intent;action=android.intent.action.SET_TIMER;'
           + 'i.android.intent.extra.alarm.LENGTH=' + Math.round(r.totalMs / 1000) + ';'
-          + 'S.android.intent.extra.alarm.MESSAGE=RubenceChef;'
+          + 'S.android.intent.extra.alarm.MESSAGE=' + encodeURIComponent(r.name || 'RubenceChef') + ';'
           + 'B.android.intent.extra.alarm.SKIP_UI=true;end';
     } else {
       const [h, m] = r.label.split(':').map(Number);
       url = 'intent:#Intent;action=android.intent.action.SET_ALARM;'
           + 'i.android.intent.extra.alarm.HOUR=' + h + ';'
           + 'i.android.intent.extra.alarm.MINUTES=' + m + ';'
-          + 'S.android.intent.extra.alarm.MESSAGE=RubenceChef;'
+          + 'S.android.intent.extra.alarm.MESSAGE=' + encodeURIComponent(r.name || 'RubenceChef') + ';'
           + 'B.android.intent.extra.alarm.SKIP_UI=true;end';
     }
     try {
@@ -283,6 +283,10 @@
 
   // Arranca un timer/alarma (siempre desde un toque del usuario)
   function startRun(r) {
+    const nameEl = $('timerNameInput');
+    const nm = nameEl ? nameEl.value.trim().slice(0, 40) : '';
+    if (nm) r.name = nm;              // sin nombre: no se guarda nada
+    if (nameEl) nameEl.value = '';
     if (clockEnabled()) r.clock = true;
     run = r;
     begin();
@@ -410,9 +414,15 @@
     $('timerClockToggle').classList.toggle('on', clockEnabled());
     $('timerTabTimer').classList.toggle('active', tab === 'timer');
     $('timerTabAlarm').classList.toggle('active', tab === 'alarm');
-    if (!idle) $('timerTitle').textContent = run && run.type === 'alarm' ? '⏰ Alarma' : '⏱ Timer';
+    if (!idle) {
+      const ico = run && run.type === 'alarm' ? '⏰' : '⏱';
+      $('timerTitle').textContent = ico + ' ' + (run && run.name ? run.name : (run && run.type === 'alarm' ? 'Alarma' : 'Timer'));
+    }
 
     // cuerpo
+    show('timerNameInput', idle);
+    show('timerSub', !idleTimer);
+    $('timerSub').classList.toggle('big', ringing);
     show('timerDisplay', !idleAlarm);
     show('alarmInput', idleAlarm);
     show('timerBar', !!run && run.type === 'timer' && !ringing);
@@ -424,14 +434,13 @@
     if (idleTimer) {
       $('timerDisplay').textContent = '00:00';
       $('timerDisplay').classList.add('dim');
-      $('timerSub').textContent = 'Toca un tiempo para empezar';
       $('timerManualInput').value = '';
     } else if (idleAlarm) {
       actions.innerHTML = btn('', 'Activar alarma', 'timerStartAlarm');
       window.timerAlarmPreview();
     } else if (ringing) {
       $('timerDisplay').textContent = run && run.type === 'alarm' ? '¡Alarma!' : '¡Tiempo!';
-      $('timerSub').textContent = run && run.type === 'alarm' ? 'Son las ' + run.label : '';
+      $('timerSub').textContent = [run && run.name, run && run.type === 'alarm' ? 'Son las ' + run.label : ''].filter(Boolean).join(' · ');
       actions.innerHTML = btn('stop', 'Detener', 'timerStop');
     } else if (paused) {
       $('timerDisplay').textContent = fmtClock(run.pausedLeft);
