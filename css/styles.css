@@ -793,3 +793,38 @@ body.dark .timer-btn.stop { color: #1a0000; }
 .trow-btn { border: none; background: var(--primary); color: white; font-family: 'Nunito', sans-serif; font-size: 12.5px; font-weight: 800; padding: 8px 12px; border-radius: 12px; cursor: pointer; }
 .trow-btn.ghost { background: var(--surface); color: var(--text2); border: 1.5px solid var(--outline-light); }
 .trow-sub { font-size: 11.5px; font-weight: 600; color: var(--text2); }
+
+/* v48 — panel al 42 % con el tiempo bien grande + parpadeo rojo en los últimos 10 s */
+.timer-sheet { --timer-bg: white; background: var(--timer-bg); min-height: 42vh; }
+body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg); }
+.timer-display { flex: 1; display: flex; align-items: center; justify-content: center; font-size: min(12vh, 19vw); letter-spacing: 0; }
+.timer-display.long { font-size: min(9vh, 12.5vw); }
+.timer-sheet.ringing .timer-display { font-size: min(9vh, 13vw); }
+.timer-list { max-height: 60vh; }
+
+/* Un solo timer en marcha: tiempo grande, botones anchos debajo */
+.trow.single { padding: 10px 14px 12px; gap: 6px; }
+.trow.single .trow-name { text-align: center; font-size: 14px; }
+.trow.single .trow-line { flex-direction: column; align-items: stretch; gap: 8px; }
+.trow.single .trow-time { font-size: min(12vh, 19vw); text-align: center; line-height: 1.05; }
+.trow.single .trow-time.long { font-size: min(9vh, 12.5vw); }
+.trow.single .trow-btns { width: 100%; }
+.trow.single .trow-btn { flex: 1; padding: 12px; font-size: 14px; }
+.trow.single .trow-sub { text-align: center; font-size: 12.5px; }
+/* Varios en lista: tiempo algo mayor */
+.trow-time { font-size: 42px; }
+.trow-time.long { font-size: 30px; }
+
+/* Últimos 10 s: la ventana parpadea en rojo hasta que suena (luego queda roja fija, como al sonar) */
+.timer-sheet.warn { animation: timerWarn 1s steps(1, end) infinite; }
+.timer-sheet.warn .timer-display, .timer-sheet.warn .trow-time { color: var(--danger); }
+.timer-sheet.warn .trow { background: transparent; }
+@keyframes timerWarn {
+  0%   { background: var(--danger-light); }
+  50%  { background: var(--timer-bg); }
+}
+/* Un solo timer: rellena todo el panel para que el tiempo quede centrado y grande */
+.timer-list { flex: 1; }
+.trow.single { flex: 1; }
+.trow.single .trow-line { flex: 1; justify-content: center; }
+.trow.single .trow-time { display: flex; align-items: center; justify-content: center; flex: 1; }
