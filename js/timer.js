@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   TEMPORIZADORES Y ALARMAS  (v47)
+   TEMPORIZADORES Y ALARMAS  (v48)
    - Puedes tener VARIOS a la vez (timers y alarmas mezclados)
    - Timer: 5 · 7 · 9 · 12 min o tiempo manual, con nombre opcional
    - Alarma a una hora concreta, con nombre opcional
@@ -395,6 +395,7 @@
     const d = $('timerDisplay');
     d.textContent = ms >= 1000 && ms <= 999 * 60000 ? fmtClock(ms) : '00:00';
     d.classList.toggle('dim', !(ms >= 1000));
+    d.classList.toggle('long', d.textContent.length > 5);
   };
 
   window.timerAlarmPreview = function () {
@@ -429,12 +430,14 @@
       if (!t) return;
       const x = rowTexts(r, now);
       t.textContent = x.time;
+      t.classList.toggle('long', x.time.length > 5);
       const s = $('ts-' + r.id); if (s) s.textContent = x.sub;
       const b = $('tb-' + r.id); if (b) b.style.width = x.pct + '%';
     });
+    applyWarn(now);
   }
 
-  function rowHtml(r, now) {
+  function rowHtml(r, now, single) {
     const isT = r.type === 'timer';
     const x = rowTexts(r, now);
     const name = (isT ? '⏱ ' : '⏰ ') + esc(r.name || (isT ? 'Timer' : 'Alarma'));
@@ -445,15 +448,23 @@
         : `<button class="trow-btn" onclick="timerPause('${r.id}')">Pausar</button>`;
     }
     btns += `<button class="trow-btn ghost" onclick="timerCancel('${r.id}')">Cancelar</button>`;
-    return `<div class="trow">
+    return `<div class="trow${single ? ' single' : ''}">
       <div class="trow-name">${name}</div>
       <div class="trow-line">
-        <div class="trow-time${r.pausedLeft != null ? ' dim' : ''}" id="tt-${r.id}">${x.time}</div>
+        <div class="trow-time${r.pausedLeft != null ? ' dim' : ''}${x.time.length > 5 ? ' long' : ''}" id="tt-${r.id}">${x.time}</div>
         <div class="trow-btns">${btns}</div>
       </div>
       ${isT ? `<div class="timer-bar"><div class="timer-bar-fill" id="tb-${r.id}" style="width:${x.pct}%"></div></div>` : ''}
       <div class="trow-sub" id="ts-${r.id}">${x.sub}</div>
     </div>`;
+  }
+
+  // Últimos 10 s de cualquier timer/alarma en marcha (sin pausar): la ventana parpadea en rojo
+  function applyWarn(now) {
+    const s = $('timerSheet');
+    if (!s) return;
+    const warn = !anyRinging() && runs.some(r => r.pausedLeft == null && !r.ringing && r.endAt - now > 0 && r.endAt - now <= 10000);
+    s.classList.toggle('warn', warn);
   }
 
   function show(id, on) { const el = $(id); if (el) el.style.display = on ? '' : 'none'; }
@@ -512,8 +523,11 @@
       window.timerAlarmPreview();
     } else {
       $('timerList').innerHTML = runs.slice().sort((a, b) => (a.pausedLeft != null) - (b.pausedLeft != null) || a.endAt - b.endAt)
-        .map(r => rowHtml(r, now)).join('');
+        .map(r => rowHtml(r, now, runs.length === 1)).join('');
     }
+
+    $('timerDisplay').classList.toggle('long', $('timerDisplay').textContent.length > 5);
+    applyWarn(now);
 
     // icono del menú inferior
     const nav = $('nav-timer');
