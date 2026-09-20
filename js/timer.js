@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   TEMPORIZADORES Y ALARMAS  (v48)
+   TEMPORIZADORES Y ALARMAS  (v49)
    - Puedes tener VARIOS a la vez (timers y alarmas mezclados)
    - Timer: 5 · 7 · 9 · 12 min o tiempo manual, con nombre opcional
    - Alarma a una hora concreta, con nombre opcional
@@ -14,7 +14,7 @@
 
   const LS_KEY = 'rubencechef-timer';
   const LS_CLOCK = 'rubencechef-timer-clock';
-  const LOOP_MS = 3400;              // duración de un ciclo de la melodía
+  const LOOP_MS = 4000;              // un ciclo: 4 tonos (~1 s) + 3 s de silencio
   const LOOP_S = LOOP_MS / 1000;
   const PRE_MS = 30 * 60000;         // programa la melodía cuando faltan ≤ 30 min
   const IS_ANDROID = /Android/i.test(navigator.userAgent);
@@ -108,14 +108,11 @@
     });
   }
 
-  // Un ciclo: arpegio ascendente y descendente, dos veces, con acento final
-  const NOTES = [880, 1108.7, 1318.5, 1760, 1318.5, 1108.7, 880];
+  // Un ciclo: 4 tonos seguidos (ascendentes, el último más largo) y luego 3 s de silencio
+  const NOTES = [880, 1108.7, 1318.5, 1760];
   function scheduleLoop(t0) {
-    const step = 0.16, repLen = NOTES.length * step + 0.25;
-    for (let rep = 0; rep < 2; rep++) {
-      NOTES.forEach((f, i) => beep(f, t0 + rep * repLen + i * step, 0.15));
-    }
-    beep(1760, t0 + 2 * repLen, 0.5);
+    const step = 0.16;
+    NOTES.forEach((f, i) => beep(f, t0 + i * step, i === NOTES.length - 1 ? 0.5 : 0.15));
   }
 
   // Programa ciclos en el reloj de audio a partir de 'base' (segundos del AudioContext)
@@ -167,7 +164,7 @@
     else ctx.resume().then(doIt).catch(() => {});
   }
 
-  function vibrate() { if (navigator.vibrate) { try { navigator.vibrate([500, 200, 500, 200, 500]); } catch (e) {} } }
+  function vibrate() { if (navigator.vibrate) { try { navigator.vibrate([400, 200, 400]); } catch (e) {} } }
 
   function startMelody() {
     vibrate();
