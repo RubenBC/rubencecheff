@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v48
+
+### Cambiado
+- El panel del timer ocupa ahora el **42 %** de la pantalla y el tiempo se ve mucho más grande (con un solo timer en marcha, el tiempo ocupa todo el ancho y los botones Pausar / Cancelar quedan debajo).
+- **Aviso en los últimos 10 segundos**: la ventana parpadea en rojo hasta que termina el tiempo; al sonar queda en rojo fijo, como antes.
+
+---
+
 ## v47
 
 ### Corregido
