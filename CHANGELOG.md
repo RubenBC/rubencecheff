@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v49
+
+### Cambiado
+- **Melodía del timer**: ahora suenan 4 tonos seguidos y después una pausa de 3 segundos antes de repetir, hasta pulsar Detener.
+
+---
+
 ## v48
 
 ### Cambiado
