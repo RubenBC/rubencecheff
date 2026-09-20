@@ -20,4 +20,4 @@ chefbook/
 - Alojamiento: GitHub Pages / Vercel
 
 ## Contraseña admin (demo)
-`chef2024`
+`chef2026`
