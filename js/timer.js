@@ -313,7 +313,7 @@
     const nm = nameEl ? nameEl.value.trim().slice(0, 40) : '';
     r.id = newId();
     r.ringing = false;
-    if (nm) r.name = nm;              // sin nombre: no se guarda nada
+    if (nm && !r.name) r.name = nm;   // el nombre del atajo (p. ej. Patatas) manda; sin nombre no se guarda nada
     if (nameEl) nameEl.value = '';
     if (clockEnabled()) r.clock = true;
     runs.push(r);
@@ -347,8 +347,10 @@
     showToast(on ? 'Avisará también en el Reloj' : 'Solo en la app');
   };
 
-  window.timerStartMinutes = function (min) {
-    startRun({ type: 'timer', endAt: Date.now() + min * 60000, totalMs: min * 60000, pausedLeft: null });
+  window.timerStartMinutes = function (min, name) {
+    const r = { type: 'timer', endAt: Date.now() + min * 60000, totalMs: min * 60000, pausedLeft: null };
+    if (name) r.name = name;          // atajo con nombre fijo: al terminar sale ese nombre
+    startRun(r);
   };
 
   window.timerStartManual = function () {
