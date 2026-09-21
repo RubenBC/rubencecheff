@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v53
+
+### Cambiado
+- **El atajo de 7 min ahora es específico de patatas**: el botón "PATATAS · 7 min" sustituye al de 7 genérico. Al pulsarlo arranca un timer de 7 minutos con el nombre "Patatas", así que al terminar el tiempo sale PATATAS en grande. Los atajos 5, 9 y 12 y el tiempo manual siguen igual (cualquier otro tiempo de 7 min se puede poner a mano con el nombre que quieras).
+
+---
+
 ## v52
 
 ### Cambiado
