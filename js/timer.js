@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   TEMPORIZADORES Y ALARMAS  (v49)
+   TEMPORIZADORES Y ALARMAS  (v52)
    - Puedes tener VARIOS a la vez (timers y alarmas mezclados)
    - Timer: 5 · 7 · 9 · 12 min o tiempo manual, con nombre opcional
    - Alarma a una hora concreta, con nombre opcional
@@ -15,7 +15,6 @@
   const LS_KEY = 'rubencechef-timer';
   const LS_CLOCK = 'rubencechef-timer-clock';
   const LOOP_MS = 4000;              // un ciclo: 4 tonos (~1 s) + 3 s de silencio
-  const LOOP_S = LOOP_MS / 1000;
   const PRE_MS = 30 * 60000;         // programa la melodía cuando faltan ≤ 30 min
   const IS_ANDROID = /Android/i.test(navigator.userAgent);
   const $ = id => document.getElementById(id);
@@ -92,35 +91,39 @@
     return audioCtx;
   }
 
-  function beep(freq, t, dur) {
+  function beep(freq, t, dur, bus, list) {
     const ctx = audioCtx;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(0.9, t + 0.012);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    g.connect(sched.bus);
+    g.connect(bus);
     [['square', 0.45], ['triangle', 1.0]].forEach(([type, vol]) => {
       const o = ctx.createOscillator(), og = ctx.createGain();
       o.type = type; o.frequency.value = freq; og.gain.value = vol;
       o.connect(og); og.connect(g);
       o.start(t); o.stop(t + dur + 0.02);
-      sched.oscs.push({ o, end: t + dur + 0.02 });
+      list.push({ o, end: t + dur + 0.02 });
     });
   }
 
-  // Un ciclo: 4 tonos seguidos (ascendentes, el último más largo) y luego 3 s de silencio
-  const NOTES = [880, 1108.7, 1318.5, 1760];
+  // Tono de la alarma. Cada nota: [frecuencia Hz, inicio (s), duración (s)].
+  // Tras cada ciclo hay una pausa de 3 s antes de repetir.
+  const PAUSE_S = 3;
+  const TONES = {
+    1: [[880, 0, 0.15], [1108.7, 0.16, 0.15], [1318.5, 0.32, 0.15], [1760, 0.48, 0.5]]   // 4 tonos seguidos
+  };
+  const toneLoopS = n => Math.max.apply(null, TONES[n].map(x => x[1] + x[2])) + PAUSE_S;
+
   function scheduleLoop(t0) {
-    const step = 0.16;
-    NOTES.forEach((f, i) => beep(f, t0 + i * step, i === NOTES.length - 1 ? 0.5 : 0.15));
+    TONES[sched.tone].forEach(([f, off, dur]) => beep(f, t0 + off, dur, sched.bus, sched.oscs));
   }
 
-  // Programa ciclos en el reloj de audio a partir de 'base' (segundos del AudioContext)
-  function scheduleFrom(base, minLoops, forEnd) {
+  function scheduleFrom(base, minLoops, forEnd, tone) {
     cancelScheduled();
     const bus = audioCtx.createGain();
     bus.connect(master);
-    sched = { bus, oscs: [], base, n: 0, min: minLoops, forEnd: forEnd || 0 };
+    sched = { bus, oscs: [], base, n: 0, min: minLoops, forEnd: forEnd || 0, tone: tone, loopS: toneLoopS(tone) };
     topUp();
   }
 
@@ -128,8 +131,8 @@
   function topUp() {
     if (!sched || !audioCtx) return;
     const now = audioCtx.currentTime, horizon = now + 60;
-    while ((sched.n < sched.min || sched.base + sched.n * LOOP_S < horizon) && sched.n < 5000) {
-      scheduleLoop(sched.base + sched.n * LOOP_S);
+    while ((sched.n < sched.min || sched.base + sched.n * sched.loopS < horizon) && sched.n < 5000) {
+      scheduleLoop(sched.base + sched.n * sched.loopS);
       sched.n++;
     }
     sched.oscs = sched.oscs.filter(x => x.end > now - 1); // limpia los ya terminados
@@ -148,7 +151,7 @@
     if (anyRinging()) return;                       // ya hay melodía sonando
     const n = nextRun();
     if (!n) { cancelScheduled(); return; }
-    if (sched && sched.forEnd === n.endAt) return;  // ya está programada para este
+    if (sched && sched.forEnd === n.endAt && sched.tone === (n.tone || 1)) return;  // ya está programada para este
     cancelScheduled();
     const ctx = ensureAudio();
     if (!ctx) return;
@@ -158,7 +161,7 @@
       if (!nx) return;
       const left = nx.endAt - Date.now();
       if (left <= 0 || left > PRE_MS) return;
-      scheduleFrom(audioCtx.currentTime + left / 1000, 10, nx.endAt);
+      scheduleFrom(audioCtx.currentTime + left / 1000, 10, nx.endAt, nx.tone || 1);
     };
     if (ctx.state === 'running') doIt();
     else ctx.resume().then(doIt).catch(() => {});
@@ -172,7 +175,7 @@
     const ctx = ensureAudio();
     const go = () => {
       if (!anyRinging() || !audioCtx || audioCtx.state !== 'running') return false;
-      if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0);
+      if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0, (firstRinging().tone) || 1);
       topUp();
       return true;
     };
@@ -257,7 +260,7 @@
 
   function updateTitle() {
     const r = firstRinging();
-    document.title = r ? '⏰ ¡Tiempo!' + (r.name ? ' ' + r.name : '') + ' — ' + baseTitle : baseTitle;
+    document.title = r ? '⏰ ¡Tiempo!' + (r.name ? ' ' + r.name.toUpperCase() : '') + ' — ' + baseTitle : baseTitle;
   }
 
   // Quita un timer/alarma (cancelar o detener cuando suena)
@@ -267,6 +270,7 @@
     const wasRinging = r.ringing;
     runs = runs.filter(x => x.id !== id);
     if (!anyRinging()) stopMelody();
+    else if (sched && sched.tone !== (firstRinging().tone || 1)) { cancelScheduled(); startMelody(); } // sigue sonando otro con distinto tono
     if (wasRinging && !anyRinging()) tab = runs.length ? 'list' : 'timer';
     updateTitle();
     save();
@@ -279,7 +283,7 @@
   /* ───────── Android: avisar también en la app Reloj ───────── */
   function launchClock(r) {
     let url;
-    const msg = encodeURIComponent(r.name || 'RubenceChef');
+    const msg = encodeURIComponent(r.name ? r.name.toUpperCase() : 'RubenceChef');
     if (r.type === 'timer') {
       url = 'intent:#Intent;action=android.intent.action.SET_TIMER;'
           + 'i.android.intent.extra.alarm.LENGTH=' + Math.round(r.totalMs / 1000) + ';'
@@ -437,7 +441,7 @@
   function rowHtml(r, now, single) {
     const isT = r.type === 'timer';
     const x = rowTexts(r, now);
-    const name = (isT ? '⏱ ' : '⏰ ') + esc(r.name || (isT ? 'Timer' : 'Alarma'));
+    const name = (isT ? '⏱ ' : '⏰ ') + esc((r.name || (isT ? 'Timer' : 'Alarma')).toUpperCase());
     let btns = '';
     if (isT && !r.clock) {
       btns += r.pausedLeft != null
@@ -462,6 +466,23 @@
     if (!s) return;
     const warn = !anyRinging() && runs.some(r => r.pausedLeft == null && !r.ringing && r.endAt - now > 0 && r.endAt - now <= 10000);
     s.classList.toggle('warn', warn);
+  }
+
+  // Ajusta el tamaño de letra del nombre para que llene el panel sin salirse
+  function fitRingText(el) {
+    el.style.fontSize = '';
+    el.style.overflowWrap = '';                        // normal: las palabras no se parten
+    if (!el.clientWidth || !el.clientHeight) return;   // panel aún no visible
+    const rg = document.createRange();
+    rg.selectNodeContents(el);
+    let size = 110;
+    for (; size > 26; size -= 3) {
+      el.style.fontSize = size + 'px';
+      const r = rg.getBoundingClientRect();
+      if (r.width <= el.clientWidth - 8 && r.height <= el.clientHeight - 4) break;
+    }
+    // Último recurso (palabra larguísima): permitir partirla
+    if (size <= 26) el.style.overflowWrap = 'anywhere';
   }
 
   function show(id, on) { const el = $(id); if (el) el.style.display = on ? '' : 'none'; }
@@ -492,13 +513,16 @@
       const el = $('timerTab' + t.charAt(0).toUpperCase() + t.slice(1));
       if (el) el.classList.toggle('active', tab === t);
     });
-    if (ring) $('timerTitle').textContent = (rr.type === 'alarm' ? '⏰ ' : '⏱ ') + (rr.name || (rr.type === 'alarm' ? 'Alarma' : 'Timer'));
+    if (ring) {
+      const more0 = runs.filter(r => r.ringing).length - 1;
+      $('timerTitle').textContent = (rr.type === 'alarm' ? '⏰ ¡Alarma!' : '⏱ ¡Tiempo!') + (more0 > 0 ? ` (+${more0} más)` : '');
+    }
 
     // qué se ve en cada modo
     const mode = ring ? 'ring' : tab;
     show('timerDisplay', mode === 'ring' || mode === 'timer');
     show('alarmInput', mode === 'alarm');
-    show('timerNameInput', mode === 'timer' || mode === 'alarm');
+    show('timerNameRow', mode === 'timer' || mode === 'alarm');
     show('timerSub', mode === 'ring' || mode === 'alarm');
     show('timerPresets', mode === 'timer');
     show('timerManual', mode === 'timer');
@@ -507,9 +531,10 @@
 
     const actions = $('timerActions');
     if (mode === 'ring') {
-      $('timerDisplay').textContent = rr.type === 'alarm' ? '¡Alarma!' : '¡Tiempo!';
-      const more = runs.filter(r => r.ringing).length - 1;
-      $('timerSub').textContent = [rr.name, rr.type === 'alarm' ? 'Son las ' + rr.label : '', more > 0 ? `(+${more} más)` : ''].filter(Boolean).join(' · ');
+      // El nombre (en mayúsculas) ocupa todo el panel; "¡Tiempo!" queda pequeño arriba.
+      // Sin nombre, se muestra "¡TIEMPO!" / "¡ALARMA!" grande como antes.
+      $('timerDisplay').textContent = (rr.name || (rr.type === 'alarm' ? '¡Alarma!' : '¡Tiempo!')).toUpperCase();
+      $('timerSub').textContent = rr.type === 'alarm' ? 'Son las ' + rr.label : '';
       actions.innerHTML = btn('stop', 'Detener', `timerStop('${rr.id}')`);
     } else if (mode === 'timer') {
       $('timerDisplay').textContent = '00:00';
@@ -524,6 +549,7 @@
     }
 
     $('timerDisplay').classList.toggle('long', $('timerDisplay').textContent.length > 5);
+    if (mode === 'ring') fitRingText($('timerDisplay')); else $('timerDisplay').style.fontSize = '';
     applyWarn(now);
 
     // icono del menú inferior
