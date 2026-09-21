@@ -4,6 +4,15 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v52
+
+### Cambiado
+- **Fuera el botón "Tono"**: de momento solo hay un tono (los 4 tonos con pausa de 3 s).
+- **Al terminar el tiempo, el nombre es el protagonista**: ocupa todo el panel en letra enorme (se ajusta solo a su largo) y "¡Tiempo!" queda pequeño arriba. Si el timer no tiene nombre, se ve "¡TIEMPO!" grande como antes.
+- **Los nombres siempre se muestran en MAYÚSCULAS**, aunque los escribas en minúscula (casilla, filas, pantalla al sonar, pestaña y aviso del Reloj).
+
+---
+
 ## v51
 
 ### Cambiado
