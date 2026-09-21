@@ -4,6 +4,21 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v51
+
+### Cambiado
+- El panel del timer ocupa ahora el **50 %** de la pantalla.
+- **El nombre del timer se ve mucho más grande**: centrado sobre el tiempo cuando hay uno solo, más grande en cada fila cuando hay varios, y enorme cuando suena.
+
+---
+
+## v50
+
+### Añadido
+- **Elegir tono al crear un timer o alarma**: botón discreto "♪ Tono 1 / Tono 2" junto al nombre. Al cambiarlo se oye una muestra. Cada timer recuerda su tono, y el último elegido se guarda para los siguientes. Tono 1 es el original (4 tonos + pausa de 3 s). Tono 2 es provisional.
+
+---
+
 ## v49
 
 ### Cambiado
