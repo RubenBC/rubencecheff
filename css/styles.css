@@ -850,3 +850,10 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
 .trow-name, .trow.single .trow-name { text-transform: uppercase; }
 .timer-sheet.ringing .timer-display { min-height: 0; overflow: hidden; text-align: center; line-height: 1.05; font-family: 'Nunito', sans-serif; font-weight: 800; letter-spacing: 0; padding: 0 4px; overflow-wrap: normal; }
 .timer-sub.big { font-size: 20px; font-weight: 800; }
+
+/* v53 — atajo específico "Patatas · 7 min" */
+.timer-chip.potato { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; padding: 4px 0; }
+.timer-chip.potato::after { content: none; }
+.timer-chip.potato .chip-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.6px; opacity: 0.85; }
+.timer-chip.potato .chip-num { font-size: 19px; font-weight: 800; }
+.timer-chip.potato .chip-num small { font-size: 11px; font-weight: 700; opacity: 0.8; }
