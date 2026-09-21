@@ -828,3 +828,20 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
 .trow.single { flex: 1; }
 .trow.single .trow-line { flex: 1; justify-content: center; }
 .trow.single .trow-time { display: flex; align-items: center; justify-content: center; flex: 1; }
+
+/* v50 — selector discreto de tono (Tono 1 / Tono 2) junto al nombre */
+.timer-name-row { display: flex; gap: 6px; align-items: center; }
+.timer-name-row .timer-name-input { flex: 1; min-width: 0; width: auto; }
+.timer-tone-btn { flex-shrink: 0; border: 1.5px solid var(--outline-light); background: none; color: var(--text2); font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+
+/* v51 — panel al 50 % y nombre del timer mucho más grande */
+.timer-sheet { min-height: 50vh; }
+/* un solo timer: nombre grande y centrado sobre el tiempo */
+.trow.single .trow-name { font-size: clamp(24px, 4.4vh, 36px); font-weight: 800; color: var(--primary); text-align: center; line-height: 1.15; white-space: normal; overflow: visible; }
+.trow.single .trow-time { font-size: min(12vh, 19vw); }
+.trow.single .trow-time.long { font-size: min(9vh, 12.5vw); }
+/* varios timers: nombre legible en cada fila */
+.trow-name { font-size: 19px; font-weight: 800; color: var(--primary); }
+/* al sonar: nombre enorme */
+.timer-sheet.ringing .timer-title { font-size: 20px; }
+.timer-sub.big { font-size: clamp(28px, 5vh, 40px); line-height: 1.15; white-space: normal; padding: 0 4px; }
