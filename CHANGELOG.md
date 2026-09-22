@@ -4,6 +4,18 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v58
+
+### Cambiado
+- **Emisoras renovadas**: se sustituyeron las 9 emisoras de serie por LOS40, LOS40 Classic, LOS40 Dance, Europa FM, Cadena Dial, Cadena 100, Rock FM, Radiolé y Radio 3, cada una con su descripción (acortada cuando era muy larga). De los enlaces que llegaban por `http://`, se pasó a `https://` en Cadena Dial, Cadena 100, Rock FM y LOS40 Dance: es el mismo servidor y la misma emisora, pero `http://` no suena en una app servida por `https://` como esta (GitHub Pages).
+- La ventana de Radio pasa del 60 % al **80 % de la pantalla**.
+
+### Añadido
+- **Controles de reproducción bajo el vinilo**: botón de pausa/reproducir y de parar. Pausar detiene el sonido sin desconectar de la emisora (reanuda al momento); Parar corta la conexión del todo.
+- **Burbuja más completa**: ahora muestra el nombre de la emisora y tiene sus propios botones de pausa/reproducir y parar, sin dejar de ser pequeña.
+
+---
+
 ## v57
 
 ### Cambiado
