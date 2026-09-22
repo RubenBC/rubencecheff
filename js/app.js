@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v59';
+const APP_VERSION = 'v60';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -1759,11 +1759,24 @@ async function importCsvEvents(btn) {
     return;
   }
 
+  // Recintos que han cambiado de nombre por patrocinio pero son el mismo
+  // sitio: si el título trae uno de estos nombres, se sustituye por el
+  // actual antes de comparar, para que "Leiva en WiZink" y "Leiva en
+  // Movistar Arena" se reconozcan como el mismo concierto. Añade aquí
+  // cualquier otro recinto que cambie de nombre en el futuro.
+  const VENUE_ALIASES = [
+    [/\bwizink center\b/g,   'movistar arena'],
+    [/\bwizink\b/g,          'movistar arena'],
+    [/\bbarclaycard center\b/g, 'movistar arena'],
+    [/\bpalacio de los? deportes\b/g, 'movistar arena'],
+  ];
+  const applyVenueAliases = s => VENUE_ALIASES.reduce((acc, [re, to]) => acc.replace(re, to), s);
+
   // Compara títulos de forma resistente a variaciones de redacción: separa
   // por guion/"vs"/"v." y ordena los trozos alfabéticamente, así "Real
   // Madrid - Barcelona" y "Barcelona vs Real Madrid" se reconocen como el
   // mismo evento aunque Gemini los redacte distinto entre una consulta y otra.
-  const canonicalTitle = title => normalizeText(title)
+  const canonicalTitle = title => applyVenueAliases(normalizeText(title))
     .split(/\s*(?:-|vs\.?|v\.)\s*/)
     .map(p => p.trim())
     .filter(Boolean)
