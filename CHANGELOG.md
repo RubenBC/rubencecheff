@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v59
+
+### Corregido
+- **La burbuja ya no puede quedar fuera de la pantalla** (y por tanto "desaparecer"). Pasaba sobre todo al girar el móvil o cambiar de tamaño de pantalla: la posición guardada podía quedar fuera del nuevo tamaño. Ahora se reajusta sola siempre que haga falta, y si guardaba una posición corrupta, ya no rompe nada.
+
+### Cambiado
+- **Burbuja más grande** y con más espacio entre el vinilo, el nombre y los botones, para que no se vea tan apretada.
+
+---
+
 ## v58
 
 ### Cambiado
