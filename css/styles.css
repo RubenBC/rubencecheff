@@ -859,7 +859,7 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
 .timer-chip.potato .chip-num small { font-size: 11px; font-weight: 700; opacity: 0.8; }
 
 /* ═══════════════════════════════════════
-   RADIO EN DIRECTO (v58)
+   RADIO EN DIRECTO (v59)
    Ventana emergente con vinilo + burbuja flotante minimizable.
    Máx. 60% de pantalla; en apaisado (monitor) el reproductor y la lista
    se colocan en columnas en vez de apilados.
@@ -940,14 +940,14 @@ body.dark .radio-sheet { background: var(--surface); }
 /* ── Burbuja flotante (minimizado), visible en toda la app ── */
 .radio-bubble {
   position: fixed; z-index: 650; touch-action: none; cursor: grab;
-  display: flex; align-items: center; gap: 4px;
-  background: white; border-radius: 999px; padding: 4px; max-width: 200px;
+  display: flex; align-items: center; gap: 9px;
+  background: white; border-radius: 999px; padding: 7px 9px 7px 7px; max-width: 240px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.28);
 }
 body.dark .radio-bubble { background: var(--surface); }
-.radio-bubble-drag { display: flex; align-items: center; gap: 7px; min-width: 0; padding-right: 2px; cursor: pointer; }
+.radio-bubble-drag { display: flex; align-items: center; gap: 10px; min-width: 0; padding-right: 3px; cursor: pointer; }
 .radio-bubble-vinyl {
-  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
   background: repeating-radial-gradient(circle at center, #2a2a2e 0px, #2a2a2e 1px, #1a1a1c 1.6px, #1a1a1c 2.2px);
   display: flex; align-items: center; justify-content: center;
   animation: vinylSpin 2.4s linear infinite; animation-play-state: paused;
@@ -955,14 +955,14 @@ body.dark .radio-bubble { background: var(--surface); }
 .radio-bubble-vinyl.spinning { animation-play-state: running; }
 .radio-bubble-vinyl.connecting .material-symbols-outlined { animation: radioSpin 1s linear infinite; }
 .radio-bubble-vinyl.error { background: var(--danger); animation: none; }
-.radio-bubble-vinyl .material-symbols-outlined { font-size: 15px; color: white; }
+.radio-bubble-vinyl .material-symbols-outlined { font-size: 18px; color: white; }
 @keyframes radioSpin { to { transform: rotate(360deg); } }
-.radio-bubble-name { font-size: 11.5px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 72px; }
+.radio-bubble-name { font-size: 12.5px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 92px; }
 .radio-bubble-btn {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; border: none; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; border: none; cursor: pointer;
   background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; padding: 0;
 }
-.radio-bubble-btn .material-symbols-outlined { font-size: 17px; }
+.radio-bubble-btn .material-symbols-outlined { font-size: 19px; }
 .radio-bubble-btn.stop { background: var(--surface2); color: var(--text2); }
 body.dark .radio-bubble-btn.stop { background: rgba(255,255,255,0.08); }
 
