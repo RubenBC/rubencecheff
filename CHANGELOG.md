@@ -4,6 +4,18 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v56
+
+### Añadido
+- **Reproductor de radio con vinilo**: la Radio ahora se abre como ventana emergente (como el Timer) con un vinilo que gira y una aguja que baja al reproducir. Se muestra el nombre de la emisora y "En directo" (el nombre de canción/grupo no lo dan casi ninguna emisora al navegador, así que de momento no se intenta).
+- **Minimizar a burbuja**: botón para minimizar la ventana a una burbuja con el vinilo en miniatura, que se puede arrastrar por toda la pantalla y se ve en cualquier pestaña de la app mientras suena. Un toque la vuelve a abrir; la X de la burbuja para la radio. Al cambiar de pestaña (Platos, Producción, Utilidades, Timer) la ventana se minimiza sola para dejar ver la burbuja.
+- **Admin puede borrar también las emisoras de serie** (las que puse yo), no solo las suyas. Quedan ocultas pero se pueden volver a añadir a mano si se cambia de opinión. Nueva tabla en Supabase: `radio_hidden_builtin`.
+
+### Quitado
+- **Recarga automática cada 15 min**: cortaba la radio en marcha, así que se ha eliminado. Los datos se refrescan al reabrir la app.
+
+---
+
 ## v55
 
 ### Añadido
