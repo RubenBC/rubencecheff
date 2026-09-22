@@ -324,6 +324,7 @@
 
   /* ───────── acciones (llamadas desde el HTML) ───────── */
   window.openTimerModal = function () {
+    if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
     ensureAudio(); // este toque desbloquea el audio para cuando suene
     const m = $('timerModal');
     if (m.style.display !== 'flex') {

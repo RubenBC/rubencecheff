@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v55';
+const APP_VERSION = 'v56';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -144,6 +144,7 @@ let weights              = [];
 let brines               = [];
 let productionCategories = [];
 let customStations       = []; // emisoras de radio añadidas desde Admin (tabla radio_stations)
+let hiddenBuiltinStations = []; // ids de emisoras de serie que el admin ha borrado (tabla radio_hidden_builtin)
 let orderItems = [];        // filas de la tabla order_items (estado guardado)
 let orderState = {};        // key normalizada -> { name, supplier_group, checked, comment }
 let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos' | 'admin'
@@ -246,6 +247,17 @@ async function loadData() {
       customStations = [];
     }
 
+    // Emisoras de serie que el admin ha borrado. Misma idea: si la tabla
+    // no existe aún, simplemente no se oculta ninguna.
+    try {
+      const { data: hbData, error: hbErr } = await sb.from('radio_hidden_builtin').select('*');
+      if (hbErr) throw hbErr;
+      hiddenBuiltinStations = (hbData || []).map(r => r.id);
+    } catch (e) {
+      console.warn('radio_hidden_builtin no disponible (¿falta crear la tabla?):', e?.message || e);
+      hiddenBuiltinStations = [];
+    }
+
     // Ajustes de admin (p. ej. días de antelación del aviso de eventos).
     // La tabla puede no existir todavía: si falla, se usa el valor por
     // defecto (5 días) sin romper el resto de la app.
@@ -325,6 +337,8 @@ function showPage(page, btn, skipPush) {
   // El panel Admin ya no es una pestaña del menú: vive dentro de Utilidades.
   // Se mantiene esta redirección por si un estado guardado (recarga, historial) aún dice 'admin'.
   if (page === 'admin') { utilTab = 'admin'; page = 'fichas'; btn = null; }
+  // Si la ventana de Radio está abierta, minimizarla a burbuja al cambiar de pestaña
+  if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
   exitInnerView();
   hideSearchDropdown();
   const switchingPage = page !== currentPage;
@@ -341,15 +355,14 @@ function showPage(page, btn, skipPush) {
 
   const isRecipes = page === 'recipes';
   const isProd    = page === 'productions';
-  // El buscador global siempre visible, salvo en Radio (no aplica)
-  document.getElementById('searchSection').style.display = (page === 'radio') ? 'none' : '';
+  // El buscador global siempre visible
+  document.getElementById('searchSection').style.display = '';
   document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
   document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
 
   if (isRecipes) renderRecipes();
   if (isProd)    renderProductions();
   if (page === 'fichas')    renderFichas();
-  if (page === 'radio')     renderRadio();
 
   if (switchingPage) {
     const y = savedScroll[page] || 0;
@@ -1897,6 +1910,20 @@ function radioAdminStationType(url) {
 function renderRadioAdmin() {
   const box = document.getElementById('resolvedSection');
   if (!box) return;
+  const builtin = (window.RADIO_BUILTIN || []).filter(s => !hiddenBuiltinStations.includes(s.id));
+  const builtinRowsHtml = builtin.length === 0
+    ? `<div style="padding:10px 2px; color:var(--text2); font-size:13px;">No quedan emisoras de serie.</div>`
+    : builtin.map(s => `
+      <div class="ficha-row">
+        <div class="ficha-name" style="min-width:0;">
+          <div style="font-weight:800;">${escapeHtml(s.name)}</div>
+          <div style="font-size:11.5px; color:var(--text2);">De serie</div>
+        </div>
+        <button class="btn-icon" onclick="radioAdminDeleteBuiltin('${s.id}')">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>
+      </div>`).join('');
+
   const rowsHtml = customStations.length === 0
     ? `<div style="padding:10px 2px; color:var(--text2); font-size:13px;">Aún no has añadido ninguna emisora.</div>`
     : customStations.map(s => `
@@ -1921,6 +1948,10 @@ function renderRadioAdmin() {
       <span class="material-symbols-outlined">radio</span> Emisoras de radio
     </div>
     <div class="card">
+      <div style="font-size:11.5px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">De serie</div>
+      ${builtinRowsHtml}
+      <div style="height:1px; background:var(--outline-light); margin:14px 0;"></div>
+      <div style="font-size:11.5px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Añadidas por ti</div>
       ${rowsHtml}
       <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
         <div class="form-input ce-input" id="radioNameInput" contenteditable="true" data-placeholder="Nombre de la emisora..."></div>
@@ -1994,6 +2025,27 @@ async function radioAdminSave() {
   }
   renderAdmin();
   if (currentPage === 'radio' && typeof renderRadio === 'function') renderRadio();
+}
+
+async function radioAdminDeleteBuiltin(id) {
+  const st = (window.RADIO_BUILTIN || []).find(s => s.id === id);
+  if (!st) return;
+  const ok = await showConfirm({
+    title:       'Eliminar emisora',
+    message:     `¿Seguro que quieres eliminar "${st.name}"? Es una emisora de serie; se puede volver a añadir a mano desde aquí si cambias de opinión.`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('radio_hidden_builtin').insert({ id });
+      if (error) throw error;
+      hiddenBuiltinStations.push(id);
+    },
+  });
+  if (!ok) return;
+  showToast('Emisora eliminada');
+  renderAdmin();
+  if (typeof renderRadio === 'function') renderRadio();
 }
 
 async function radioAdminDelete(id) {
@@ -3286,30 +3338,8 @@ loadData();
 //   });
 // }
 
-// Recarga automática cada 15 min, para que los datos (recetas, eventos,
-// pedidos...) no se queden desactualizados en una pantalla que se deja
-// abierta horas. No interrumpe si hay una edición sin guardar (se salta
-// ese ciclo y lo vuelve a intentar en el siguiente). Antes de recargar
-// guarda en qué ficha/pestaña estabas para volver justo ahí (ver el
-// bloque de restauración al final de loadData()).
-const RELOAD_INTERVAL_MS = 15 * 60 * 1000;
-setInterval(() => {
-  if (isRecipeEditorDirty() || isProdEditorDirty()) return;
-  if (typeof timerBlocksReload === 'function' && timerBlocksReload()) return; // hay un timer/alarma a punto de sonar o sonando
-  if (typeof radioStop === 'function') radioStop(); // no dejar la radio sonando tras recargar
-  try {
-    let restoreState;
-    if (document.getElementById('detailPage').classList.contains('active') && currentRecipeId) {
-      restoreState = { view: 'recipe', id: currentRecipeId, fromPage: currentPage };
-    } else if (document.getElementById('productionDetailPage').classList.contains('active') && currentProdId) {
-      restoreState = { view: 'production', id: currentProdId, fromPage: currentPage };
-    } else {
-      restoreState = { view: 'tab', page: currentPage };
-    }
-    sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify(restoreState));
-  } catch (e) {}
-  location.reload();
-}, RELOAD_INTERVAL_MS);
+// La recarga automática cada 15 min se quitó: cortaba la radio en marcha.
+// Los datos se refrescan solos al reabrir la app o pulsar recargar.
 
 // Botón atrás de Android
 history.pushState({ view: 'home' }, '');
@@ -3344,6 +3374,10 @@ window.addEventListener('popstate', (e) => {
     // El timer no se puede cerrar con "atrás" mientras está sonando: hay que pulsar Detener
     if (state.id === 'timerModal' && typeof timerIsRinging === 'function' && timerIsRinging()) {
       history.pushState({ view: 'staticModal', id: 'timerModal' }, '');
+      return;
+    }
+    if (state.id === 'radioModal' && typeof radioMinimize === 'function') {
+      radioMinimize();
       return;
     }
     const m = document.getElementById(state.id);
