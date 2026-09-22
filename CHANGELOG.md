@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v60
+
+### Corregido
+- **El detector de duplicados de partidos y conciertos ya reconoce los recintos que han cambiado de nombre por patrocinio.** Antes, "Leiva en WiZink" y "Leiva en Movistar Arena" se colaban como dos avisos distintos porque el nombre del recinto va dentro del propio título. Ahora, antes de comparar, sustituye los nombres antiguos (WiZink Center, Barclaycard Center, Palacio de los Deportes) por el actual (Movistar Arena), así que un CSV nuevo con el nombre antiguo ya no duplica un aviso que use el nuevo, y viceversa. Si algún otro recinto cambia de nombre en el futuro, se añade a esa misma lista.
+
+---
+
 ## v59
 
 ### Corregido
