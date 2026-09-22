@@ -4,6 +4,15 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v57
+
+### Cambiado
+- La ventana de Radio ya no pasa del **60 % de la pantalla** (antes llegaba a más).
+- **Se adapta a monitor apaisado o móvil vertical**: en horizontal ancho (monitor, tablet apaisado) el vinilo y la lista de emisoras se ponen en columnas, uno al lado del otro; en vertical (móvil) siguen apilados como antes.
+- **Aguja del vinilo corregida**: ahora sí baja y se apoya sobre el disco al reproducir, y se levanta y se aparta claramente cuando no suena nada.
+
+---
+
 ## v56
 
 ### Añadido
