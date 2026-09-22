@@ -4,6 +4,22 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v55
+
+### Añadido
+- **LOS40 Urban** en la lista de emisoras de Radio.
+- **Admin ahora puede añadir sus propias emisoras**: en Utilidades → Admin, nueva sección "Emisoras de radio" con nombre + enlace directo (.mp3, .aac o .m3u8 — el tipo se detecta solo). Se pueden editar y eliminar. Se guardan en Supabase (tabla `radio_stations`, nueva) y aparecen en la pestaña Radio junto a las de serie.
+
+---
+
+## v54
+
+### Añadido
+- **Nueva pestaña "Radio"** en el menú inferior, a la derecha de Timer. Lista de 10 emisoras españolas populares (Cadena SER, LOS40, COPE, Onda Cero, RNE, Cadena Dial, Kiss FM, Cadena 100, Rock FM, Radio Marca) con reproducción por streaming: toca una para escucharla, tócala de nuevo para pararla. Solo suena una a la vez, con una barra inferior para pararla desde cualquier pestaña. Si una emisora no conecta, lo avisa y deja reintentar o elegir otra sin romper nada.
+- Las URLs de las emisoras son las oficiales de cada cadena, tomadas de un directorio de streaming español de código abierto mantenido activamente (TDTChannels). Algunas emiten en formato HLS (Onda Cero, RNE, Cadena 100, Rock FM) y para esas se usa la librería hls.js desde cdnjs.
+
+---
+
 ## v53
 
 ### Cambiado
