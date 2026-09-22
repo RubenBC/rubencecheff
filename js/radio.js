@@ -169,19 +169,33 @@
     if (b) b.style.display = 'none';
   }
 
+  // Mantiene la burbuja siempre dentro de la pantalla visible. Se usa al
+  // restaurar su posición, al arrastrarla y al cambiar el tamaño/orientación
+  // de la pantalla (si no, una posición guardada en horizontal podía quedar
+  // fuera de la pantalla al volver a vertical, y la burbuja "desaparecía").
+  function clampBubbleXY(x, y) {
+    const b = $('radioBubble');
+    const margin = 10;
+    const maxX = window.innerWidth - b.offsetWidth - margin;
+    const maxY = window.innerHeight - b.offsetHeight - margin;
+    return [Math.min(Math.max(x, margin), Math.max(margin, maxX)), Math.min(Math.max(y, margin), Math.max(margin, maxY))];
+  }
+
+  function reclampBubble() {
+    const b = $('radioBubble');
+    if (!b || b.style.display !== 'flex' || b.style.left === 'auto' || !b.style.left) return;
+    const [x, y] = clampBubbleXY(parseFloat(b.style.left), parseFloat(b.style.top));
+    b.style.left = x + 'px'; b.style.top = y + 'px';
+  }
+  window.addEventListener('resize', reclampBubble);
+  window.addEventListener('orientationchange', () => setTimeout(reclampBubble, 200));
+
   /* ───────── arrastrar la burbuja por la pantalla ───────── */
   let bubbleDragged = false;
   (function setupBubbleDrag() {
     const b = document.getElementById('radioBubble');
     if (!b) return;
     let sx = 0, sy = 0, ox = 0, oy = 0, dragging = false;
-
-    function clamp(x, y) {
-      const margin = 8;
-      const maxX = window.innerWidth - b.offsetWidth - margin;
-      const maxY = window.innerHeight - b.offsetHeight - margin;
-      return [Math.min(Math.max(x, margin), Math.max(margin, maxX)), Math.min(Math.max(y, margin), Math.max(margin, maxY))];
-    }
 
     function onDown(e) {
       const p = e.touches ? e.touches[0] : e;
@@ -199,7 +213,7 @@
       const p = e.touches ? e.touches[0] : e;
       const dx = p.clientX - sx, dy = p.clientY - sy;
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) bubbleDragged = true;
-      const [x, y] = clamp(ox + dx, oy + dy);
+      const [x, y] = clampBubbleXY(ox + dx, oy + dy);
       b.style.left = x + 'px'; b.style.top = y + 'px';
       b.style.right = 'auto'; b.style.bottom = 'auto';
     }
@@ -221,9 +235,13 @@
     if (!b) return;
     try {
       const saved = JSON.parse(localStorage.getItem('rubencechef-radio-bubble-pos'));
-      if (saved && saved.left && saved.top) {
-        b.style.left = saved.left; b.style.top = saved.top;
+      const lx = saved && parseFloat(saved.left), ly = saved && parseFloat(saved.top);
+      if (saved && Number.isFinite(lx) && Number.isFinite(ly)) {
+        b.style.left = lx + 'px'; b.style.top = ly + 'px';
         b.style.right = 'auto'; b.style.bottom = 'auto';
+        // el tamaño real solo se conoce una vez pintada (display:flex ya
+        // aplicado antes de llamar aquí); reclamplamos en el siguiente frame
+        requestAnimationFrame(reclampBubble);
         return;
       }
     } catch (e) {}
