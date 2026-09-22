@@ -859,22 +859,26 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
 .timer-chip.potato .chip-num small { font-size: 11px; font-weight: 700; opacity: 0.8; }
 
 /* ═══════════════════════════════════════
-   RADIO EN DIRECTO (v56)
-   Ventana emergente con vinilo + burbuja flotante minimizable
+   RADIO EN DIRECTO (v57)
+   Ventana emergente con vinilo + burbuja flotante minimizable.
+   Máx. 60% de pantalla; en apaisado (monitor) el reproductor y la lista
+   se colocan en columnas en vez de apilados.
 ═══════════════════════════════════════ */
 #radioModal { z-index: 700; }
-.radio-sheet { background: white; border-radius: 24px 24px 0 0; padding: 10px 18px calc(14px + env(safe-area-inset-bottom)); width: 100%; max-width: 600px; max-height: 84vh; display: flex; flex-direction: column; gap: 4px; animation: slideUp 0.22s ease; box-shadow: 0 -4px 24px rgba(0,0,0,0.18); }
+.radio-sheet { background: white; border-radius: 24px 24px 0 0; padding: 10px 18px calc(14px + env(safe-area-inset-bottom)); width: 100%; max-width: 600px; height: 60vh; max-height: 60vh; display: flex; flex-direction: column; gap: 4px; animation: slideUp 0.22s ease; box-shadow: 0 -4px 24px rgba(0,0,0,0.18); }
 body.dark .radio-sheet { background: var(--surface); }
 
-.radio-sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; }
+.radio-sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; flex-shrink: 0; }
 .radio-sheet-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--primary); }
 .radio-sheet-title .material-symbols-outlined { font-size: 19px; }
 
+.radio-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
 /* ── Reproductor: vinilo + aguja + "ahora suena" ── */
-.radio-player { display: flex; flex-direction: column; align-items: center; padding: 6px 0 14px; flex-shrink: 0; }
-.vinyl-wrap { position: relative; width: 132px; height: 132px; margin-bottom: 10px; }
+.radio-player { display: flex; flex-direction: column; align-items: center; padding: 4px 0 12px; flex-shrink: 0; }
+.vinyl-wrap { position: relative; width: 168px; height: 140px; margin-bottom: 8px; }
 .vinyl {
-  width: 132px; height: 132px; border-radius: 50%;
+  position: absolute; left: 0; bottom: 0; width: 128px; height: 128px; border-radius: 50%;
   background:
     repeating-radial-gradient(circle at center, #2a2a2e 0px, #2a2a2e 2px, #1a1a1c 3px, #1a1a1c 4px);
   box-shadow: 0 6px 18px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.05);
@@ -884,33 +888,31 @@ body.dark .radio-sheet { background: var(--surface); }
 .vinyl.spinning { animation-play-state: running; }
 @keyframes vinylSpin { to { transform: rotate(360deg); } }
 .vinyl-label {
-  width: 46px; height: 46px; border-radius: 50%; background: var(--primary);
+  width: 44px; height: 44px; border-radius: 50%; background: var(--primary);
   display: flex; align-items: center; justify-content: center;
   box-shadow: inset 0 0 0 3px rgba(255,255,255,0.18);
 }
-.vinyl-label .material-symbols-outlined { font-size: 22px; color: white; }
-.tonearm {
-  position: absolute; top: -14px; right: -22px; width: 74px; height: 74px;
-  transform-origin: 90% 10%; transform: rotate(-32deg); transition: transform 0.35s ease;
-}
-.tonearm.down { transform: rotate(-6deg); }
-.tonearm::before { /* brazo */
-  content: ''; position: absolute; top: 8px; right: 8px; width: 6px; height: 58px; border-radius: 3px;
-  background: linear-gradient(var(--outline), var(--text2)); transform-origin: top center;
-}
-.tonearm::after { /* base / pivote */
-  content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-radius: 50%;
-  background: var(--text2); box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-.tonearm-head { position: absolute; bottom: 4px; right: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.vinyl-label .material-symbols-outlined { font-size: 21px; color: white; }
 
-.radio-np-name { font-size: 16px; font-weight: 800; color: var(--text); text-align: center; max-width: 90%; }
-.radio-np-sub { font-size: 12.5px; font-weight: 700; color: var(--text2); margin-top: 2px; }
+/* Brazo: pivota desde un punto fijo arriba a la derecha del disco.
+   En reposo apunta hacia fuera (lejos del disco); "down" lo balancea
+   hacia dentro hasta que la punta cae sobre el vinilo. */
+.tonearm-pivot { position: absolute; top: 0; right: 8px; width: 14px; height: 14px; border-radius: 50%; background: var(--text2); box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 2; }
+.tonearm {
+  position: absolute; top: 6px; left: 1px; width: 6px; height: 84px;
+  background: linear-gradient(var(--outline), var(--text2)); border-radius: 3px;
+  transform-origin: top center; transform: rotate(-14deg); transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+}
+.tonearm.down { transform: rotate(38deg); }
+.tonearm-head { position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); width: 11px; height: 11px; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+
+.radio-np-name { font-size: 15.5px; font-weight: 800; color: var(--text); text-align: center; max-width: 90%; }
+.radio-np-sub { font-size: 12px; font-weight: 700; color: var(--text2); margin-top: 2px; }
 .radio-np-sub.error { color: var(--danger); }
 
 /* ── Lista de emisoras ── */
-.radio-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-bottom: 4px; }
-.radio-card { display: flex; align-items: center; gap: 12px; text-align: left; border: 1.5px solid var(--outline-light); background: var(--surface); border-radius: 16px; padding: 10px 14px; cursor: pointer; font-family: 'Nunito', sans-serif; }
+.radio-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
+.radio-card { display: flex; align-items: center; gap: 12px; text-align: left; border: 1.5px solid var(--outline-light); background: var(--surface); border-radius: 16px; padding: 10px 14px; cursor: pointer; font-family: 'Nunito', sans-serif; flex-shrink: 0; }
 .radio-card-icon { font-size: 24px; color: var(--primary); flex-shrink: 0; }
 .radio-card-text { min-width: 0; }
 .radio-card-name { font-weight: 800; font-size: 14.5px; color: var(--text); }
@@ -920,6 +922,14 @@ body.dark .radio-sheet { background: var(--surface); }
 .radio-card.error { border-color: var(--danger); background: var(--danger-light); }
 .radio-card.error .radio-card-icon { color: var(--danger); }
 .radio-card.error .radio-card-desc { color: var(--danger); }
+
+/* Apaisado / monitor: reproductor y lista en columnas, no apilados */
+@media (orientation: landscape) and (min-width: 640px) {
+  .radio-sheet { max-width: 860px; }
+  .radio-body { flex-direction: row; gap: 20px; align-items: stretch; }
+  .radio-player { flex: 0 0 220px; padding: 6px 20px 6px 0; border-right: 1px solid var(--outline-light); justify-content: center; }
+  .radio-list { flex: 1; }
+}
 
 /* ── Burbuja flotante (minimizado), visible en toda la app ── */
 .radio-bubble { position: fixed; z-index: 650; width: 56px; height: 56px; touch-action: none; cursor: grab; }
@@ -943,7 +953,6 @@ body.dark .radio-sheet { background: var(--surface); }
 body.dark .radio-bubble-stop { border-color: var(--surface); }
 
 /* Punto en el icono del menú inferior cuando hay algo sonando (aunque esté minimizado) */
-.nav-btn.radio-active .material-symbols-outlined::after { content: ''; }
 .nav-btn.radio-active::after { content: ''; position: absolute; top: 4px; right: calc(50% - 22px); width: 9px; height: 9px; border-radius: 50%; background: var(--alert); z-index: 2; }
 
 /* con 5 pestañas en el menú, un poco más compactas en móvil */
