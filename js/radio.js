@@ -14,17 +14,15 @@
   // Emisoras de serie. Expuestas en window.RADIO_BUILTIN para que el panel
   // de Admin pueda listarlas y ofrecer borrarlas (tabla radio_hidden_builtin).
   const BUILTIN = [
-    { id: 'ser',    name: 'Cadena SER',  desc: 'Actualidad y radio generalista', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENASER.mp3' },
-    { id: 'los40',  name: 'LOS40',       desc: 'La radio musical más escuchada', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/Los40.mp3' },
-    { id: 'cope',   name: 'COPE',        desc: 'Actualidad, deportes y tertulia', type: 'audio', url: 'https://flucast09-h-cloud.flumotion.com/cope/net1.mp3' },
-    { id: 'ondacero', name: 'Onda Cero', desc: 'Actualidad y radio generalista', type: 'hls',   url: 'https://atres-live.ondacero.es/live/ondaceroeventos1/master.m3u8' },
-    { id: 'rne',    name: 'RNE · Radio Nacional', desc: 'Radiotelevisión Española', type: 'hls', url: 'https://rtvelivestream.rtve.es/rtvesec/rne/rne_r1_main.m3u8' },
-    { id: 'dial',   name: 'Cadena Dial', desc: 'Música en español', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL.mp3' },
-    { id: 'kiss',   name: 'Kiss FM',     desc: 'Éxitos y música pop', type: 'audio', url: 'https://kissfm.kissfmradio.cires21.com/kissfm.mp3' },
-    { id: 'c100',   name: 'Cadena 100',  desc: 'Música variada, todos los públicos', type: 'hls', url: 'https://cadena100-cope.flumotion.com/chunks.m3u8' },
-    { id: 'rockfm', name: 'Rock FM',     desc: 'Rock en español e internacional', type: 'hls', url: 'https://rockfm-cope.flumotion.com/playlist.m3u8' },
-    { id: 'marca',  name: 'Radio Marca', desc: 'Deportes las 24 horas', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOMARCA_NACIONAL.mp3' },
-    { id: 'los40urban', name: 'LOS40 Urban', desc: 'Hip hop, trap y urbana', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_URBAN.mp3' },
+    { id: 'los40',        name: 'LOS40',        desc: 'Éxitos actuales: pop, dance, electropop y reguetón.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40.mp3' },
+    { id: 'los40classic', name: 'LOS40 Classic', desc: 'Grandes éxitos de los 70 a los 2000.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_CLASSIC.mp3' },
+    { id: 'los40dance',   name: 'LOS40 Dance',   desc: 'Electrónica y dance, al estilo de la antigua Máxima FM.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_DANCE_SC' },
+    { id: 'europafm',     name: 'Europa FM',     desc: 'Pop y música comercial actual.', type: 'audio', url: 'https://radio-atres-live.ondacero.es/api/livestream-redirect/EFMAAC.aac' },
+    { id: 'dial',         name: 'Cadena Dial',   desc: 'Pop en español, artistas de España y Latinoamérica.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL.mp3' },
+    { id: 'cadena100',    name: 'Cadena 100',    desc: 'Pop comercial, éxitos nacionales e internacionales.', type: 'audio', url: 'https://cadena100-streamers-mp3.flumotion.com/cope/cadena100.mp3' },
+    { id: 'rockfm',       name: 'Rock FM',       desc: 'Rock clásico nacional e internacional.', type: 'audio', url: 'https://flucast26-h-cloud.flumotion.com/cope/rockfm-low.mp3' },
+    { id: 'radiole',      name: 'Radiolé',       desc: 'Copla, flamenco, rumba y sevillanas.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOLE.mp3' },
+    { id: 'radio3',       name: 'Radio 3',       desc: 'Música alternativa e independiente.', type: 'hls', url: 'https://rtvelivestream.rtve.es/rtvesec/rne/rne_r3_main.m3u8' },
   ];
   window.RADIO_BUILTIN = BUILTIN;
 
@@ -38,7 +36,7 @@
   }
 
   let current = null;   // id de la emisora sonando/cargando, o null
-  let status = 'idle';  // 'idle' | 'connecting' | 'playing' | 'error'
+  let status = 'idle';  // 'idle' | 'connecting' | 'playing' | 'paused' | 'error'
   let hls = null;
   let minimized = false; // ventana minimizada a burbuja
 
@@ -48,6 +46,26 @@
   function stopHls() {
     if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
   }
+
+  window.radioPlayPause = function () {
+    if (!current) return;
+    if (status === 'error') { radioToggle(current); return; } // reintentar desde cero
+    const a = audio();
+    if (status === 'playing' || status === 'connecting') {
+      try { a.pause(); } catch (e) {}
+      status = 'paused';
+      render();
+    } else if (status === 'paused') {
+      status = 'connecting';
+      render();
+      a.play().catch(() => { status = 'error'; render(); });
+    }
+  };
+
+  window.radioBubblePlayPause = function (e) {
+    e.stopPropagation();
+    radioPlayPause();
+  };
 
   window.radioStop = function () {
     const a = audio();
@@ -59,6 +77,7 @@
   };
 
   window.radioToggle = function (id) {
+    if (current === id && status === 'paused') { radioPlayPause(); return; }
     if (current === id && status !== 'error') { radioStop(); return; }
     radioStop();
     const st = STATIONS_LIST().find(s => s.id === id);
@@ -71,6 +90,7 @@
     a.onerror = () => { if (current === id) { status = 'error'; renderRadio(); } };
     a.onwaiting = () => { if (current === id && status === 'playing') { status = 'connecting'; renderRadio(); } };
     a.onplaying = () => { if (current === id) { status = 'playing'; renderRadio(); } };
+    a.onpause = () => { if (current === id && status !== 'idle' && status !== 'error') { status = 'paused'; renderRadio(); } };
 
     if (st.type === 'hls' && !a.canPlayType('application/vnd.apple.mpegurl')) {
       if (typeof Hls !== 'undefined' && Hls.isSupported()) {
@@ -93,6 +113,7 @@
   function statusText() {
     if (status === 'connecting') return 'Conectando…';
     if (status === 'playing') return 'En directo';
+    if (status === 'paused') return 'En pausa';
     if (status === 'error') return 'No se pudo conectar · toca para reintentar';
     return '';
   }
@@ -218,6 +239,11 @@
     v.classList.toggle('spinning', status === 'playing');
     v.classList.toggle('connecting', status === 'connecting');
     v.classList.toggle('error', status === 'error');
+    const st = currentStation();
+    const nameEl = $('radioBubbleName');
+    if (nameEl) nameEl.textContent = st ? st.name : '';
+    const icon = $('radioBubblePlayIcon');
+    if (icon) icon.textContent = (status === 'playing' || status === 'connecting') ? 'pause' : (status === 'error' ? 'refresh' : 'play_arrow');
   }
 
   window.renderRadio = function () {
@@ -232,8 +258,9 @@
     list.innerHTML = STATIONS_LIST().map(s => {
       const active = current === s.id;
       const cls = active ? (status === 'error' ? 'radio-card error' : 'radio-card active') : 'radio-card';
+      const icon = !active ? 'radio' : status === 'playing' ? 'graphic_eq' : status === 'paused' ? 'pause' : status === 'error' ? 'error' : 'more_horiz';
       return `<button class="${cls}" onclick="radioToggle('${s.id}')">
-        <span class="material-symbols-outlined radio-card-icon">${active ? (status === 'playing' ? 'graphic_eq' : status === 'error' ? 'error' : 'more_horiz') : 'radio'}</span>
+        <span class="material-symbols-outlined radio-card-icon">${icon}</span>
         <div class="radio-card-text">
           <div class="radio-card-name">${s.name}</div>
           <div class="radio-card-desc">${active ? statusText() : s.desc}</div>
@@ -258,6 +285,14 @@
         subEl.textContent = statusText();
         subEl.classList.toggle('error', status === 'error');
       }
+    }
+
+    // controles de reproducción bajo el vinilo
+    const playBtn = $('radioPlayPauseBtn'), playIcon = $('radioPlayPauseIcon'), stopBtn = $('radioStopBtn');
+    if (playBtn && playIcon && stopBtn) {
+      playBtn.disabled = !current;
+      stopBtn.disabled = !current;
+      playIcon.textContent = (status === 'playing' || status === 'connecting') ? 'pause' : (status === 'error' ? 'refresh' : 'play_arrow');
     }
 
     // burbuja (si está minimizada y hay algo sonando/cargando)
