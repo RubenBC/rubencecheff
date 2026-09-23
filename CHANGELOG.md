@@ -4,6 +4,42 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v62
+
+### Añadido
+- **Fotos de platos reducidas en el móvil antes de subirlas**: una foto de cámara de 4-8 MB se queda en unos 400 KB (1600 px, JPEG), respetando la orientación de la cámara. Si no se puede reducir, se sube la original para no bloquear.
+- **Miniaturas para la lista de platos** (~480 px, unos 15-50 KB): las tarjetas cargan mucho más rápido. Necesita la columna `photo_thumb` en la tabla `recipes`; sin ella la app funciona igual, solo que sin miniaturas.
+- **Admin → "Optimizar fotos"**: reduce de una vez las fotos subidas antes de esta versión, crea sus miniaturas y borra las originales pesadas.
+- **Limpieza de fotos**: al cambiar la foto de un plato, al borrarlo o al salir del editor sin guardar, se borran del almacenamiento las fotos que ya no usa ninguna receta (nunca una que siga en uso).
+- **La radio se pausa sola cuando suena un timer o alarma** ("En pausa · está sonando una alarma") y se reanuda al pulsar Detener, volviendo al directo. Si la radio ya estaba en pausa o parada, no se toca.
+
+---
+
+## v61 — Auditoría
+
+### Corregido
+- **Botón atrás**: con la Radio abierta la escondía sin dejar la burbuja (seguía sonando sin controles); ahora la minimiza a burbuja. Con el timer sonando lo cerraba sin pulsar Detener; ahora no se puede. Tras cerrar ventanas con la X o ver una foto ampliada hacía falta pulsar atrás varias veces; ahora basta una. La foto ampliada se cerraba mal con atrás.
+- **Pedidos**: si fallaba el guardado (sin cobertura), el código daba error, no avisaba y el artículo se quedaba marcado como si se hubiera guardado. Ahora avisa y deshace el cambio. "Reiniciar lista" comprueba que de verdad se guardó.
+- **Sin conexión al abrir la app** se veía "Aún no hay platos creados", como si se hubiera borrado todo. Ahora sale el aviso de error con botón Reintentar.
+- **Foto de receta**: si la subida fallaba, decía "Foto subida ✓" y guardaba un enlace roto.
+- **Vincular producciones / platos**: los errores se ignoraban y parecía guardado. Ahora se comprueba, y el orden de guardado ya no puede borrar vínculos existentes si algo falla a mitad.
+- **Radio**: "En pausa" falso al cambiar de emisora; arrastrar la burbuja agarrándola por un botón pausaba o paraba la radio; tras una pausa larga sonaba audio atrasado (ahora reconecta al directo); la burbuja podía saltar mientras se arrastraba; la burbuja tapaba los diálogos (confirmar, pesos…). Nombres de emisora escapados. Enlaces http:// de emisoras nuevas se pasan a https:// solos, y se rechazan las listas .pls/.m3u.
+- **Timer**: un timer guardado con el antiguo "Tono 2" no sonaba (error en la melodía).
+- **Globo rojo de comentarios** aparecía debajo de "Utilidades" en vez de en la esquina del icono.
+- **Duplicados de conciertos**: el robot diario de GitHub no reconocía el cambio WiZink → Movistar Arena, no quitaba repetidos dentro de la misma respuesta, y una hora "null" o "21:00h" hacía fallar el guardado de todos los eventos del día. Sus instrucciones ahora usan "Movistar Arena". La importación de CSV también valida la hora y ya no distingue la categoría al buscar duplicados.
+- **Buscador**: ahora encuentra sin tildes ("cesar" → "César") y escapa el texto escrito.
+- Texto de platos, producciones, pesos y salmueras escapado en editores y listas (un "<" en una descripción podía romper el editor).
+
+### Añadido
+- **Refresco de datos en segundo plano** cada 15 min y al volver a la app: sustituye a la recarga automática que se quitó en v56 (desde entonces los datos, p. ej. los pedidos compartidos, no se actualizaban nunca). No recarga la página, así que no corta la radio ni los timers, y no actúa si estás editando o escribiendo.
+- Iconos de la app que faltaban (`icon.png`, `icon-192.png`); `icon-maskable.png` reducido de 1 MB a 180 KB.
+
+### Otros
+- La carga inicial pide las tablas opcionales a la vez en vez de una tras otra (la primera pantalla aparece antes).
+- README sin la contraseña de admin que estaba publicada.
+
+---
+
 ## v60
 
 ### Corregido

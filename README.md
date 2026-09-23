@@ -1,23 +1,19 @@
-# ChefBook 🍽️
+# RubenceChef 🍽️
 ### Hotel Kitchen Pro
 
-App de consulta de recetas para cocina profesional de hotel.
+App de cocina profesional de hotel: platos, producciones, utilidades (pesos, conversiones, pedidos), temporizadores y radio.
 
 ## Estructura
 ```
-chefbook/
-├── index.html        → estructura de la app
-├── css/styles.css    → estilos y diseño
-├── js/app.js         → lógica y datos
-├── img/              → fotos en local (no se suben a GitHub)
-└── .gitignore
+index.html                     → estructura de la app
+css/styles.css                 → estilos
+js/app.js                      → lógica principal y datos (Supabase)
+js/timer.js                    → temporizadores y alarmas
+js/radio.js                    → radio en directo
+scripts/check-important-dates.mjs → robot diario de partidos y conciertos (GitHub Actions)
 ```
 
 ## Tecnologías
 - HTML + CSS + JavaScript puro
-- Base de datos: Supabase (próximamente)
-- Fotos: Supabase Storage (próximamente)
-- Alojamiento: GitHub Pages / Vercel
-
-## Contraseña admin (demo)
-`chef2026`
+- Base de datos, fotos y acceso admin: Supabase
+- Alojamiento: GitHub Pages
