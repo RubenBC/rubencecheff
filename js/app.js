@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v60';
+const APP_VERSION = 'v62';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -151,6 +151,8 @@ let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos' | 'admin'
 let pedidosSearch = '';
 let pedidosEdit   = false;  // modo edición de la lista de pedidos
 let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
+let recipeThumbCol = false; // ¿existe la columna recipes.photo_thumb (miniatura para la lista)?
+let recipeEditorUploads = []; // fotos subidas en esta sesión del editor (para limpiar las que no se usen)
 let isAdmin     = false;
 let currentPage = 'recipes';
 let savedScroll = {};
@@ -185,15 +187,7 @@ let selectedProdIds    = [];
 // ═══════════════════════════════════════
 async function loadData() {
   try {
-    const [
-      { data: rData },
-      { data: pData },
-      { data: rpData },
-      { data: cData },
-      { data: wData },
-      { data: bData },
-      { data: pcData },
-    ] = await Promise.all([
+    const mainResults = await Promise.all([
       sb.from('recipes').select('*').order('name'),
       sb.from('productions').select('*').order('name'),
       sb.from('recipe_productions').select('*'),
@@ -202,6 +196,15 @@ async function loadData() {
       sb.from('brines').select('*').order('category'),
       sb.from('production_categories').select('*').order('sort_order'),
     ]);
+    // Supabase no lanza excepción si falla la conexión: devuelve { error }.
+    // Antes eso dejaba las listas vacías ("Aún no hay platos creados"),
+    // como si se hubieran borrado. Ahora se muestra el aviso de error.
+    const mainErr = mainResults.find(r => r && r.error);
+    if (mainErr) throw mainErr.error;
+    const [
+      { data: rData }, { data: pData }, { data: rpData }, { data: cData },
+      { data: wData }, { data: bData }, { data: pcData },
+    ] = mainResults;
 
     recipes              = rData  || [];
     productions          = pData  || [];
@@ -225,64 +228,29 @@ async function loadData() {
     recipes.forEach(normalizeItem);
     productions.forEach(normalizeItem);
 
-    // La tabla de avisos (partidos/conciertos) puede no existir todavía:
-    // cárgala sin romper el resto si aún no se ha creado en Supabase.
-    try {
-      const { data: idData, error: idErr } = await sb.from('important_dates').select('*').order('event_date');
-      if (idErr) throw idErr;
-      importantDates = idData || [];
-    } catch (e) {
-      console.warn('important_dates no disponible (¿falta crear la tabla?):', e?.message || e);
-      importantDates = [];
-    }
-
-    // Emisoras de radio añadidas desde Admin. La tabla puede no existir
-    // todavía: si falla, la Radio funciona igual solo con las emisoras de serie.
-    try {
-      const { data: rsData, error: rsErr } = await sb.from('radio_stations').select('*').order('sort_order');
-      if (rsErr) throw rsErr;
-      customStations = rsData || [];
-    } catch (e) {
-      console.warn('radio_stations no disponible (¿falta crear la tabla?):', e?.message || e);
-      customStations = [];
-    }
-
-    // Emisoras de serie que el admin ha borrado. Misma idea: si la tabla
-    // no existe aún, simplemente no se oculta ninguna.
-    try {
-      const { data: hbData, error: hbErr } = await sb.from('radio_hidden_builtin').select('*');
-      if (hbErr) throw hbErr;
-      hiddenBuiltinStations = (hbData || []).map(r => r.id);
-    } catch (e) {
-      console.warn('radio_hidden_builtin no disponible (¿falta crear la tabla?):', e?.message || e);
-      hiddenBuiltinStations = [];
-    }
-
-    // Ajustes de admin (p. ej. días de antelación del aviso de eventos).
-    // La tabla puede no existir todavía: si falla, se usa el valor por
-    // defecto (5 días) sin romper el resto de la app.
-    try {
-      const { data: setData, error: setErr } = await sb.from('app_settings').select('*').eq('key', 'events_window_days').maybeSingle();
-      if (setErr) throw setErr;
-      if (setData) eventsWindowDays = parseInt(setData.value, 10) || 5;
-    } catch (e) {
-      console.warn('app_settings no disponible (¿falta crear la tabla?):', e?.message || e);
-    }
-
-    // La tabla de pedidos puede no existir todavía: cárgala sin romper el resto.
-    try {
-      const { data: oData, error: oErr } = await sb.from('order_items').select('*');
-      if (oErr) throw oErr;
-      orderItems = oData || [];
-    } catch (e) {
-      console.warn('order_items no disponible (¿falta crear la tabla?):', e?.message || e);
-      orderItems = [];
-    }
-    // ¿Están las columnas para editar la lista (hidden/manual/display_name)?
-    try {
-      const { error: cErr } = await sb.from('order_items').select('hidden,manual,display_name').limit(1);
-      orderEditCols = !cErr;
-    } catch (e) { orderEditCols = false; }
+    // Tablas opcionales (pueden no existir todavía): se cargan a la vez, en
+    // paralelo, y si alguna falla la app sigue funcionando sin ella.
+    const optional = async (label, q) => {
+      try { const r = await q; if (r.error) throw r.error; return r; }
+      catch (e) { console.warn(label + ' no disponible (¿falta crear la tabla?):', e?.message || e); return null; }
+    };
+    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes] = await Promise.all([
+      optional('important_dates',      sb.from('important_dates').select('*').order('event_date')),
+      optional('radio_stations',       sb.from('radio_stations').select('*').order('sort_order')),
+      optional('radio_hidden_builtin', sb.from('radio_hidden_builtin').select('*')),
+      optional('app_settings',         sb.from('app_settings').select('*').eq('key', 'events_window_days').maybeSingle()),
+      optional('order_items',          sb.from('order_items').select('*')),
+      // ¿Están las columnas para editar la lista de pedidos (hidden/manual/display_name)?
+      optional('order_items (columnas de edición)', sb.from('order_items').select('hidden,manual,display_name').limit(1)),
+      optional('recipes.photo_thumb (miniaturas)', sb.from('recipes').select('photo_thumb').limit(1)),
+    ]);
+    importantDates        = idRes ? (idRes.data || []) : [];
+    customStations        = rsRes ? (rsRes.data || []) : [];
+    hiddenBuiltinStations = hbRes ? (hbRes.data || []).map(r => r.id) : [];
+    if (setRes && setRes.data) eventsWindowDays = parseInt(setRes.data.value, 10) || 5;
+    orderItems            = oRes ? (oRes.data || []) : [];
+    orderEditCols         = !!colsRes;
+    recipeThumbCol        = !!thumbRes;
     rebuildOrderState();
 
     await restoreAdminSession();
@@ -381,7 +349,8 @@ function exitInnerView() {
 function onSearch() {
   const si = document.getElementById('searchInput');
   const btn = document.getElementById('searchClearBtn');
-  const q = (si ? si.innerText : '').trim().toLowerCase();
+  const raw = (si ? si.innerText : '').trim();
+  const q = normalizeText(raw);
   if (btn) btn.style.display = q ? 'flex' : 'none';
 
   // Filtrado inline de la lista actual (platos/producciones/mis recetas)
@@ -389,19 +358,19 @@ function onSearch() {
   if (currentPage === 'productions') renderProductions();
 
   // Búsqueda global en desplegable (no incluye Mis Recetas, es privada)
-  renderSearchDropdown(q);
+  renderSearchDropdown(q, raw);
 }
 
-function renderSearchDropdown(q) {
+function renderSearchDropdown(q, raw) {
   const dd = document.getElementById('searchDropdown');
   if (!dd) return;
   if (!q) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
 
-  const matchedRecipes = recipes.filter(r => r.name.toLowerCase().includes(q));
-  const matchedProds   = productions.filter(p => p.name.toLowerCase().includes(q));
+  const matchedRecipes = recipes.filter(r => normalizeText(r.name).includes(q));
+  const matchedProds   = productions.filter(p => normalizeText(p.name).includes(q));
 
   if (matchedRecipes.length === 0 && matchedProds.length === 0) {
-    dd.innerHTML = `<div class="search-dropdown-empty">Sin resultados para &ldquo;${escapeHtml(q)}&rdquo;</div>`;
+    dd.innerHTML = `<div class="search-dropdown-empty">Sin resultados para &ldquo;${escapeHtml(raw || q)}&rdquo;</div>`;
     dd.style.display = 'block';
     return;
   }
@@ -547,9 +516,10 @@ function renderRecipeSkeletons(n = 4) {
 
 function renderRecipes() {
   const si = document.getElementById('searchInput');
-  const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
+  const raw = (si ? (si.innerText || '') : '').trim();
+  const q = normalizeText(raw); // sin tildes: "cesar" encuentra "César"
   const filtered = recipes.filter(r =>
-    !q || r.name.toLowerCase().includes(q) || (r.category || '').toLowerCase().includes(q)
+    !q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q)
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('recipeList');
@@ -558,7 +528,7 @@ function renderRecipes() {
   if (filtered.length === 0) {
     const msg = recipes.length === 0
       ? 'Aún no hay platos creados'
-      : `Ningún plato coincide con "${q}"`;
+      : `Ningún plato coincide con "${escapeHtml(raw)}"`;
     list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">restaurant</span>${msg}</div>`;
     return;
   }
@@ -568,11 +538,11 @@ function renderRecipes() {
     return `
     <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
       ${r.photo
-        ? `<img class="recipe-card-img" src="${escapeAttr(r.photo)}" alt="${escapeAttr(r.name)}" loading="lazy" onload="this.classList.add('loaded')">`
+        ? `<img class="recipe-card-img" src="${escapeAttr(r.photo_thumb || r.photo)}" alt="${escapeAttr(r.name)}" loading="lazy" decoding="async" onload="this.classList.add('loaded')">`
         : `<div class="recipe-card-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`}
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
-          <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
+          <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
         </div>
         <h3>${escapeHtml(r.name)}</h3>
         <p>${escapeHtml(r.description)}</p>
@@ -669,7 +639,7 @@ function renderRecipeDetail() {
     ${photoHtml}
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="tag ${CAT_TAG[r.category] || ''}">${r.category}</span>
+        <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(r.name)}</h2>
       <p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(r.description)}</p>
@@ -786,8 +756,8 @@ function renderRecipeEditor() {
     <div class="form-group">
       <div class="form-label">Foto del plato</div>
       ${r.photo
-        ? `<img class="photo-preview" src="${r.photo}">
-           <button class="btn-pill danger" onclick="recipeEditorData.photo=''; renderRecipeEditor();" style="margin-bottom:8px;">
+        ? `<img class="photo-preview" src="${escapeAttr(r.photo)}">
+           <button class="btn-pill danger" onclick="recipeEditorData.photo=''; if (recipeThumbCol) recipeEditorData.photo_thumb=null; renderRecipeEditor();" style="margin-bottom:8px;">
              <span class="material-symbols-outlined" style="font-size:15px;">delete</span> Quitar foto
            </button>`
         : `<div class="photo-upload-area" onclick="document.getElementById('recipePhotoInput').click()">
@@ -797,16 +767,16 @@ function renderRecipeEditor() {
       <input type="file" id="recipePhotoInput" accept="image/*" style="display:none;" onchange="handleRecipePhoto(event)">
       <div class="form-group" style="margin-top:8px; margin-bottom:0;">
         <div class="form-label">O pega una URL</div>
-        <div class="form-input ce-input" contenteditable="true" data-placeholder="https://..." oninput="recipeEditorData.photo=this.innerText.trim()">${r.photo}</div>
+        <div class="form-input ce-input" contenteditable="true" data-placeholder="https://..." oninput="recipeEditorData.photo=this.innerText.trim(); if (recipeThumbCol) recipeEditorData.photo_thumb=null;">${escapeHtml(r.photo || '')}</div>
       </div>
     </div>`;
 
   const ings = r.ingredients.map((ing, i) => `
     <div class="ing-edit-row" data-index="${i}">
       <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
-      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
+      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.innerText.trim()">${escapeHtml(ing.name)}</div>
       <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
-      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
+      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.innerText.trim()">${escapeHtml(ing.unit)}</div>
       <button class="btn-remove" onclick="recipeEditorData.ingredients.splice(${i},1); renderRecipeEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -816,7 +786,7 @@ function renderRecipeEditor() {
     <div class="step-edit-row" data-index="${i}">
       <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
       <div class="step-edit-num">${i + 1}</div>
-      <textarea rows="2" oninput="recipeEditorData.steps[${i}]=this.value">${s}</textarea>
+      <textarea rows="2" oninput="recipeEditorData.steps[${i}]=this.value">${escapeHtml(s)}</textarea>
       <button class="btn-remove" onclick="recipeEditorData.steps.splice(${i},1); renderRecipeEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -834,7 +804,7 @@ function renderRecipeEditor() {
       ${photoSection}
       <div class="form-group">
         <div class="form-label">Nombre</div>
-        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.innerText.trim()">${r.name}</div>
+        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.innerText.trim()">${escapeHtml(r.name)}</div>
       </div>
       <div class="form-group">
         <div class="form-label">Categoría</div>
@@ -845,11 +815,11 @@ function renderRecipeEditor() {
       </div>
       <div class="form-group">
         <div class="form-label">Descripción</div>
-        <textarea class="form-textarea" rows="2" oninput="recipeEditorData.description=this.value">${r.description}</textarea>
+        <textarea class="form-textarea" rows="2" oninput="recipeEditorData.description=this.value">${escapeHtml(r.description)}</textarea>
       </div>
       <div class="form-group">
         <div class="form-label">Descripción del montaje</div>
-        <textarea class="form-textarea" rows="3" placeholder="Cómo emplatar el plato..." oninput="recipeEditorData.plating=this.value">${r.plating || ''}</textarea>
+        <textarea class="form-textarea" rows="3" placeholder="Cómo emplatar el plato..." oninput="recipeEditorData.plating=this.value">${escapeHtml(r.plating || '')}</textarea>
       </div>
     </div>
     <div class="card">
@@ -879,18 +849,103 @@ function renderRecipeEditor() {
   initSortable('recipeStepList', recipeEditorData.steps, renderRecipeEditor);
 }
 
+// ─── Fotos: reducir en el móvil antes de subir ───
+// Una foto de cámara (4-8 MB) se queda en unos 200-400 KB a 1600 px, sin
+// diferencia visible en pantalla, y se crea además una miniatura (~480 px)
+// para las tarjetas de la lista. Todo en el navegador: sin servidor.
+const PHOTO_BUCKET = 'recipe-photos';
+const PHOTO_MAX = 1600, PHOTO_Q = 0.8;
+const THUMB_MAX = 480,  THUMB_Q = 0.72;
+
+// Decodifica la imagen respetando la orientación de la cámara (si no, las
+// fotos hechas en vertical podían salir tumbadas)
+async function decodeImage(blob) {
+  try { return await createImageBitmap(blob, { imageOrientation: 'from-image' }); }
+  catch (e) {
+    const url = URL.createObjectURL(blob);
+    try {
+      return await new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = () => rej(new Error('No se pudo leer la imagen'));
+        img.src = url;
+      });
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  }
+}
+
+function imageToJpeg(src, maxSide, quality) {
+  const w0 = src.width || src.naturalWidth, h0 = src.height || src.naturalHeight;
+  const scale = Math.min(1, maxSide / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * scale)), h = Math.max(1, Math.round(h0 * scale));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); // fotos PNG con transparencia → fondo blanco
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, h);
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('No se pudo comprimir')), 'image/jpeg', quality));
+}
+
+// Ruta dentro del bucket a partir del enlace público (null si la foto es de otra web)
+function photoPathFromUrl(url) {
+  const m = String(url || '').match(/\/storage\/v1\/object\/public\/recipe-photos\/([^?#]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Sube la foto reducida (+ miniatura). Si no se puede reducir, sube la original.
+async function uploadRecipeImages(blob, origName) {
+  const bucket = sb.storage.from(PHOTO_BUCKET);
+  const base = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  let big = null, thumb = null;
+  try {
+    const img = await decodeImage(blob);
+    big = await imageToJpeg(img, PHOTO_MAX, PHOTO_Q);
+    if (recipeThumbCol) thumb = await imageToJpeg(img, THUMB_MAX, THUMB_Q);
+    if (img.close) img.close();
+  } catch (e) { console.warn('No se pudo reducir la foto, se sube la original:', e); }
+
+  const put = async (path, data, type) => {
+    const { error } = await bucket.upload(path, data, { contentType: type, cacheControl: '31536000', upsert: false });
+    if (error) throw error;
+    recipeEditorUploads.push(path);
+    return bucket.getPublicUrl(path).data.publicUrl;
+  };
+  if (!big) {
+    const ext = String(origName || 'jpg').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    return { photo: await put(`${base}.${ext}`, blob, blob.type || 'image/jpeg'), thumb: null };
+  }
+  const photo = await put(`${base}_opt.jpg`, big, 'image/jpeg');
+  const thumbUrl = thumb ? await put(`${base}_thumb.jpg`, thumb, 'image/jpeg') : null;
+  return { photo, thumb: thumbUrl };
+}
+
+// Borra del almacenamiento las fotos que ya no usa ninguna receta (nunca una
+// que siga en uso). Si falla (p. ej. sin permiso de borrado), no pasa nada.
+async function cleanupRecipePhotos(paths) {
+  const inUse = new Set();
+  recipes.forEach(r => { [r.photo, r.photo_thumb].forEach(u => { const p = photoPathFromUrl(u); if (p) inUse.add(p); }); });
+  const toRemove = [...new Set(paths.filter(Boolean))].filter(p => !inUse.has(p));
+  if (!toRemove.length) return;
+  try { await sb.storage.from(PHOTO_BUCKET).remove(toRemove); } catch (e) { console.warn('No se pudieron borrar fotos antiguas:', e); }
+}
+
 async function handleRecipePhoto(event) {
   const file = event.target.files[0];
   if (!file) return;
-  showToast('Subiendo foto...');
+  showToast('Reduciendo y subiendo foto…');
   try {
-    const filename = `${Date.now()}.${file.name.split('.').pop()}`;
-    await sb.storage.from('recipe-photos').upload(filename, file);
-    const { data } = sb.storage.from('recipe-photos').getPublicUrl(filename);
-    recipeEditorData.photo = data.publicUrl;
+    const { photo, thumb } = await uploadRecipeImages(file, file.name);
+    recipeEditorData.photo = photo;
+    if (recipeThumbCol) recipeEditorData.photo_thumb = thumb;
     renderRecipeEditor();
     showToast('Foto subida ✓');
-  } catch (err) { showToast('Error al subir la foto'); }
+  } catch (err) {
+    console.error('Error subiendo foto:', err);
+    if (!handleAuthError(err)) showToast('Error al subir la foto');
+  } finally {
+    if (event.target) event.target.value = ''; // permite volver a elegir la misma foto
+  }
 }
 
 async function saveRecipe() {
@@ -903,8 +958,11 @@ async function saveRecipe() {
     return true;
   });
   if (!ok) return;
+  const prevSaved = recipes.find(r => r.id === recipeEditorData.id);
+  const oldPaths = prevSaved ? [photoPathFromUrl(prevSaved.photo), photoPathFromUrl(prevSaved.photo_thumb)] : [];
   if (recipeEditorMode === 'add') recipes.push(recipeEditorData);
   else recipes = recipes.map(r => r.id === recipeEditorData.id ? recipeEditorData : r);
+  cleanupRecipePhotos(oldPaths); // la foto anterior, si se ha sustituido
   currentRecipeId = recipeEditorData.id;
   recipeEditorBaseline = JSON.stringify(recipeEditorData); // ya guardado: sin cambios pendientes
   showToast('Receta guardada ✓');
@@ -925,6 +983,8 @@ function exitRecipeEditor(goToDetail) {
     renderRecipes();
   }
   recipeEditorMode = null; recipeEditorData = null; recipeEditorBaseline = null;
+  const uploads = recipeEditorUploads; recipeEditorUploads = [];
+  cleanupRecipePhotos(uploads); // fotos subidas en el editor que no se llegaron a guardar
 }
 
 async function deleteRecipe(id) {
@@ -938,7 +998,9 @@ async function deleteRecipe(id) {
       const { data, error } = await sb.from('recipes').delete().eq('id', id).select();
       if (error) throw error;
       if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      const gone = recipes.find(r => r.id === id);
       recipes = recipes.filter(r => r.id !== id);
+      if (gone) cleanupRecipePhotos([photoPathFromUrl(gone.photo), photoPathFromUrl(gone.photo_thumb)]);
     },
   });
   if (!ok) return;
@@ -984,8 +1046,9 @@ function toggleProdLink(prodId, row) {
 
 async function saveLinkProductions() {
   const btn = document.querySelector('#linkModal .btn-action');
-  await runWithLoading(btn, 'Guardando...', async () => {
-    await sb.from('recipe_productions').delete().eq('recipe_id', linkingRecipeId);
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    // Primero guardar los marcados y después quitar los desmarcados: si algo
+    // falla a mitad, nunca se pierden los vínculos que ya existían.
     if (selectedProdIds.length > 0) {
       const rows = selectedProdIds.map((pid, i) => ({
         id: `${linkingRecipeId}_${pid}`,
@@ -993,11 +1056,21 @@ async function saveLinkProductions() {
         production_id: pid,
         sort_order: i,
       }));
-      await sb.from('recipe_productions').insert(rows);
+      const { error: upErr } = await sb.from('recipe_productions').upsert(rows);
+      if (upErr) throw upErr;
+    }
+    const toRemove = recipeProductions
+      .filter(rp => rp.recipe_id === linkingRecipeId && !selectedProdIds.includes(rp.production_id))
+      .map(rp => rp.id);
+    if (toRemove.length > 0) {
+      const { error: delErr } = await sb.from('recipe_productions').delete().in('id', toRemove);
+      if (delErr) throw delErr;
     }
     recipeProductions = recipeProductions.filter(rp => rp.recipe_id !== linkingRecipeId);
     selectedProdIds.forEach((pid, i) => recipeProductions.push({ id: `${linkingRecipeId}_${pid}`, recipe_id: linkingRecipeId, production_id: pid, sort_order: i }));
-  });
+    return true;
+  }).catch(err => { console.error(err); if (!handleAuthError(err)) showToast('Error al guardar los vínculos'); return false; });
+  if (!ok) return;
   closeModal('linkModal');
   showToast('Producciones vinculadas ✓');
   renderRecipeDetail();
@@ -1014,9 +1087,17 @@ async function moveLinkedProd(recipeId, idx, dir) {
   rels[idx] = rels[newIdx];
   rels[newIdx] = tmp;
   // Reasignar sort_order y guardar
-  for (let i = 0; i < rels.length; i++) {
-    rels[i].sort_order = i;
-    await sb.from('recipe_productions').update({ sort_order: i }).eq('id', rels[i].id);
+  const oldOrder = rels.map(r => r.sort_order);
+  try {
+    for (let i = 0; i < rels.length; i++) {
+      rels[i].sort_order = i;
+      const { error } = await sb.from('recipe_productions').update({ sort_order: i }).eq('id', rels[i].id);
+      if (error) throw error;
+    }
+  } catch (err) {
+    console.error(err);
+    rels.forEach((r, i) => { r.sort_order = oldOrder[i]; });
+    if (!handleAuthError(err)) showToast('No se pudo guardar el orden');
   }
   renderRecipeDetail();
 }
@@ -1034,8 +1115,8 @@ function openLinkRecipesModal(prodId) {
     : sortedRecipes.map(r => `
         <div class="link-prod-row" onclick="toggleRecipeLink('${r.id}', this)">
           <div>
-            <div style="font-size:14px; font-weight:600;">${r.name}</div>
-            <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${r.category}</span>
+            <div style="font-size:14px; font-weight:600;">${escapeHtml(r.name)}</div>
+            <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
           </div>
           <span class="material-symbols-outlined check-icon" style="color:${selectedRecipeIds.includes(r.id) ? 'var(--primary)' : 'var(--outline-light)'};">
             ${selectedRecipeIds.includes(r.id) ? 'check_circle' : 'radio_button_unchecked'}
@@ -1060,7 +1141,7 @@ function toggleRecipeLink(recipeId, row) {
 
 async function saveLinkRecipes() {
   const btn = document.querySelector('#linkModal .btn-action');
-  await runWithLoading(btn, 'Guardando...', async () => {
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
     // Para cada plato seleccionado, añadir el vínculo si no existe.
     // Para los deseleccionados, quitarlo.
     const currentlyLinked = recipeProductions.filter(rp => rp.production_id === linkingProdId).map(rp => rp.recipe_id);
@@ -1070,18 +1151,22 @@ async function saveLinkRecipes() {
       if (!currentlyLinked.includes(rid)) {
         const order = recipeProductions.filter(rp => rp.recipe_id === rid).length;
         const row = { id: `${rid}_${linkingProdId}`, recipe_id: rid, production_id: linkingProdId, sort_order: order };
-        await sb.from('recipe_productions').insert(row);
+        const { error } = await sb.from('recipe_productions').insert(row);
+        if (error) throw error;
         recipeProductions.push(row);
       }
     }
     // Quitar los deseleccionados
     for (const rid of currentlyLinked) {
       if (!selectedRecipeIds.includes(rid)) {
-        await sb.from('recipe_productions').delete().eq('id', `${rid}_${linkingProdId}`);
+        const { error } = await sb.from('recipe_productions').delete().eq('id', `${rid}_${linkingProdId}`);
+        if (error) throw error;
         recipeProductions = recipeProductions.filter(rp => rp.id !== `${rid}_${linkingProdId}`);
       }
     }
-  });
+    return true;
+  }).catch(err => { console.error(err); if (!handleAuthError(err)) showToast('Error al guardar los vínculos'); return false; });
+  if (!ok) { renderProdDetail(currentPage); return; } // refleja lo que sí se llegó a guardar
   // Restaurar el modal a su estado original (vincular producciones)
   document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
   document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
@@ -1095,9 +1180,10 @@ async function saveLinkRecipes() {
 // ═══════════════════════════════════════
 function renderProductions() {
   const si = document.getElementById('searchInput');
-  const q = (si ? (si.innerText || '') : '').trim().toLowerCase();
+  const raw = (si ? (si.innerText || '') : '').trim();
+  const q = normalizeText(raw);
   const filtered = productions.filter(p =>
-    !q || p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
+    !q || normalizeText(p.name).includes(q) || normalizeText(p.category).includes(q)
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
 
   const list = document.getElementById('productionList');
@@ -1106,7 +1192,7 @@ function renderProductions() {
   if (filtered.length === 0) {
     const msg = productions.length === 0
       ? 'Aún no hay producciones creadas'
-      : `Ninguna producción coincide con "${q}"`;
+      : `Ninguna producción coincide con "${escapeHtml(raw)}"`;
     list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">blender</span>${msg}</div>`;
     return;
   }
@@ -1115,7 +1201,7 @@ function renderProductions() {
     <div class="recipe-card" onclick="showProdDetail('${p.id}')">
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
-          <span class="tag ${CAT_TAG[p.category] || ''}">${p.category}</span>
+          <span class="tag ${CAT_TAG[p.category] || ''}">${escapeHtml(p.category)}</span>
         </div>
         <h3>${escapeHtml(p.name)}</h3>
         <p>${escapeHtml(p.description || '')}</p>
@@ -1192,7 +1278,7 @@ function renderProdDetail(fromPage) {
     </div>
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="tag ${CAT_TAG[p.category] || ''}">${p.category}</span>
+        <span class="tag ${CAT_TAG[p.category] || ''}">${escapeHtml(p.category)}</span>
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(p.name)}</h2>
       ${p.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(p.description)}</p>` : ''}
@@ -1286,9 +1372,9 @@ function renderProdEditor() {
   const ings = p.ingredients.map((ing, i) => `
     <div class="ing-edit-row" data-index="${i}">
       <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
-      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.innerText.trim()">${ing.name}</div>
+      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.innerText.trim()">${escapeHtml(ing.name)}</div>
       <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
-      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.innerText.trim()">${ing.unit}</div>
+      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.innerText.trim()">${escapeHtml(ing.unit)}</div>
       <button class="btn-remove" onclick="prodEditorData.ingredients.splice(${i},1); renderProdEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -1298,7 +1384,7 @@ function renderProdEditor() {
     <div class="step-edit-row" data-index="${i}">
       <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
       <div class="step-edit-num">${i + 1}</div>
-      <textarea rows="2" oninput="prodEditorData.steps[${i}]=this.value">${s}</textarea>
+      <textarea rows="2" oninput="prodEditorData.steps[${i}]=this.value">${escapeHtml(s)}</textarea>
       <button class="btn-remove" onclick="prodEditorData.steps.splice(${i},1); renderProdEditor();">
         <span class="material-symbols-outlined" style="font-size:20px;">close</span>
       </button>
@@ -1315,18 +1401,18 @@ function renderProdEditor() {
     <div class="card">
       <div class="form-group">
         <div class="form-label">Nombre</div>
-        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la producción..." oninput="prodEditorData.name=this.innerText.trim()">${p.name}</div>
+        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la producción..." oninput="prodEditorData.name=this.innerText.trim()">${escapeHtml(p.name)}</div>
       </div>
       <div class="form-group">
         <div class="form-label">Categoría</div>
         <select class="form-select" onchange="prodEditorData.category=this.value">
           ${productionCategories.map(c =>
-            `<option ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
+            `<option ${p.category === c.name ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
         <div class="form-label">Descripción (opcional)</div>
-        <textarea class="form-textarea" rows="2" oninput="prodEditorData.description=this.value">${p.description || ''}</textarea>
+        <textarea class="form-textarea" rows="2" oninput="prodEditorData.description=this.value">${escapeHtml(p.description || '')}</textarea>
       </div>
     </div>
     <div class="card">
@@ -1745,7 +1831,7 @@ async function importCsvEvents(btn) {
     if (!titulo) continue;
     rows.push({
       event_date: fecha,
-      event_time: hora || null,
+      event_time: (() => { const m = String(hora || '').match(/^(\d{1,2}):(\d{2})/); return m && +m[1] < 24 && +m[2] < 60 ? `${m[1].padStart(2, '0')}:${m[2]}` : null; })(), // "null", "21:00h"… → válido o vacío
       title:      titulo,
       category:   ['futbol', 'concierto', 'evento'].includes(categoria) ? categoria : 'evento',
       note:       nota || null,
@@ -1783,9 +1869,9 @@ async function importCsvEvents(btn) {
     .sort()
     .join('|');
 
+  // Sin comparar la categoría: la IA a veces llama "concierto" y otras "evento" a lo mismo
   const isDuplicate = ev => importantDates.some(d =>
     d.event_date === ev.event_date &&
-    d.category   === ev.category &&
     canonicalTitle(d.title) === canonicalTitle(ev.title)
   );
   const newRows = rows.filter(r => !isDuplicate(r));
@@ -1795,7 +1881,7 @@ async function importCsvEvents(btn) {
   // el mismo evento si el propio CSV pegado lo repite por error.
   const seenInBatch = new Set();
   const dedupedRows = newRows.filter(r => {
-    const key = `${r.event_date}|${r.category}|${canonicalTitle(r.title)}`;
+    const key = `${r.event_date}|${canonicalTitle(r.title)}`;
     if (seenInBatch.has(key)) return false;
     seenInBatch.add(key);
     return true;
@@ -1885,7 +1971,7 @@ function renderAdmin() {
   // Categorías de producción
   const catHtml = productionCategories.map(c => `
     <div class="ficha-row">
-      <div class="ficha-name">${c.name}</div>
+      <div class="ficha-name">${escapeHtml(c.name)}</div>
       <div style="display:flex; gap:6px;">
         <button class="btn-icon" onclick="renameProdCategory('${c.id}')">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
@@ -1911,6 +1997,85 @@ function renderAdmin() {
     </div>`;
 
   renderRadioAdmin();
+  renderPhotoAdmin();
+}
+
+// ─── Fotos de platos (Admin): optimizar las ya subidas ─────────
+// Las fotos subidas antes de v62 van a tamaño completo (varios MB). Este
+// botón las reduce una vez, crea su miniatura y borra la original pesada.
+function recipeNeedsPhotoOptimize(r) {
+  if (!r.photo) return false;
+  if (!/_opt\.jpg(\?|#|$)/.test(r.photo)) return true;   // aún es la original
+  return recipeThumbCol && !r.photo_thumb;                 // reducida pero sin miniatura
+}
+
+function renderPhotoAdmin() {
+  const box = document.getElementById('resolvedSection');
+  if (!box) return;
+  const pending = recipes.filter(recipeNeedsPhotoOptimize).length;
+  const withPhoto = recipes.filter(r => r.photo).length;
+  box.innerHTML += `
+    <div class="section-title" style="margin-top:16px;">
+      <span class="material-symbols-outlined">photo_library</span> Fotos de platos
+    </div>
+    <div class="card">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:10px;">
+        ${pending > 0
+          ? `${pending} de ${withPhoto} foto(s) sin optimizar. Se reducen para que la lista cargue más rápido y gaste menos datos.`
+          : `Todas las fotos (${withPhoto}) están optimizadas ✓`}
+        ${recipeThumbCol ? '' : '<br><span style="color:var(--danger);">Falta la columna <b>photo_thumb</b> en Supabase: sin ella no se crean miniaturas.</span>'}
+      </div>
+      <button class="btn-pill filled" id="optimizePhotosBtn" onclick="optimizeRecipePhotos()" ${pending > 0 ? '' : 'disabled'}>
+        <span class="material-symbols-outlined" style="font-size:16px;">auto_fix_high</span> Optimizar fotos${pending > 0 ? ` (${pending})` : ''}
+      </button>
+    </div>`;
+}
+
+let _optimizingPhotos = false;
+async function optimizeRecipePhotos() {
+  if (_optimizingPhotos) return;
+  const todo = recipes.filter(recipeNeedsPhotoOptimize);
+  if (!todo.length) return;
+  const ok = await showConfirm({
+    title:       'Optimizar fotos',
+    message:     `Se reducirán ${todo.length} foto(s). Tarda unos segundos por foto: no cierres la app mientras tanto.`,
+    confirmText: 'Optimizar',
+    icon:        'auto_fix_high',
+  });
+  if (!ok) return;
+  _optimizingPhotos = true;
+  let done = 0, failed = 0;
+  const setBtn = txt => { const b = document.getElementById('optimizePhotosBtn'); if (b) { b.disabled = true; b.innerHTML = `<span class="material-symbols-outlined spin" style="font-size:16px;">progress_activity</span> ${txt}`; } };
+  for (const r of todo) {
+    setBtn(`Optimizando ${done + failed + 1}/${todo.length}…`);
+    try {
+      const res = await fetch(r.photo, { mode: 'cors', cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      recipeEditorUploads = [];
+      const { photo, thumb } = await uploadRecipeImages(blob, 'foto.jpg');
+      const newUploads = recipeEditorUploads; recipeEditorUploads = [];
+      if (!/_opt\.jpg$/.test(photo)) { cleanupRecipePhotos(newUploads); throw new Error('No se pudo reducir'); }
+      const patch = { photo };
+      if (recipeThumbCol) patch.photo_thumb = thumb;
+      const oldPaths = [photoPathFromUrl(r.photo), photoPathFromUrl(r.photo_thumb)];
+      const { data, error } = await sb.from('recipes').update(patch).eq('id', r.id).select();
+      if (error || !data || !data.length) {
+        cleanupRecipePhotos(newUploads);
+        throw error || new Error('No se ha guardado: revisa tu sesión de admin');
+      }
+      Object.assign(r, patch);
+      cleanupRecipePhotos(oldPaths); // borra la original pesada
+      done++;
+    } catch (e) {
+      console.warn('No se pudo optimizar la foto de', r.name, e);
+      failed++;
+      if (handleAuthError(e)) break;
+    }
+  }
+  _optimizingPhotos = false;
+  showToast(`${done} foto(s) optimizada(s)` + (failed ? ` · ${failed} no se pudieron (p. ej. fotos de otras webs)` : ' ✓'));
+  if (currentPage === 'fichas' && utilTab === 'admin') renderAdmin();
 }
 
 // ─── Emisoras de radio (Admin) ─────────
@@ -2001,9 +2166,15 @@ async function radioAdminSave() {
   const nameEl = document.getElementById('radioNameInput');
   const urlEl  = document.getElementById('radioUrlInput');
   const name = (nameEl?.innerText || '').trim();
-  const url  = (urlEl?.innerText  || '').trim();
+  let url    = (urlEl?.innerText  || '').trim();
   if (!name || !url) { showToast('Pon un nombre y un enlace'); return; }
   if (!/^https?:\/\//i.test(url)) { showToast('El enlace debe empezar por http:// o https://'); return; }
+  // La app va por https: un enlace http:// no sonaría nunca (el navegador lo bloquea).
+  // Se prueba la versión https del mismo servidor, que casi todas las emisoras tienen.
+  let upgraded = false;
+  if (/^http:\/\//i.test(url)) { url = 'https://' + url.slice(7); upgraded = true; }
+  // .pls / .m3u son listas que apuntan al stream, no el stream en sí: no se pueden reproducir directamente
+  if (/\.(pls|m3u)(\?|$)/i.test(url)) { showToast('Ese enlace es una lista (.pls/.m3u): abre el archivo y copia el enlace de dentro'); return; }
 
   const type = radioAdminStationType(url);
   const btn = document.getElementById('radioSaveBtn');
@@ -2021,7 +2192,7 @@ async function radioAdminSave() {
     if (!ok) return;
     customStations = customStations.map(s => s.id === radioEditingId ? { ...s, name, url, type } : s);
     radioEditingId = null;
-    showToast('Emisora actualizada ✓');
+    showToast('Emisora actualizada ✓' + (upgraded ? ' · enlace cambiado a https://' : ''));
   } else {
     const newStation = { id: Date.now().toString(), name, url, type, sort_order: customStations.length + 1 };
     const ok = await runWithLoading(btn, '', async () => {
@@ -2034,7 +2205,7 @@ async function radioAdminSave() {
     }).catch(() => false);
     if (!ok) return;
     customStations.push(newStation);
-    showToast('Emisora añadida ✓');
+    showToast('Emisora añadida ✓' + (upgraded ? ' · enlace cambiado a https://' : ''));
   }
   renderAdmin();
   if (currentPage === 'radio' && typeof renderRadio === 'function') renderRadio();
@@ -2503,8 +2674,9 @@ function renderPedidosList() {
 }
 
 // Guarda (upsert) el estado de una materia prima en Supabase.
-async function upsertOrderItem(key, display, patch) {
+async function upsertOrderItem(key, display, patch, prevOverride) {
   const cur = orderState[key] || { name: display, supplier_group: null, checked: false, comment: '', hidden: false, manual: false, display_name: null };
+  const prev = prevOverride !== undefined ? prevOverride : (orderState[key] ? { ...orderState[key] } : null);
   const next = { ...cur, ...patch, name: cur.name || display };
   orderState[key] = next;
   const row = {
@@ -2521,7 +2693,10 @@ async function upsertOrderItem(key, display, patch) {
     if (error) throw error;
   } catch (e) {
     console.error('Error guardando order_items:', e);
-    if (!handleAuthError(error)) showToast('Error al guardar el pedido');
+    // Deshacer el cambio en pantalla: no se ha guardado
+    if (prev) orderState[key] = prev; else delete orderState[key];
+    if (currentPage === 'fichas' && utilTab === 'pedidos') renderPedidosList();
+    if (!handleAuthError(e)) showToast('No se pudo guardar (¿sin conexión?)');
   }
 }
 
@@ -2530,9 +2705,10 @@ async function togglePedido(enc) {
   const e = _pedIndexByKey[key];
   const display = e ? e.display : (orderState[key]?.name || key);
   const checked = !(orderState[key]?.checked);
+  const prev = orderState[key] ? { ...orderState[key] } : null;
   orderState[key] = { ...(orderState[key] || { name: display, supplier_group: null, comment: '' }), checked };
   renderPedidosList();
-  await upsertOrderItem(key, display, { checked });
+  await upsertOrderItem(key, display, { checked }, prev);
 }
 
 async function setPedidoComment(enc, value) {
@@ -2651,8 +2827,9 @@ async function resetPedidos() {
     danger:      true,
     icon:        'restart_alt',
     onConfirm:   async () => {
-      const { error } = await sb.from('order_items').update({ checked: false, comment: '' }).not('key', 'is', null);
+      const { data, error } = await sb.from('order_items').update({ checked: false, comment: '' }).not('key', 'is', null).select('key');
       if (error) throw error;
+      if ((!data || data.length === 0) && Object.keys(orderState).length > 0) throw new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
       Object.keys(orderState).forEach(k => { orderState[k].checked = false; orderState[k].comment = ''; });
     },
   });
@@ -2767,8 +2944,8 @@ function renderWeights() {
     : weights.map(w => `
         <div class="ficha-row">
           <div>
-            <div class="ficha-name">${w.name}</div>
-            ${w.notes ? `<div class="ficha-note">${w.notes}</div>` : ''}
+            <div class="ficha-name">${escapeHtml(w.name)}</div>
+            ${w.notes ? `<div class="ficha-note">${escapeHtml(w.notes)}</div>` : ''}
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <span class="ing-amount">${w.grams} g</span>
@@ -2794,8 +2971,8 @@ function renderBrines() {
         ${brines.filter(b => b.category === cat).map(b => `
           <div class="ficha-row">
             <div>
-              <div class="ficha-name">${b.product}</div>
-              ${b.notes ? `<div class="ficha-note">${b.notes}</div>` : ''}
+              <div class="ficha-name">${escapeHtml(b.product)}</div>
+              ${b.notes ? `<div class="ficha-note">${escapeHtml(b.notes)}</div>` : ''}
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
               <span class="ing-amount">${b.minutes >= 60 ? (b.minutes/60)+' h' : b.minutes+' min'}</span>
@@ -3259,9 +3436,26 @@ function openModalNav(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.style.display = 'flex';
+  el.dataset.nav = '1'; // tiene su propia entrada en el historial
   history.pushState({ view: 'staticModal', id }, '');
 }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+// Cierra un modal. Si se abrió con openModalNav y su entrada sigue arriba
+// del historial (se cierra con la X o tocando fuera), la retira en silencio
+// para que el botón atrás no tenga "pulsaciones muertas" después.
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'none';
+  delete el.dataset.nav;
+  popOwnModalEntry(id);
+}
+function popOwnModalEntry(id) {
+  const st = history.state;
+  if (st && st.view === 'staticModal' && st.id === id) {
+    _silentPop = true;
+    history.back();
+  }
+}
 
 // ═══════════════════════════════════════
 //   MODO OSCURO
@@ -3306,9 +3500,14 @@ function openLightbox(src) {
   history.pushState({ view: 'lightbox' }, '');
 }
 
-function closeLightbox() {
+function closeLightbox(fromBack) {
   const lb = document.getElementById('lightbox');
   if (lb) lb.style.display = 'none';
+  // Cerrada con la X o tocando fuera: retirar su entrada del historial
+  if (!fromBack && history.state && history.state.view === 'lightbox') {
+    _silentPop = true;
+    history.back();
+  }
 }
 
 let toastTimer = null;
@@ -3351,10 +3550,101 @@ loadData();
 //   });
 // }
 
-// La recarga automática cada 15 min se quitó: cortaba la radio en marcha.
-// Los datos se refrescan solos al reabrir la app o pulsar recargar.
+// Refresco de datos en segundo plano (sustituye a la antigua recarga de la
+// página cada 15 min, que cortaba la radio). Vuelve a pedir los datos a
+// Supabase sin recargar nada: la radio y los timers siguen como estaban.
+// Se hace cada 15 min y al volver a la app si llevaba 5 min o más fuera.
+// No actúa si estás editando, escribiendo o con una ventana abierta, para no
+// quitarte lo que tienes delante; lo reintenta en el siguiente ciclo.
+let _lastDataRefresh = Date.now();
+async function refreshDataSilently() {
+  if (document.visibilityState !== 'visible') return;
+  if (document.getElementById('editorPage').classList.contains('active')) return;
+  if (document.getElementById('productionEditorPage').classList.contains('active')) return;
+  if (document.querySelector('.modal-overlay[style*="flex"], #lightbox[style*="flex"], #groupPickerModal')) return;
+  const ae = document.activeElement;
+  if (ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return;
+  try {
+    const res = await Promise.all([
+      sb.from('recipes').select('*').order('name'),
+      sb.from('productions').select('*').order('name'),
+      sb.from('recipe_productions').select('*'),
+      sb.from('comments').select('*').order('created_at', { ascending: false }),
+      sb.from('weights').select('*').order('name'),
+      sb.from('brines').select('*').order('category'),
+      sb.from('production_categories').select('*').order('sort_order'),
+      sb.from('important_dates').select('*').order('event_date'),
+      sb.from('order_items').select('*'),
+      sb.from('radio_stations').select('*').order('sort_order'),
+      sb.from('radio_hidden_builtin').select('*'),
+    ]);
+    // Si algo falla (sin cobertura, tabla inexistente...), no se toca nada.
+    if (res.slice(0, 7).some(r => r.error)) return;
+    // Por si mientras tanto has empezado a editar algo
+    if (document.getElementById('editorPage').classList.contains('active') ||
+        document.getElementById('productionEditorPage').classList.contains('active')) return;
+    const norm = it => {
+      it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
+      it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
+      it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
+      if (it.name == null) it.name = '';
+      if (it.description == null) it.description = '';
+      return it;
+    };
+    recipes               = (res[0].data || []).map(norm);
+    productions           = (res[1].data || []).map(norm);
+    recipeProductions     = res[2].data || [];
+    comments              = res[3].data || [];
+    weights               = res[4].data || [];
+    brines                = res[5].data || [];
+    productionCategories  = res[6].data || [];
+    if (!res[7].error)  importantDates        = res[7].data || [];
+    if (!res[8].error)  { orderItems = res[8].data || []; rebuildOrderState(); }
+    if (!res[9].error)  customStations        = res[9].data || [];
+    if (!res[10].error) hiddenBuiltinStations = (res[10].data || []).map(r => r.id);
+    _lastDataRefresh = Date.now();
+
+    // Repintar lo que se esté viendo
+    const active = (document.querySelector('.page.active') || {}).id;
+    if (active === 'recipesPage') renderRecipes();
+    else if (active === 'productionsPage') renderProductions();
+    else if (active === 'fichasPage') renderFichas();
+    else if (active === 'detailPage' && recipes.some(r => r.id === currentRecipeId)) renderRecipeDetail();
+    else if (active === 'productionDetailPage' && productions.some(p => p.id === currentProdId)) renderProdDetail(currentPage);
+    renderEventsButton();
+    updateBadges();
+    if (typeof renderRadio === 'function') renderRadio();
+  } catch (e) { console.warn('Refresco en segundo plano fallido:', e?.message || e); }
+}
+setInterval(refreshDataSilently, 15 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Date.now() - _lastDataRefresh > 5 * 60 * 1000) refreshDataSilently();
+});
 
 // Botón atrás de Android
+// Historial: si la entrada actual es la de un modal que ya no está abierto
+// (p. ej. la Radio se minimizó al cambiar de pestaña), la siguiente
+// navegación la sustituye en vez de apilarse encima. Así no quedan
+// entradas huérfanas que obliguen a pulsar "atrás" varias veces.
+let _silentPop = false;
+let _histCur   = null; // estado de la entrada en la que estamos
+(function () {
+  const origPush    = history.pushState.bind(history);
+  const origReplace = history.replaceState.bind(history);
+  history.pushState = function (state, title, url) {
+    const cur = history.state;
+    if (cur && cur.view === 'staticModal') {
+      const el = document.getElementById(cur.id);
+      if (!el || el.style.display !== 'flex') { _histCur = state; return origReplace(state, title, url); }
+    }
+    _histCur = state;
+    return origPush(state, title, url);
+  };
+  history.replaceState = function (state, title, url) {
+    _histCur = state;
+    return origReplace(state, title, url);
+  };
+})();
 history.pushState({ view: 'home' }, '');
 
 // Avisar al cerrar/recargar la app si hay cambios sin guardar en un editor
@@ -3368,43 +3658,67 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 window.addEventListener('popstate', (e) => {
+  // Retirada silenciosa de la entrada de un modal cerrado con la X
+  if (_silentPop) { _silentPop = false; _histCur = e.state; return; }
+  const leaving = _histCur;  // entrada de la que venimos (la que el "atrás" acaba de consumir)
+  _histCur = e.state;
   const state = e.state;
 
   // 1a) Cerrar el lightbox si está abierto (B1 — tiene su propio estado en historial)
-  if (state && state.view === 'lightbox') {
-    closeLightbox();
+  //     (popstate entrega la entrada a la que se llega: si la foto está
+  //     abierta, el "atrás" acaba de consumir su entrada; solo hay que cerrarla)
+  const lbOpen = document.getElementById('lightbox');
+  if (lbOpen && lbOpen.style.display === 'flex') {
+    closeLightbox(true);
     return;
   }
+  if (state && state.view === 'lightbox') { history.back(); return; } // entrada huérfana
 
   // 1b) Cerrar el groupPickerModal si está abierto (B2 — no registraba estado)
   const gp = document.getElementById('groupPickerModal');
-  if (gp) { closeGroupPicker(); history.pushState({ view: 'modal' }, ''); return; }
+  if (gp) { closeGroupPicker(); history.pushState(leaving || { view: 'modal' }, ''); return; }
 
   // 1c) Cerrar modales estáticos (comentar, peso, salmuera, vincular) que
   //     registraron su estado 'staticModal' al abrirse. El atrás ya consumió
   //     ese estado, así que solo cerramos: no re-empujamos historial.
+  //     Nota: popstate entrega la entrada a la que se LLEGA, no la que se
+  //     abandona. Aterrizar en una entrada 'staticModal' cuyo modal ya está
+  //     cerrado significa que es una entrada huérfana: se salta.
   if (state && state.view === 'staticModal') {
-    // El timer no se puede cerrar con "atrás" mientras está sonando: hay que pulsar Detener
-    if (state.id === 'timerModal' && typeof timerIsRinging === 'function' && timerIsRinging()) {
-      history.pushState({ view: 'staticModal', id: 'timerModal' }, '');
-      return;
-    }
-    if (state.id === 'radioModal' && typeof radioMinimize === 'function') {
-      radioMinimize();
-      return;
-    }
     const m = document.getElementById(state.id);
-    if (m) m.style.display = 'none';
-    return;
+    const isOpen = m && m.style.display === 'flex';
+    const anyOpen = document.querySelector('.modal-overlay[style*="flex"]');
+    if (!isOpen && !anyOpen) { history.back(); return; }  // huérfana y nada que cerrar: saltarla
+    if (isOpen) return;                                     // seguimos "dentro" de ese modal
+    // si hay otro modal abierto, lo gestiona el paso 1d
   }
 
-  // 1d) Cerrar modales dinámicos (login, confirmación) sin estado propio.
+  // 1d) Hay un modal abierto: el "atrás" lo cierra.
   const openModal = document.querySelector('.modal-overlay[style*="flex"]');
   if (openModal) {
+    // La Radio no se cierra: se minimiza a burbuja (si no, seguía sonando sin
+    // controles visibles y parecía que la burbuja había desaparecido).
+    if (openModal.id === 'radioModal' && typeof radioMinimize === 'function') {
+      radioMinimize({ fromBack: true });
+      return;
+    }
+    // El timer no se puede cerrar con "atrás" mientras suena: hay que pulsar Detener.
+    if (openModal.id === 'timerModal' && typeof timerIsRinging === 'function' && timerIsRinging()) {
+      history.pushState(leaving || { view: 'staticModal', id: 'timerModal' }, '');
+      return;
+    }
+    // Modales con entrada propia: el "atrás" ya la consumió, solo se cierran.
+    if (openModal.dataset.nav === '1') {
+      openModal.style.display = 'none';
+      delete openModal.dataset.nav;
+      return;
+    }
+    // Modales dinámicos (login, confirmación) sin entrada propia: el "atrás"
+    // consumió la entrada de la vista actual, así que se restaura.
     if (openModal.id === 'loginModal') closeLoginModal();
     else if (openModal.id === 'confirmModal' && _confirmResolve) _confirmResolve(); // cancela el diálogo
     else openModal.style.display = 'none';
-    history.pushState({ view: 'modal' }, '');
+    history.pushState(leaving || { view: 'modal' }, '');
     return;
   }
 

@@ -39,8 +39,12 @@
   let status = 'idle';  // 'idle' | 'connecting' | 'playing' | 'paused' | 'error'
   let hls = null;
   let minimized = false; // ventana minimizada a burbuja
+  let pausedAt = 0;      // cuándo se pausó (para volver al directo si la pausa fue larga)
+  let alarmPaused = false; // la pausó una alarma/timer: se reanuda sola al detenerla
+  const LIVE_RESYNC_MS = 20000;
 
   const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const audio = () => $('radioAudio');
 
   function stopHls() {
@@ -49,13 +53,18 @@
 
   window.radioPlayPause = function () {
     if (!current) return;
+    alarmPaused = false;
     if (status === 'error') { radioToggle(current); return; } // reintentar desde cero
     const a = audio();
     if (status === 'playing' || status === 'connecting') {
       try { a.pause(); } catch (e) {}
       status = 'paused';
+      pausedAt = Date.now();
       render();
     } else if (status === 'paused') {
+      // Es radio en directo: si la pausa fue larga, reanudar el búfer daría
+      // audio atrasado (o la conexión ya se habría cortado). Mejor reconectar.
+      if (Date.now() - pausedAt > LIVE_RESYNC_MS) { const id = current; radioStop(); radioToggle(id); return; }
       status = 'connecting';
       render();
       a.play().catch(() => { status = 'error'; render(); });
@@ -64,10 +73,29 @@
 
   window.radioBubblePlayPause = function (e) {
     e.stopPropagation();
+    if (bubbleDragged) { bubbleDragged = false; return; } // era un arrastre agarrando el botón
     radioPlayPause();
   };
 
+  // Cuando suena un timer o alarma, la radio se pausa para que se oiga bien
+  // la melodía, y se reanuda sola al pulsar Detener (reconecta al directo si
+  // la alarma ha sonado un buen rato). Si ya estaba en pausa o parada, no se toca.
+  window.radioAlarmStart = function () {
+    if (!current || !(status === 'playing' || status === 'connecting')) return;
+    try { audio().pause(); } catch (e) {}
+    status = 'paused';
+    pausedAt = Date.now();
+    alarmPaused = true;
+    render();
+  };
+  window.radioAlarmEnd = function () {
+    const resume = alarmPaused && current && status === 'paused';
+    alarmPaused = false;
+    if (resume) radioPlayPause(); else render();
+  };
+
   window.radioStop = function () {
+    alarmPaused = false;
     const a = audio();
     if (a) { try { a.pause(); } catch (e) {} a.removeAttribute('src'); try { a.load(); } catch (e) {} }
     stopHls();
@@ -90,7 +118,9 @@
     a.onerror = () => { if (current === id) { status = 'error'; renderRadio(); } };
     a.onwaiting = () => { if (current === id && status === 'playing') { status = 'connecting'; renderRadio(); } };
     a.onplaying = () => { if (current === id) { status = 'playing'; renderRadio(); } };
-    a.onpause = () => { if (current === id && status !== 'idle' && status !== 'error') { status = 'paused'; renderRadio(); } };
+    // Solo cuenta como pausa si estaba sonando (p. ej. el sistema cortó el audio).
+    // El 'pause' del stop de la emisora anterior llega tarde y no debe marcar "En pausa".
+    a.onpause = () => { if (current === id && status === 'playing') { status = 'paused'; pausedAt = Date.now(); renderRadio(); } };
 
     if (st.type === 'hls' && !a.canPlayType('application/vnd.apple.mpegurl')) {
       if (typeof Hls !== 'undefined' && Hls.isSupported()) {
@@ -113,6 +143,7 @@
   function statusText() {
     if (status === 'connecting') return 'Conectando…';
     if (status === 'playing') return 'En directo';
+    if (status === 'paused' && alarmPaused) return 'En pausa · está sonando una alarma';
     if (status === 'paused') return 'En pausa';
     if (status === 'error') return 'No se pudo conectar · toca para reintentar';
     return '';
@@ -133,14 +164,21 @@
   // ya minimizada. La llaman showPage() y openTimerModal() al cambiar de pestaña.
   window.radioMinimizeIfOpen = function () {
     const m = $('radioModal');
-    if (m && m.style.display === 'flex') radioMinimize();
+    if (m && m.style.display === 'flex') radioMinimize({ keepHistory: true });
   };
 
-  window.radioMinimize = function () {
+  // opts.fromBack: el "atrás" ya consumió su entrada del historial.
+  // opts.keepHistory: se minimiza porque se navega a otra parte; la siguiente
+  //   navegación sustituye esa entrada (ver envoltorio de pushState en app.js).
+  // Sin opciones (botón minimizar / tocar fuera): se retira su entrada.
+  window.radioMinimize = function (opts) {
+    opts = (opts && typeof opts === 'object' && !(opts instanceof Event)) ? opts : {};
     const m = $('radioModal');
-    if (m) m.style.display = 'none';
+    const wasOpen = m && m.style.display === 'flex';
+    if (m) { m.style.display = 'none'; delete m.dataset.nav; }
     minimized = true;
     if (current) showBubble(); else hideBubble();
+    if (wasOpen && !opts.fromBack && !opts.keepHistory && typeof popOwnModalEntry === 'function') popOwnModalEntry('radioModal');
   };
 
   window.radioBubbleClick = function (e) {
@@ -153,6 +191,7 @@
 
   window.radioBubbleStop = function (e) {
     e.stopPropagation();
+    if (bubbleDragged) { bubbleDragged = false; return; } // era un arrastre agarrando el botón
     radioStop();
     hideBubble();
   };
@@ -160,8 +199,10 @@
   function showBubble() {
     const b = $('radioBubble');
     if (!b) return;
-    b.style.display = 'flex';
-    restoreBubblePosition();
+    if (b.style.display !== 'flex') {
+      b.style.display = 'flex';
+      restoreBubblePosition();
+    }
     renderBubble();
   }
   function hideBubble() {
@@ -272,16 +313,17 @@
     const list = $('radioList');
     if (!list) return;
     const st = currentStation();
+    if (current && !st) { radioStop(); return; } // la emisora que sonaba se ha borrado
 
     list.innerHTML = STATIONS_LIST().map(s => {
       const active = current === s.id;
       const cls = active ? (status === 'error' ? 'radio-card error' : 'radio-card active') : 'radio-card';
       const icon = !active ? 'radio' : status === 'playing' ? 'graphic_eq' : status === 'paused' ? 'pause' : status === 'error' ? 'error' : 'more_horiz';
-      return `<button class="${cls}" onclick="radioToggle('${s.id}')">
+      return `<button class="${cls}" data-id="${esc(s.id)}" onclick="radioToggle(this.dataset.id)">
         <span class="material-symbols-outlined radio-card-icon">${icon}</span>
         <div class="radio-card-text">
-          <div class="radio-card-name">${s.name}</div>
-          <div class="radio-card-desc">${active ? statusText() : s.desc}</div>
+          <div class="radio-card-name">${esc(s.name)}</div>
+          <div class="radio-card-desc">${esc(active ? statusText() : s.desc)}</div>
         </div>
       </button>`;
     }).join('');

@@ -113,10 +113,13 @@
   const TONES = {
     1: [[880, 0, 0.15], [1108.7, 0.16, 0.15], [1318.5, 0.32, 0.15], [1760, 0.48, 0.5]]   // 4 tonos seguidos
   };
-  const toneLoopS = n => Math.max.apply(null, TONES[n].map(x => x[1] + x[2])) + PAUSE_S;
+  // Un timer guardado cuando existía el "Tono 2" (v50-v51) podría traer tone: 2.
+  // Ese tono ya no existe: cualquier valor desconocido usa el tono 1 (antes rompía la melodía).
+  const toneOf = n => (TONES[n] ? n : 1);
+  const toneLoopS = n => Math.max.apply(null, TONES[toneOf(n)].map(x => x[1] + x[2])) + PAUSE_S;
 
   function scheduleLoop(t0) {
-    TONES[sched.tone].forEach(([f, off, dur]) => beep(f, t0 + off, dur, sched.bus, sched.oscs));
+    TONES[toneOf(sched.tone)].forEach(([f, off, dur]) => beep(f, t0 + off, dur, sched.bus, sched.oscs));
   }
 
   function scheduleFrom(base, minLoops, forEnd, tone) {
@@ -251,6 +254,7 @@
 
   function ring(r) {
     r.ringing = true;
+    if (typeof radioAlarmStart === 'function') radioAlarmStart(); // que la radio no tape la alarma
     updateTitle();
     startMelody();
     acquireWakeLock();
@@ -269,7 +273,10 @@
     if (!r) return null;
     const wasRinging = r.ringing;
     runs = runs.filter(x => x.id !== id);
-    if (!anyRinging()) stopMelody();
+    if (!anyRinging()) {
+      stopMelody();
+      if (wasRinging && typeof radioAlarmEnd === 'function') radioAlarmEnd(); // reanudar la radio si la pausó la alarma
+    }
     else if (sched && sched.tone !== (firstRinging().tone || 1)) { cancelScheduled(); startMelody(); } // sigue sonando otro con distinto tono
     if (wasRinging && !anyRinging()) tab = runs.length ? 'list' : 'timer';
     updateTitle();
