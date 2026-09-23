@@ -4,6 +4,21 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v67
+
+### Añadido
+- **Probar una emisora antes de guardarla**, en Admin → Radio: botón "Probar" debajo del enlace que la reproduce ahí mismo, con su propio reproductor (no interfiere si ya está sonando la radio real, ni si está abierta). Dice "Suena aquí ✓" o "No se pudo reproducir aquí" en unos segundos, antes de que la des de alta. Si el enlace es http://, la prueba usa la versión https:// (la que se guardaría). Si pones un enlace .pls/.m3u avisa de que es una lista, no un flujo directo.
+
+---
+
+## v66 (revisión)
+
+### Añadido
+- La pantalla de error de carga ahora dice si es un fallo de conexión o de la propia app, y muestra el detalle del error.
+- Aviso si `index.html` y `js/app.js` son de versiones distintas (p. ej. se subió uno a GitHub y el otro no): con esa mezcla la app mostraba "Error al conectar con la base de datos" aunque la base de datos estuviera bien.
+
+---
+
 ## v66
 
 ### Cambiado
