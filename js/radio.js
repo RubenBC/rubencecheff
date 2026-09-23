@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   RADIO EN DIRECTO  (v56)
+   RADIO EN DIRECTO  (v63)
    Ventana emergente con vinilo, que se puede minimizar a una burbuja
    movible visible en cualquier pestaña de la app.
    - MP3/AAC: el <audio> las reproduce de forma nativa.
@@ -11,29 +11,108 @@
 (function () {
   'use strict';
 
+  // Grupos (en este orden). 'short' es el texto de los filtros de arriba.
+  const GROUPS = [
+    { key: 'es',      name: 'España',                           short: 'España' },
+    { key: 'amb',     name: 'Electrónica / ambient',            short: 'Ambient' },
+    { key: 'house',   name: 'House / dance / IDM',              short: 'House / Dance' },
+    { key: 'rock',    name: 'Rock / indie / metal',             short: 'Rock / Metal' },
+    { key: 'soul',    name: 'Soul / funk / R&B',                short: 'Soul / Funk' },
+    { key: 'jazz',    name: 'Jazz',                             short: 'Jazz' },
+    { key: 'latin',   name: 'Brasileña / latina',               short: 'Brasil / Latina' },
+    { key: 'reggae',  name: 'Reggae',                           short: 'Reggae' },
+    { key: 'country', name: 'Country / americana',              short: 'Country' },
+    { key: 'folk',    name: 'Celta / folk',                     short: 'Celta / Folk' },
+    { key: 'lounge',  name: 'Lounge / vintage / bandas sonoras', short: 'Lounge' },
+    { key: 'custom',  name: 'Otras emisoras',                   short: 'Otras' },
+  ];
+
   // Emisoras de serie. Expuestas en window.RADIO_BUILTIN para que el panel
   // de Admin pueda listarlas y ofrecer borrarlas (tabla radio_hidden_builtin).
+  // Los id llevan prefijo (es_/soma_) para que no hereden borrados de la lista anterior.
+  // Los enlaces http:// de la lista original van en https:// (http no suena en la app).
+  const E = (id, name, desc, url) => ({ id: 'es_' + id, group: 'es', flag: '🇪🇸', name, desc, type: 'audio', url });
+  const SOMA = (group, id, name, desc) => ({ id: 'soma_' + id, group, flag: '🇺🇸', name, desc, type: 'audio', url: 'https://ice5.somafm.com/' + id + '-128-mp3' });
   const BUILTIN = [
-    { id: 'los40',        name: 'LOS40',        desc: 'Éxitos actuales: pop, dance, electropop y reguetón.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40.mp3' },
-    { id: 'los40classic', name: 'LOS40 Classic', desc: 'Grandes éxitos de los 70 a los 2000.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_CLASSIC.mp3' },
-    { id: 'los40dance',   name: 'LOS40 Dance',   desc: 'Electrónica y dance, al estilo de la antigua Máxima FM.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_DANCE_SC' },
-    { id: 'europafm',     name: 'Europa FM',     desc: 'Pop y música comercial actual.', type: 'audio', url: 'https://radio-atres-live.ondacero.es/api/livestream-redirect/EFMAAC.aac' },
-    { id: 'dial',         name: 'Cadena Dial',   desc: 'Pop en español, artistas de España y Latinoamérica.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL.mp3' },
-    { id: 'cadena100',    name: 'Cadena 100',    desc: 'Pop comercial, éxitos nacionales e internacionales.', type: 'audio', url: 'https://cadena100-streamers-mp3.flumotion.com/cope/cadena100.mp3' },
-    { id: 'rockfm',       name: 'Rock FM',       desc: 'Rock clásico nacional e internacional.', type: 'audio', url: 'https://flucast26-h-cloud.flumotion.com/cope/rockfm-low.mp3' },
-    { id: 'radiole',      name: 'Radiolé',       desc: 'Copla, flamenco, rumba y sevillanas.', type: 'audio', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOLE.mp3' },
-    { id: 'radio3',       name: 'Radio 3',       desc: 'Música alternativa e independiente.', type: 'hls', url: 'https://rtvelivestream.rtve.es/rtvesec/rne/rne_r3_main.m3u8' },
+    E('los40',        'LOS40',         'Pop, hits actuales y clásicos',                    'https://playerservices.streamtheworld.com/api/livestream-redirect/Los40.mp3'),
+    E('los40classic', 'LOS40 Classic', 'Rock y pop clásicos',                              'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_CLASSIC.mp3'),
+    E('los40urban',   'LOS40 Urban',   'Reggaetón, trap, hip-hop y música urbana',          'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_URBAN.mp3'),
+    E('los40dance',   'LOS40 Dance',   'Dance, house y electrónica comercial',              'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_DANCE.mp3'),
+    E('kissfm',       'KISS FM',       'Pop/rock de los 80, 90 y 2000',                     'https://kissfm.kissfmradio.cires21.com/kissfm.mp3'),
+    E('dial',         'Cadena Dial',   'Pop español',                                       'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL.mp3'),
+    E('cadena100',    'Cadena 100',    'Pop-rock y éxitos',                                 'https://cadena100-streamers-mp3.flumotion.com/cope/cadena100.mp3'),
+    E('rockfm',       'Rock FM',       'Rock clásico',                                      'https://flucast26-h-cloud.flumotion.com/cope/rockfm-low.mp3'),
+    E('radiole',      'Radiolé',       'Música española, copla, flamenco y rumba',          'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOLE.mp3'),
+
+    SOMA('amb', 'groovesalad',  'Groove Salad',         'Ambient, downtempo, chill electrónico'),
+    SOMA('amb', 'gsclassic',    'Groove Salad Classic', 'Downtempo/electrónica estilo años 2000'),
+    SOMA('amb', 'dronezone',    'Drone Zone',           'Ambient atmosférico y minimalista'),
+    SOMA('amb', 'deepspaceone', 'Deep Space One',       'Ambient electrónico, experimental y espacial'),
+    SOMA('amb', 'spacestation', 'Space Station Soma',   'Electrónica espacial y mid-tempo'),
+    SOMA('amb', 'synphaera',    'Synphaera Radio',      'Ambient electrónico y música espacial'),
+    SOMA('amb', 'darkzone',     'The Dark Zone',        'Ambient oscuro y experimental'),
+
+    SOMA('house', 'beatblender', 'Beat Blender',   'Deep house y downtempo'),
+    SOMA('house', 'thetrip',     'The Trip',       'Progressive house y trance'),
+    SOMA('house', 'cliqhop',     'cliqhop idm',    'IDM, glitch y electrónica experimental'),
+    SOMA('house', 'fluid',       'Fluid',          'Hip-hop instrumental, future soul y electrónica'),
+    SOMA('house', 'poptron',     'PopTron',        'Electropop e indie dance'),
+    SOMA('house', 'u80s',        'Underground 80s','Synthpop y New Wave británico de los 80'),
+
+    SOMA('rock', 'indiepop',  'Indie Pop Rocks!', 'Indie pop y rock alternativo'),
+    SOMA('rock', 'metal',     'Metal Detector',   'Black, doom, thrash, sludge, prog, stoner, punk e industrial'),
+    SOMA('rock', 'digitalis', 'Digitalis',        'Rock con electrónica y procesamiento digital'),
+    SOMA('rock', 'seventies', 'Left Coast 70s',   'Rock de álbum de los años 70'),
+
+    SOMA('soul', '7soul',   'Seven Inch Soul', 'Soul clásico en vinilo de 45 RPM'),
+    SOMA('soul', 'insound', 'The In-Sound',    'Pop europeo, psicodelia y sonidos groovy de los 60–70'),
+
+    SOMA('jazz', 'sonicuniverse', 'Sonic Universe', 'Jazz contemporáneo, avant-garde y fusiones'),
+
+    SOMA('latin', 'bossa',        'Bossa Beyond',    'Bossa nova, samba y ritmos brasileños'),
+    SOMA('latin', 'suburbsofgoa', 'Suburbs of Goa',  'Electrónica con influencias asiáticas/indias'),
+
+    SOMA('reggae',  'reggae',     'Heavyweight Reggae', 'Reggae, ska y rocksteady'),
+    SOMA('country', 'bootliquor', 'Boot Liquor',        'Americana, country y roots'),
+    SOMA('folk',    'thistle',    'ThistleRadio',       'Música celta y folk de raíces británicas'),
+
+    SOMA('lounge', 'secretagent', 'Secret Agent',          'Lounge, jazz, funk y música con aire de película de espías'),
+    SOMA('lounge', 'illstreet',   'Illinois Street Lounge', 'Exotica, lounge y sonidos vintage'),
+    SOMA('lounge', 'tikitime',    'Tiki Time',              'Música tiki y ritmos tropicales vintage'),
   ];
   window.RADIO_BUILTIN = BUILTIN;
+  window.RADIO_GROUPS  = GROUPS;
 
   function STATIONS_LIST() {
     const hidden = new Set(typeof hiddenBuiltinStations !== 'undefined' ? hiddenBuiltinStations : []);
     const builtin = BUILTIN.filter(s => !hidden.has(s.id));
     const custom = (typeof customStations !== 'undefined' ? customStations : []).map(s => ({
-      id: 'custom_' + s.id, name: s.name, desc: 'Añadida por el admin', type: s.type || 'audio', url: s.url,
+      id: 'custom_' + s.id, group: 'custom', flag: '📻', name: s.name, desc: 'Añadida por el admin', type: s.type || 'audio', url: s.url,
     }));
     return builtin.concat(custom);
   }
+
+  // ───────── Favoritas (en este dispositivo) ─────────
+  const LS_FAVS = 'rubencechef-radio-favs';
+  let favs = [];
+  try { favs = JSON.parse(localStorage.getItem(LS_FAVS)) || []; } catch (e) { favs = []; }
+  const isFav = id => favs.includes(id);
+  window.radioToggleFav = function (id, e) {
+    if (e) e.stopPropagation();
+    favs = isFav(id) ? favs.filter(x => x !== id) : favs.concat(id);
+    try { localStorage.setItem(LS_FAVS, JSON.stringify(favs)); } catch (err) {}
+    if (filter === 'fav' && !favs.length) filter = 'all';
+    render();
+  };
+  window.radioToggleFavCurrent = function () { if (current) radioToggleFav(current); };
+
+  let filter = 'all'; // 'all' | 'fav' | clave de grupo
+  window.radioSetFilter = function (f) {
+    filter = f;
+    render();
+    const list = document.getElementById('radioList');
+    if (list) list.scrollTop = 0;
+  };
 
   let current = null;   // id de la emisora sonando/cargando, o null
   let status = 'idle';  // 'idle' | 'connecting' | 'playing' | 'paused' | 'error'
@@ -315,18 +394,60 @@
     const st = currentStation();
     if (current && !st) { radioStop(); return; } // la emisora que sonaba se ha borrado
 
-    list.innerHTML = STATIONS_LIST().map(s => {
+    const all = STATIONS_LIST();
+
+    // Filtros (chips): Todas · Favoritas · un chip por grupo que tenga emisoras
+    const chipsEl = $('radioChips');
+    const favList = all.filter(x => isFav(x.id));
+    if (filter === 'fav' && !favList.length) filter = 'all';
+    if (filter !== 'all' && filter !== 'fav' && !all.some(x => x.group === filter)) filter = 'all';
+    if (chipsEl) {
+      const chip = (key, label) => `<button class="radio-chip${filter === key ? ' active' : ''}" onclick="radioSetFilter('${key}')">${label}</button>`;
+      chipsEl.innerHTML = chip('all', 'Todas')
+        + (favList.length ? chip('fav', '<span class="material-symbols-outlined radio-chip-star">star</span> Favoritas') : '')
+        + GROUPS.filter(g => all.some(x => x.group === g.key)).map(g => chip(g.key, esc(g.short))).join('');
+      const act = chipsEl.querySelector('.radio-chip.active');
+      if (act && act.scrollIntoView && chipsEl.dataset.last !== filter) { act.scrollIntoView({ block: 'nearest', inline: 'center' }); chipsEl.dataset.last = filter; }
+    }
+
+    const card = s => {
       const active = current === s.id;
-      const cls = active ? (status === 'error' ? 'radio-card error' : 'radio-card active') : 'radio-card';
-      const icon = !active ? 'radio' : status === 'playing' ? 'graphic_eq' : status === 'paused' ? 'pause' : status === 'error' ? 'error' : 'more_horiz';
-      return `<button class="${cls}" data-id="${esc(s.id)}" onclick="radioToggle(this.dataset.id)">
-        <span class="material-symbols-outlined radio-card-icon">${icon}</span>
+      const cls = 'radio-card' + (active ? (status === 'error' ? ' error' : ' active') : '');
+      let badge;
+      if (!active) badge = `<span class="radio-card-flag">${s.flag || '📻'}</span>`;
+      else if (status === 'playing') badge = '<span class="radio-eq"><i></i><i></i><i></i></span>';
+      else if (status === 'connecting') badge = '<span class="material-symbols-outlined spin">progress_activity</span>';
+      else if (status === 'paused') badge = '<span class="material-symbols-outlined">pause</span>';
+      else badge = '<span class="material-symbols-outlined">error</span>';
+      const fav = isFav(s.id);
+      return `<div class="${cls}" role="button" tabindex="0" data-id="${esc(s.id)}" onclick="radioToggle(this.dataset.id)">
+        <div class="radio-card-badge">${badge}</div>
         <div class="radio-card-text">
           <div class="radio-card-name">${esc(s.name)}</div>
-          <div class="radio-card-desc">${esc(active ? statusText() : s.desc)}</div>
+          <div class="radio-card-desc">${esc(active && status !== 'playing' ? statusText() : s.desc)}</div>
         </div>
-      </button>`;
-    }).join('');
+        <button class="radio-fav-btn${fav ? ' on' : ''}" data-id="${esc(s.id)}" onclick="radioToggleFav(this.dataset.id, event)" aria-label="${fav ? 'Quitar de favoritas' : 'Añadir a favoritas'}">
+          <span class="material-symbols-outlined">star</span>
+        </button>
+      </div>`;
+    };
+    const section = (title, items, icon) => items.length
+      ? `<div class="radio-section">${icon ? `<span class="material-symbols-outlined">${icon}</span>` : ''}${esc(title)}<span class="radio-section-count">${items.length}</span></div>` + items.map(card).join('')
+      : '';
+
+    let html = '';
+    if (filter === 'all') {
+      // Favoritas arriba; el resto por grupos (sin repetir las favoritas)
+      html += section('Favoritas', favList, 'star');
+      GROUPS.forEach(g => { html += section(g.name, all.filter(x => x.group === g.key && !isFav(x.id))); });
+    } else if (filter === 'fav') {
+      html += section('Favoritas', favList, 'star');
+    } else {
+      const g = GROUPS.find(x => x.key === filter);
+      const items = all.filter(x => x.group === filter);
+      html += section(g ? g.name : '', items.filter(x => isFav(x.id)).concat(items.filter(x => !isFav(x.id))));
+    }
+    list.innerHTML = html || '<div class="radio-empty">No hay emisoras.</div>';
 
     // vinilo, aguja y "ahora suena"
     const vinyl = $('radioVinyl'), arm = $('radioTonearm'), icon = $('radioVinylIcon');
@@ -335,24 +456,33 @@
     if (arm) arm.classList.toggle('down', playingLike);
     if (icon) icon.textContent = status === 'error' ? 'error' : 'radio';
 
-    const nameEl = $('radioNpName'), subEl = $('radioNpSub');
+    const nameEl = $('radioNpName'), subEl = $('radioNpSub'), descEl = $('radioNpDesc');
     if (nameEl && subEl) {
+      subEl.classList.remove('error', 'live');
       if (!st) {
         nameEl.textContent = 'Elige una emisora';
-        subEl.innerHTML = '&nbsp;';
+        subEl.textContent = 'Toca una de la lista para escucharla';
+        if (descEl) descEl.textContent = '';
       } else {
         nameEl.textContent = st.name;
         subEl.textContent = statusText();
-        subEl.classList.toggle('error', status === 'error');
+        if (status === 'playing') subEl.classList.add('live');
+        if (status === 'error') subEl.classList.add('error');
+        if (descEl) descEl.textContent = st.desc || '';
       }
     }
 
-    // controles de reproducción bajo el vinilo
-    const playBtn = $('radioPlayPauseBtn'), playIcon = $('radioPlayPauseIcon'), stopBtn = $('radioStopBtn');
+    // controles de reproducción
+    const playBtn = $('radioPlayPauseBtn'), playIcon = $('radioPlayPauseIcon'), stopBtn = $('radioStopBtn'), favBtn = $('radioFavBtn');
     if (playBtn && playIcon && stopBtn) {
       playBtn.disabled = !current;
       stopBtn.disabled = !current;
       playIcon.textContent = (status === 'playing' || status === 'connecting') ? 'pause' : (status === 'error' ? 'refresh' : 'play_arrow');
+      playBtn.setAttribute('aria-label', status === 'playing' || status === 'connecting' ? 'Pausar' : 'Reproducir');
+    }
+    if (favBtn) {
+      favBtn.disabled = !current;
+      favBtn.classList.toggle('on', !!current && isFav(current));
     }
 
     // burbuja (si está minimizada y hay algo sonando/cargando)

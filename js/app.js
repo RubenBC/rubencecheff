@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v62';
+const APP_VERSION = 'v63';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -2095,7 +2095,7 @@ function renderRadioAdmin() {
       <div class="ficha-row">
         <div class="ficha-name" style="min-width:0;">
           <div style="font-weight:800;">${escapeHtml(s.name)}</div>
-          <div style="font-size:11.5px; color:var(--text2);">De serie</div>
+          <div style="font-size:11.5px; color:var(--text2);">${s.flag || ''} ${escapeHtml(((window.RADIO_GROUPS || []).find(g => g.key === s.group) || {}).name || 'De serie')}</div>
         </div>
         <button class="btn-icon" onclick="radioAdminDeleteBuiltin('${s.id}')">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
