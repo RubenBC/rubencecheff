@@ -859,7 +859,7 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
 .timer-chip.potato .chip-num small { font-size: 11px; font-weight: 700; opacity: 0.8; }
 
 /* ═══════════════════════════════════════
-   RADIO EN DIRECTO (v59)
+   RADIO EN DIRECTO (v61)
    Ventana emergente con vinilo + burbuja flotante minimizable.
    Máx. 60% de pantalla; en apaisado (monitor) el reproductor y la lista
    se colocan en columnas en vez de apilados.
@@ -939,7 +939,7 @@ body.dark .radio-sheet { background: var(--surface); }
 
 /* ── Burbuja flotante (minimizado), visible en toda la app ── */
 .radio-bubble {
-  position: fixed; z-index: 650; touch-action: none; cursor: grab;
+  position: fixed; z-index: 450; touch-action: none; cursor: grab; /* por debajo de los diálogos (500+) */
   display: flex; align-items: center; gap: 9px;
   background: white; border-radius: 999px; padding: 7px 9px 7px 7px; max-width: 240px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.28);
@@ -974,3 +974,8 @@ body.dark .radio-bubble-btn.stop { background: rgba(255,255,255,0.08); }
   .bottom-nav .nav-btn { font-size: 9px; }
   .bottom-nav .nav-btn .material-symbols-outlined { font-size: 20px; }
 }
+
+/* v61 — el globo de comentarios pendientes es el último <span> del botón
+   Utilidades: la regla de las etiquetas del menú (span:last-child) le quitaba
+   el position:absolute y aparecía debajo del texto en vez de en la esquina. */
+.nav-btn span.nav-badge { position: absolute; max-width: none; overflow: visible; z-index: 2; }
