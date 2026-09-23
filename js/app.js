@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v66';
+const APP_VERSION = 'v67';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -328,6 +328,7 @@ function showPage(page, btn, skipPush) {
   if (page === 'admin' && !isAdmin) page = 'recipes';
   // Si la ventana de Radio está abierta, minimizarla a burbuja al cambiar de pestaña
   if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
+  if (typeof radioPreviewStop === 'function') radioPreviewStop(); // no dejar sonando una prueba de emisora al salir de Admin
   exitInnerView();
   hideSearchDropdown();
   const switchingPage = page !== currentPage;
@@ -1571,6 +1572,7 @@ function openAdminPanel(tab) {
 }
 
 async function adminLogout() {
+  radioPreviewStop();
   const ok = await showConfirm({
     title: 'Cerrar sesión', message: '¿Salir del modo administrador?',
     confirmText: 'Cerrar sesión', icon: 'logout',
@@ -1965,6 +1967,7 @@ const ADMIN_TABS = [
 const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', prod: 'adminTabProd', radio: 'adminTabRadio', photos: 'adminTabPhotos' };
 
 function setAdminTab(tab) {
+  if (tab !== 'radio') radioPreviewStop();
   adminTab = tab;
   renderAdmin();
   window.scrollTo(0, 0);
@@ -2226,6 +2229,12 @@ function renderRadioAdmin() {
       <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
         <div class="form-input ce-input" id="radioNameInput" contenteditable="true" data-placeholder="Nombre de la emisora..."></div>
         <div class="form-input ce-input" id="radioUrlInput" contenteditable="true" data-placeholder="Enlace directo (.mp3, .aac o .m3u8)..."></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn-pill" id="radioPreviewBtn" onclick="radioAdminPreview()" type="button">
+            <span class="material-symbols-outlined" style="font-size:16px;">play_circle</span> Probar
+          </button>
+          <span id="radioPreviewStatus" class="radio-preview-status"></span>
+        </div>
         <div class="form-input ce-input" id="radioStyleInput" contenteditable="true" data-placeholder="Estilo (ej. Rock, Jazz, Pop español)..."></div>
         <div class="form-input ce-input" id="radioCommentInput" contenteditable="true" data-placeholder="Comentario breve (opcional)..."></div>
         ${radioStyleCols ? '' : `<div style="font-size:12px; color:var(--danger);">Para guardar el estilo y el comentario falta crear sus columnas en Supabase (tabla radio_stations: <b>style</b> y <b>comment</b>).</div>`}
@@ -2250,13 +2259,91 @@ function renderRadioAdmin() {
 }
 
 function radioAdminEdit(id) {
+  radioPreviewStop();
   radioEditingId = id;
   renderAdmin();
 }
 
 function radioAdminCancelEdit() {
+  radioPreviewStop();
   radioEditingId = null;
   renderAdmin();
+}
+
+// ─── Probar una emisora antes de guardarla (usa su propio <audio>, no
+// interfiere con la radio real si estuviera sonando) ───
+let radioPreviewStatus = 'idle'; // 'idle' | 'loading' | 'ok' | 'error'
+let radioPreviewHls = null;
+let radioPreviewTimer = null;
+
+function radioPreviewStop() {
+  const a = document.getElementById('radioPreviewAudio');
+  if (a) { try { a.pause(); } catch (e) {} a.removeAttribute('src'); try { a.load(); } catch (e) {} }
+  if (radioPreviewHls) { try { radioPreviewHls.destroy(); } catch (e) {} radioPreviewHls = null; }
+  if (radioPreviewTimer) { clearTimeout(radioPreviewTimer); radioPreviewTimer = null; }
+  radioPreviewStatus = 'idle';
+  renderRadioPreviewStatus();
+}
+
+function renderRadioPreviewStatus() {
+  const el = document.getElementById('radioPreviewStatus');
+  const btn = document.getElementById('radioPreviewBtn');
+  if (!el || !btn) return;
+  const MAP = {
+    idle:    { text: '', cls: '' },
+    loading: { text: 'Probando…', cls: '' },
+    ok:      { text: '✓ Suena aquí', cls: 'ok' },
+    error:   { text: '✕ No se pudo reproducir aquí', cls: 'error' },
+  };
+  const st = MAP[radioPreviewStatus] || MAP.idle;
+  el.textContent = st.text;
+  el.className = 'radio-preview-status' + (st.cls ? ' ' + st.cls : '');
+  const testing = radioPreviewStatus === 'loading' || radioPreviewStatus === 'ok';
+  btn.innerHTML = testing
+    ? `<span class="material-symbols-outlined" style="font-size:16px;">stop_circle</span> Parar prueba`
+    : `<span class="material-symbols-outlined" style="font-size:16px;">play_circle</span> Probar`;
+}
+
+function radioAdminPreview() {
+  if (radioPreviewStatus === 'loading' || radioPreviewStatus === 'ok') { radioPreviewStop(); return; }
+
+  let url = (document.getElementById('radioUrlInput')?.innerText || '').trim();
+  if (!url) { showToast('Pon un enlace primero'); return; }
+  if (!/^https?:\/\//i.test(url)) { showToast('El enlace debe empezar por http:// o https://'); return; }
+  if (/^http:\/\//i.test(url)) url = 'https://' + url.slice(7); // se prueba tal cual se guardaría
+  if (/\.(pls|m3u)(\?|$)/i.test(url)) { showToast('Ese enlace es una lista (.pls/.m3u), no un flujo directo'); return; }
+
+  if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen(); // no solapar con la radio real
+  radioPreviewStatus = 'loading';
+  renderRadioPreviewStatus();
+
+  const a = document.getElementById('radioPreviewAudio');
+  a.onerror = () => { radioPreviewStatus = 'error'; renderRadioPreviewStatus(); };
+  a.onplaying = () => {
+    radioPreviewStatus = 'ok'; renderRadioPreviewStatus();
+    if (radioPreviewTimer) { clearTimeout(radioPreviewTimer); radioPreviewTimer = null; }
+  };
+
+  // Si en 12 s no ha empezado a sonar ni ha dado error, se da por fallida
+  radioPreviewTimer = setTimeout(() => {
+    if (radioPreviewStatus === 'loading') { radioPreviewStatus = 'error'; renderRadioPreviewStatus(); }
+  }, 12000);
+
+  const type = radioAdminStationType(url);
+  if (type === 'hls' && !a.canPlayType('application/vnd.apple.mpegurl')) {
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+      radioPreviewHls = new Hls();
+      radioPreviewHls.on(Hls.Events.ERROR, (evt, data) => { if (data && data.fatal) { radioPreviewStatus = 'error'; renderRadioPreviewStatus(); } });
+      radioPreviewHls.loadSource(url);
+      radioPreviewHls.attachMedia(a);
+      a.play().catch(() => {});
+    } else {
+      radioPreviewStatus = 'error'; renderRadioPreviewStatus();
+    }
+  } else {
+    a.src = url;
+    a.play().catch(() => { radioPreviewStatus = 'error'; renderRadioPreviewStatus(); });
+  }
 }
 
 async function radioAdminSave() {
@@ -2280,6 +2367,7 @@ async function radioAdminSave() {
   const comment = (document.getElementById('radioCommentInput')?.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80);
   const extra = radioStyleCols ? { style: style || null, comment: comment || null } : {};
 
+  radioPreviewStop();
   if (radioEditingId) {
     const ok = await runWithLoading(btn, '', async () => {
       const { data, error } = await sb.from('radio_stations').update({ name, url, type, ...extra }).eq('id', radioEditingId).select();
