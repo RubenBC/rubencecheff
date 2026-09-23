@@ -4,6 +4,18 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v64
+
+### Cambiado
+- **Emisoras de SomaFM quitadas**: SomaFM bloquea la reproducción dentro de otras webs (por eso sonaban al pegar el enlace en el navegador pero no en la app).
+- **Nuevas emisoras que sí permiten escucharse desde otras apps**, agrupadas por estilo:
+  - Radio France (radio pública francesa, sin anuncios): FIP, FIP Nouveautés, FIP Pop, FIP Sacré français, FIP Rock, FIP Metal, FIP Electro, FIP Hip-Hop, FIP Groove, FIP Jazz, FIP Monde, FIP Reggae, France Musique Piano Zen, La Baroque y Classique Love.
+  - Radio Paradise (sin anuncios): Main Mix, Rock y Mellow.
+- Estilos: España, Variada, Pop, Rock / Metal, Electrónica / Hip-hop, Soul / Funk, Jazz, Mundo / Reggae, Tranquila y Clásica.
+- Si tenías marcadas como favoritas emisoras de SomaFM, desaparecen de Favoritas.
+
+---
+
 ## v63
 
 ### Cambiado
