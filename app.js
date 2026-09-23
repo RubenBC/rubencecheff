@@ -1,0 +1,3758 @@
+// ═══════════════════════════════════════
+//   SUPABASE
+// ═══════════════════════════════════════
+const { createClient } = supabase;
+const sb = createClient(
+  'https://rswzirygkeyainerfzjx.supabase.co',
+  'sb_publishable_Uno7xmeQJLmvtcyZvtZfQw_IkpEth_y'
+);
+
+// ═══════════════════════════════════════
+//   CONSTANTES
+// ═══════════════════════════════════════
+const APP_VERSION = 'v63';
+const ADMIN_EMAIL = 'rbcheca@gmail.com';
+
+const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
+
+const CAT_TAG = {
+  'Carnes':          'tag-carnes',
+  'Pescados':        'tag-pescados',
+  'Postres':         'tag-postres',
+  'Salsas y fondos': 'tag-salsas',
+  'Ensaladas':       'tag-ensaladas',
+  'Guarniciones':    'tag-guarniciones',
+  'Sopas y salsas':  'tag-salsas',
+  'Vegetariano':     'tag-vegetariano',
+  'Coulis':          'tag-coulis',
+  'Vinagreta':       'tag-vinagreta',
+};
+
+const ALLERGENS = [
+  { id: 'gluten',     label: 'Gluten',           emoji: '🌾' },
+  { id: 'crustaceos', label: 'Crustáceos',        emoji: '🦐' },
+  { id: 'huevo',      label: 'Huevo',             emoji: '🥚' },
+  { id: 'pescado',    label: 'Pescado',            emoji: '🐟' },
+  { id: 'cacahuetes', label: 'Cacahuetes',         emoji: '🥜' },
+  { id: 'soja',       label: 'Soja',              emoji: '🫘' },
+  { id: 'lacteos',    label: 'Lácteos',           emoji: '🥛' },
+  { id: 'frutoscas',  label: 'Frutos de cáscara', emoji: '🌰' },
+  { id: 'apio',       label: 'Apio',              emoji: '🌿' },
+  { id: 'mostaza',    label: 'Mostaza',           emoji: '🟡' },
+  { id: 'sesamo',     label: 'Sésamo',            emoji: '🌱' },
+  { id: 'sulfitos',   label: 'Sulfitos',          emoji: '🍷' },
+  { id: 'altramuces', label: 'Altramuces',        emoji: '🫛' },
+  { id: 'moluscos',   label: 'Moluscos',          emoji: '🐚' },
+];
+
+// ─── Grupos de proveedor para la lista de pedidos ───
+const SUPPLIER_GROUPS = [
+  { id: 'aves',       label: 'Aves',                   emoji: '🐔', kw: ['pollo','pollos','pavo','pavos','pato','patos','magret','pechuga','pechugas','muslo','muslos','contramuslo','contramuslos','alita','alitas','gallina','gallinas','codorniz','codornices','perdiz','perdices','pularda','pulardas','capon','capones','pichon','pichones','jamoncito','jamoncitos','ave','aves'] },
+  { id: 'carnes',     label: 'Carnes',                 emoji: '🥩', kw: ['ternera','vacuno','buey','solomillo','lomo','cerdo','cochinillo','cordero','lechazo','conejo','costilla','costillar','chuleta','chuleton','entrecot','panceta','bacon','beicon','jamon','chorizo','salchicha','salchichon','morcilla','butifarra','secreto','presa','pluma','carrillera','carrilleras','rabo','codillo','hamburguesa','albondiga','albondigas','foie','higado','callos','manitas','careta','tocino','cabezada'] },
+  { id: 'pescados',   label: 'Pescados y mariscos',    emoji: '🐟', kw: ['salmon','merluza','bacalao','atun','bonito','lubina','dorada','rape','mero','rodaballo','lenguado','trucha','sardina','sardinas','boqueron','boquerones','anchoa','anchoas','caballa','jurel','pez','gamba','gambas','langostino','langostinos','cigala','cigalas','bogavante','carabinero','quisquilla','mejillon','mejillones','almeja','almejas','navaja','navajas','berberecho','berberechos','calamar','calamares','chipiron','chipirones','sepia','choco','pulpo','vieira','vieiras','zamburina','ostra','ostras','marisco','percebe','percebes','centollo','necora','langosta'] },
+  { id: 'fruver',     label: 'Frutas y verduras',      emoji: '🥬', kw: ['lechuga','tomate','tomates','cebolla','cebolleta','chalota','ajo','ajos','puerro','puerros','pimiento','pimientos','zanahoria','zanahorias','calabacin','berenjena','berenjenas','espinaca','espinacas','acelga','acelgas','brocoli','coliflor','romanesco','patata','patatas','apio','calabaza','champinon','champinones','seta','setas','boletus','niscalo','esparrago','esparragos','judia','judias','guisante','guisantes','haba','habas','rucula','canonigo','canonigos','escarola','endivia','endivias','remolacha','nabo','rabano','rabanos','hinojo','alcachofa','alcachofas','pepino','maiz','col','repollo','lombarda','kale','germinado','brote','brotes','jengibre','aguacate','tirabeque','tirabeques','borraja','cardo','grelo','grelos','perejil','cilantro','albahaca','hierbabuena','menta','manzana','manzanas','pera','peras','platano','platanos','naranja','naranjas','limon','limones','lima','limas','mandarina','pomelo','fresa','fresas','freson','frambuesa','frambuesas','arandano','arandanos','mora','moras','grosella','mango','pina','melon','sandia','uva','uvas','higo','higos','granada','kiwi','melocoton','albaricoque','nectarina','cereza','cerezas','ciruela','ciruelas','coco','maracuya','papaya'] },
+  { id: 'lacteos',    label: 'Lácteos y huevos',       emoji: '🧀', kw: ['leche','nata','queso','quesos','mantequilla','yogur','yogures','huevo','huevos','crema','parmesano','mozzarella','mascarpone','requeson','cuajada','kefir','burrata','feta','gruyer','emmental','cheddar','idiazabal','manchego','cabra','mantequa'] },
+  { id: 'encurtidos', label: 'Encurtidos y conservas', emoji: '🫙', kw: ['pepinillo','pepinillos','alcaparra','alcaparras','aceituna','aceitunas','encurtido','encurtidos','banderilla','banderillas','guindilla','guindillas','piparra','piparras','conserva','escabeche','antipasto','mojama','salazon','ventresca'] },
+  { id: 'panaderia',  label: 'Panadería y pastelería', emoji: '🥖', kw: ['harina','pan','levadura','masa','hojaldre','brioche','miga','picatoste','picatostes','obleas','empanadilla','panko','bizcocho','galleta','galletas','fondant','merengue','crema pastelera','pasta brisa','filo','tortilla de trigo'] },
+  { id: 'despensa',   label: 'Despensa y especias',    emoji: '🧂', kw: ['sal','azucar','aceite','vinagre','pimienta','pimenton','comino','curry','canela','nuez moscada','clavo','azafran','laurel','oregano','tomillo','romero','especia','especias','caldo','fondo','soja','mostaza','miel','sirope','chocolate','cacao','almendra','almendras','nuez','nueces','avellana','avellanas','pinon','pinones','pistacho','pistachos','sesamo','gelatina','agar','maicena','fecula','tomate frito','concentrado','mayonesa','ketchup','wasabi','miso','tahini','tahin','vainilla','bicarbonato','glucosa','isomalt','lecitina','arroz','pasta','fideo','fideos','espagueti','macarron','macarrones','cuscus','semola','polenta','bulgur','quinoa','lenteja','lentejas','garbanzo','garbanzos','alubia','alubias','pan rallado'] },
+  { id: 'bebidas',    label: 'Bebidas y bodega',       emoji: '🍷', kw: ['vino','brandy','conac','jerez','ron','whisky','cerveza','cava','champan','champagne','oporto','vermut','vermouth','licor','sidra','ginebra','sake','agua','zumo','refresco','tonica'] },
+];
+const OTHER_GROUP = { id: 'otros', label: 'Otros / Sin asignar', emoji: '📦' };
+
+function normalizeText(s) {
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Detecta si un error de Supabase se debe a sesión caducada / falta de permisos
+// (RLS rechaza la escritura) y, en ese caso, avisa claramente y reabre el login.
+// Devuelve true si el error era de sesión (ya gestionado), false si es otro error.
+function handleAuthError(error) {
+  const msg  = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '');
+  const isAuth = code === '42501' || code === 'PGRST301' ||
+    msg.includes('row-level security') || msg.includes('jwt') ||
+    msg.includes('not authenticated') || msg.includes('refresh token');
+  if (!isAuth) return false;
+  isAdmin = false;
+  try { sb.auth.signOut(); } catch(e) {}
+  document.getElementById('adminBtn').innerHTML =
+    `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+  showToast('Tu sesión ha caducado. Inicia sesión de nuevo.');
+  setTimeout(() => toggleAdmin(), 600);
+  return true;
+}
+
+// Escapa texto para insertarlo con seguridad en HTML (contenido y atributos).
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+const escapeAttr = escapeHtml;
+
+// Enfoca el último elemento que casa con el selector (p. ej. el ingrediente
+// recién añadido en el editor) para poder escribir sin un toque extra.
+function focusLast(selector) {
+  requestAnimationFrame(() => {
+    const els = document.querySelectorAll(selector);
+    const el = els[els.length - 1];
+    if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  });
+}
+
+// Coletillas de cantidad que a veces se escriben dentro del nombre del
+// ingrediente. Se quitan SOLO para la lista de pedidos (no tocan la receta).
+const AMOUNT_NOTE_PHRASES = ['a ojo', 'al gusto', 'cantidad suficiente', 'c/s', 'qb', 'a discrecion', 'a discreción', 'a demanda', 'to taste'];
+function cleanIngredientName(raw) {
+  let s = (raw || '').toString();
+  AMOUNT_NOTE_PHRASES.forEach(p => {
+    const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    s = s.replace(new RegExp('\\(?\\s*\\b' + esc + '\\b\\s*\\)?', 'gi'), ' ');
+  });
+  return s
+    .replace(/\(\s*\)/g, ' ')        // paréntesis vacíos
+    .replace(/\s{2,}/g, ' ')         // espacios dobles
+    .replace(/^[\s,;:.\-–]+|[\s,;:.\-–]+$/g, '') // separadores colgando
+    .trim();
+}
+
+// Clasifica una materia prima en un grupo. Prioridad: asignación manual
+// guardada > diccionario por palabra clave > "Otros / Sin asignar".
+function classifyIngredient(name) {
+  const key = normalizeText(name);
+  if (!key) return 'otros';
+  const override = orderState[key] && orderState[key].supplier_group;
+  if (override) return override;
+  for (const g of SUPPLIER_GROUPS) {
+    for (const kw of g.kw) {
+      const k = normalizeText(kw).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp('\\b' + k + '\\b').test(key)) return g.id;
+    }
+  }
+  return 'otros';
+}
+function groupMeta(id) { return SUPPLIER_GROUPS.find(g => g.id === id) || OTHER_GROUP; }
+
+let recipes              = [];
+let productions          = [];
+let recipeProductions    = [];
+let comments             = [];
+let importantDates       = [];
+let eventsWindowDays     = 5; // se sobreescribe con el ajuste guardado en Supabase (app_settings)
+let importantDatesExpanded = false; // el panel de Admin arranca plegado para no ocupar toda la pantalla
+let weights              = [];
+let brines               = [];
+let productionCategories = [];
+let customStations       = []; // emisoras de radio añadidas desde Admin (tabla radio_stations)
+let hiddenBuiltinStations = []; // ids de emisoras de serie que el admin ha borrado (tabla radio_hidden_builtin)
+let orderItems = [];        // filas de la tabla order_items (estado guardado)
+let orderState = {};        // key normalizada -> { name, supplier_group, checked, comment }
+let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos' | 'admin'
+let pedidosSearch = '';
+let pedidosEdit   = false;  // modo edición de la lista de pedidos
+let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
+let recipeThumbCol = false; // ¿existe la columna recipes.photo_thumb (miniatura para la lista)?
+let recipeEditorUploads = []; // fotos subidas en esta sesión del editor (para limpiar las que no se usen)
+let isAdmin     = false;
+let currentPage = 'recipes';
+let savedScroll = {};
+
+// Recetas
+let currentRecipeId     = null;
+let recipeEditorMode    = null;
+let recipeEditorData    = null;
+let recipeEditorBaseline = null;   // snapshot para detectar cambios sin guardar
+
+// Producciones
+let currentProdId      = null;
+let prodEditorMode     = null;
+let prodEditorData     = null;
+let prodEditorBaseline = null;     // snapshot para detectar cambios sin guardar
+
+let currentMultiplier  = 1;
+
+// Comentarios
+let commentContext     = { name: '', section: '', id: null };
+
+// Fichas
+let editingWeightId    = null;
+let editingBrineId     = null;
+
+// Link producciones
+let linkingRecipeId    = null;
+let selectedProdIds    = [];
+
+// ═══════════════════════════════════════
+//   CARGA INICIAL
+// ═══════════════════════════════════════
+async function loadData() {
+  try {
+    const mainResults = await Promise.all([
+      sb.from('recipes').select('*').order('name'),
+      sb.from('productions').select('*').order('name'),
+      sb.from('recipe_productions').select('*'),
+      sb.from('comments').select('*').order('created_at', { ascending: false }),
+      sb.from('weights').select('*').order('name'),
+      sb.from('brines').select('*').order('category'),
+      sb.from('production_categories').select('*').order('sort_order'),
+    ]);
+    // Supabase no lanza excepción si falla la conexión: devuelve { error }.
+    // Antes eso dejaba las listas vacías ("Aún no hay platos creados"),
+    // como si se hubieran borrado. Ahora se muestra el aviso de error.
+    const mainErr = mainResults.find(r => r && r.error);
+    if (mainErr) throw mainErr.error;
+    const [
+      { data: rData }, { data: pData }, { data: rpData }, { data: cData },
+      { data: wData }, { data: bData }, { data: pcData },
+    ] = mainResults;
+
+    recipes              = rData  || [];
+    productions          = pData  || [];
+    recipeProductions    = rpData || [];
+    comments             = cData  || [];
+    weights              = wData  || [];
+    brines               = bData  || [];
+    productionCategories = pcData || [];
+
+    // Blindaje: si algún registro llegó de Supabase con ingredients/steps/
+    // allergens en null (p. ej. insertado por SQL sin esos campos), lo
+    // normalizamos a array vacío para que abrir su detalle no rompa la app.
+    const normalizeItem = it => {
+      it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
+      it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
+      it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
+      if (it.name == null) it.name = '';
+      if (it.description == null) it.description = '';
+      return it;
+    };
+    recipes.forEach(normalizeItem);
+    productions.forEach(normalizeItem);
+
+    // Tablas opcionales (pueden no existir todavía): se cargan a la vez, en
+    // paralelo, y si alguna falla la app sigue funcionando sin ella.
+    const optional = async (label, q) => {
+      try { const r = await q; if (r.error) throw r.error; return r; }
+      catch (e) { console.warn(label + ' no disponible (¿falta crear la tabla?):', e?.message || e); return null; }
+    };
+    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes] = await Promise.all([
+      optional('important_dates',      sb.from('important_dates').select('*').order('event_date')),
+      optional('radio_stations',       sb.from('radio_stations').select('*').order('sort_order')),
+      optional('radio_hidden_builtin', sb.from('radio_hidden_builtin').select('*')),
+      optional('app_settings',         sb.from('app_settings').select('*').eq('key', 'events_window_days').maybeSingle()),
+      optional('order_items',          sb.from('order_items').select('*')),
+      // ¿Están las columnas para editar la lista de pedidos (hidden/manual/display_name)?
+      optional('order_items (columnas de edición)', sb.from('order_items').select('hidden,manual,display_name').limit(1)),
+      optional('recipes.photo_thumb (miniaturas)', sb.from('recipes').select('photo_thumb').limit(1)),
+    ]);
+    importantDates        = idRes ? (idRes.data || []) : [];
+    customStations        = rsRes ? (rsRes.data || []) : [];
+    hiddenBuiltinStations = hbRes ? (hbRes.data || []).map(r => r.id) : [];
+    if (setRes && setRes.data) eventsWindowDays = parseInt(setRes.data.value, 10) || 5;
+    orderItems            = oRes ? (oRes.data || []) : [];
+    orderEditCols         = !!colsRes;
+    recipeThumbCol        = !!thumbRes;
+    rebuildOrderState();
+
+    await restoreAdminSession();
+    renderRecipes();
+    renderEventsButton();
+    updateBadges();
+
+    // Si veníamos de la auto-recarga cada 15 min, volver exactamente a la
+    // ficha/pestaña donde estaba, en vez de aterrizar siempre en Platos.
+    try {
+      const raw = sessionStorage.getItem('rubencechef-reload-restore');
+      if (raw) {
+        sessionStorage.removeItem('rubencechef-reload-restore');
+        const saved = JSON.parse(raw);
+        if (saved.view === 'recipe' && recipes.some(r => r.id === saved.id)) {
+          const fromPage = saved.fromPage || 'recipes';
+          if (fromPage !== 'recipes') showPage(fromPage, null, true);
+          restoreRecipeDetail(saved.id);
+          history.pushState({ view: 'recipeDetail', id: saved.id, fromPage }, '');
+        } else if (saved.view === 'production' && productions.some(p => p.id === saved.id)) {
+          const fromPage = saved.fromPage || 'productions';
+          if (fromPage !== 'recipes') showPage(fromPage, null, true);
+          restoreProdDetail(saved.id, fromPage);
+          history.pushState({ view: 'prodDetail', id: saved.id, fromPage }, '');
+        } else if (saved.view === 'tab' && saved.page && saved.page !== 'recipes') {
+          showPage(saved.page, null, false);
+        }
+      }
+    } catch (e) { console.warn('No se pudo restaurar la vista tras recargar:', e); }
+
+  } catch (err) {
+    console.error('Error cargando datos:', err);
+    const errHtml = `
+      <div class="empty-state">
+        <span class="material-symbols-outlined">wifi_off</span>
+        Error al conectar con la base de datos
+        <button class="btn-pill filled" style="margin-top:14px;" onclick="loadData()">
+          <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> Reintentar
+        </button>
+      </div>`;
+    const rl = document.getElementById('recipeList');
+    const pl = document.getElementById('productionList');
+    if (rl) rl.innerHTML = errHtml;
+    if (pl) pl.innerHTML = errHtml;
+  }
+}
+
+// ═══════════════════════════════════════
+//   NAVEGACIÓN
+// ═══════════════════════════════════════
+function showPage(page, btn, skipPush) {
+  // El panel Admin ya no es una pestaña del menú: vive dentro de Utilidades.
+  // Se mantiene esta redirección por si un estado guardado (recarga, historial) aún dice 'admin'.
+  if (page === 'admin') { utilTab = 'admin'; page = 'fichas'; btn = null; }
+  // Si la ventana de Radio está abierta, minimizarla a burbuja al cambiar de pestaña
+  if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
+  exitInnerView();
+  hideSearchDropdown();
+  const switchingPage = page !== currentPage;
+  if (switchingPage) {
+    savedScroll[currentPage] = window.scrollY;
+    if (!skipPush) history.pushState({ view: 'tab', page }, '');
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(page + 'Page').classList.add('active');
+  if (btn) btn.classList.add('active');
+  else document.getElementById('nav-' + page)?.classList.add('active');
+  currentPage = page;
+
+  const isRecipes = page === 'recipes';
+  const isProd    = page === 'productions';
+  // El buscador global siempre visible
+  document.getElementById('searchSection').style.display = '';
+  document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
+  document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
+
+  if (isRecipes) renderRecipes();
+  if (isProd)    renderProductions();
+  if (page === 'fichas')    renderFichas();
+
+  if (switchingPage) {
+    const y = savedScroll[page] || 0;
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  }
+}
+
+function exitInnerView() {
+  document.getElementById('mainNav').style.display       = '';
+  document.getElementById('searchSection').style.display = '';
+}
+
+// ═══════════════════════════════════════
+//   SEARCH
+// ═══════════════════════════════════════
+function onSearch() {
+  const si = document.getElementById('searchInput');
+  const btn = document.getElementById('searchClearBtn');
+  const raw = (si ? si.innerText : '').trim();
+  const q = normalizeText(raw);
+  if (btn) btn.style.display = q ? 'flex' : 'none';
+
+  // Filtrado inline de la lista actual (platos/producciones/mis recetas)
+  if (currentPage === 'recipes')     renderRecipes();
+  if (currentPage === 'productions') renderProductions();
+
+  // Búsqueda global en desplegable (no incluye Mis Recetas, es privada)
+  renderSearchDropdown(q, raw);
+}
+
+function renderSearchDropdown(q, raw) {
+  const dd = document.getElementById('searchDropdown');
+  if (!dd) return;
+  if (!q) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
+
+  const matchedRecipes = recipes.filter(r => normalizeText(r.name).includes(q));
+  const matchedProds   = productions.filter(p => normalizeText(p.name).includes(q));
+
+  if (matchedRecipes.length === 0 && matchedProds.length === 0) {
+    dd.innerHTML = `<div class="search-dropdown-empty">Sin resultados para &ldquo;${escapeHtml(raw || q)}&rdquo;</div>`;
+    dd.style.display = 'block';
+    return;
+  }
+
+  let html = '';
+  if (matchedRecipes.length > 0) {
+    html += `<div class="search-dropdown-section">Platos</div>`;
+    html += matchedRecipes.map(r => `
+      <div class="search-dropdown-item" onclick="goToSearchResult('recipe','${r.id}')">
+        <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">menu_book</span>
+        <div class="search-dropdown-info">
+          <div class="search-dropdown-name">${escapeHtml(r.name)}</div>
+          <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
+        </div>
+      </div>`).join('');
+  }
+  if (matchedProds.length > 0) {
+    html += `<div class="search-dropdown-section">Producciones</div>`;
+    html += matchedProds.map(p => `
+      <div class="search-dropdown-item" onclick="goToSearchResult('production','${p.id}')">
+        <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">blender</span>
+        <div class="search-dropdown-info">
+          <div class="search-dropdown-name">${escapeHtml(p.name)}</div>
+          <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
+        </div>
+      </div>`).join('');
+  }
+  dd.innerHTML = html;
+  dd.style.display = 'block';
+}
+
+function goToSearchResult(type, id) {
+  clearSearch();
+  if (type === 'recipe') showRecipeDetail(id);
+  else showProdDetail(id);
+}
+
+// Cierra solo el desplegable de resultados (sin borrar el texto buscado)
+function hideSearchDropdown() {
+  const dd = document.getElementById('searchDropdown');
+  if (dd) dd.style.display = 'none';
+}
+// Al tocar fuera del buscador, cerrar el desplegable
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#searchSection')) hideSearchDropdown();
+});
+
+function clearSearch() {
+  const si = document.getElementById('searchInput');
+  if (si) si.innerText = '';
+  const btn = document.getElementById('searchClearBtn');
+  if (btn) btn.style.display = 'none';
+  const dd = document.getElementById('searchDropdown');
+  if (dd) { dd.style.display = 'none'; dd.innerHTML = ''; }
+  if (currentPage === 'recipes')     renderRecipes();
+  if (currentPage === 'productions') renderProductions();
+}
+
+// ═══════════════════════════════════════
+//   ALÉRGENOS HELPERS
+// ═══════════════════════════════════════
+function renderAllergenBadges(allergens) {
+  if (!allergens || allergens.length === 0)
+    return '<p style="font-size:13px; color:var(--text2);">Sin alérgenos declarados</p>';
+  return `<div class="allergen-grid">${allergens.map(id => {
+    const a = ALLERGENS.find(x => x.id === id);
+    return a ? `<div class="allergen-badge"><span class="allergen-emoji">${a.emoji}</span><span class="allergen-label">${a.label}</span></div>` : '';
+  }).join('')}</div>`;
+}
+
+function renderAllergenSelector(selectedIds, onToggleFn) {
+  return `<div class="allergen-selector">${ALLERGENS.map(a => `
+    <div class="allergen-option ${selectedIds.includes(a.id) ? 'selected' : ''}" onclick="${onToggleFn}('${a.id}')">
+      <span class="allergen-emoji">${a.emoji}</span>
+      <span class="allergen-label">${a.label}</span>
+    </div>`).join('')}</div>`;
+}
+
+function toggleRecipeAllergen(id) {
+  const arr = recipeEditorData.allergens || [];
+  recipeEditorData.allergens = arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id];
+  renderRecipeEditor();
+}
+
+function toggleProdAllergen(id) {
+  const arr = prodEditorData.allergens || [];
+  prodEditorData.allergens = arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id];
+  renderProdEditor();
+}
+
+// ═══════════════════════════════════════
+//   FORMATO CANTIDADES
+// ═══════════════════════════════════════
+function initSortable(containerId, arr, rerender) {
+  const el = document.getElementById(containerId);
+  if (!el || typeof Sortable === 'undefined') return;
+  Sortable.create(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    delay: 120,
+    delayOnTouchOnly: true,
+    onEnd: (evt) => {
+      if (evt.oldIndex === evt.newIndex) return;
+      const item = arr.splice(evt.oldIndex, 1)[0];
+      arr.splice(evt.newIndex, 0, item);
+      rerender();
+    }
+  });
+}
+
+function formatAmount(amount) {
+  const num = Number(amount);
+  if (!Number.isFinite(num)) return 0;
+  const fractions = {
+    0.25: '¼', 0.5: '½', 0.75: '¾',
+    0.33: '⅓', 0.333: '⅓', 0.66: '⅔', 0.667: '⅔',
+    1.25: '1¼', 1.5: '1½', 1.75: '1¾',
+    2.5: '2½', 3.5: '3½',
+  };
+  if (Number.isInteger(num)) return num;
+  const rounded = parseFloat(num.toFixed(3));
+  return fractions[rounded] !== undefined ? fractions[rounded] : parseFloat(num.toFixed(2));
+}
+
+// ═══════════════════════════════════════
+//   RECETAS — LISTA
+// ═══════════════════════════════════════
+function renderRecipeSkeletons(n = 4) {
+  const list = document.getElementById('recipeList');
+  if (!list) return;
+  const card = `
+    <div class="sk-card" aria-hidden="true">
+      <div class="sk-img skeleton"></div>
+      <div class="sk-body">
+        <div class="sk-tag skeleton"></div>
+        <div class="sk-line title skeleton"></div>
+        <div class="sk-line w90 skeleton"></div>
+        <div class="sk-line w70 skeleton"></div>
+      </div>
+    </div>`;
+  list.innerHTML = card.repeat(n);
+}
+
+function renderRecipes() {
+  const si = document.getElementById('searchInput');
+  const raw = (si ? (si.innerText || '') : '').trim();
+  const q = normalizeText(raw); // sin tildes: "cesar" encuentra "César"
+  const filtered = recipes.filter(r =>
+    !q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q)
+  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+
+  const list = document.getElementById('recipeList');
+  if (!list) return;
+
+  if (filtered.length === 0) {
+    const msg = recipes.length === 0
+      ? 'Aún no hay platos creados'
+      : `Ningún plato coincide con "${escapeHtml(raw)}"`;
+    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">restaurant</span>${msg}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(r => {
+    const numProds = recipeProductions.filter(rp => rp.recipe_id === r.id).length;
+    return `
+    <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
+      ${r.photo
+        ? `<img class="recipe-card-img" src="${escapeAttr(r.photo_thumb || r.photo)}" alt="${escapeAttr(r.name)}" loading="lazy" decoding="async" onload="this.classList.add('loaded')">`
+        : `<div class="recipe-card-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`}
+      <div class="recipe-card-body">
+        <div class="recipe-card-meta">
+          <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
+        </div>
+        <h3>${escapeHtml(r.name)}</h3>
+        <p>${escapeHtml(r.description)}</p>
+        ${numProds > 0 ? `<div class="recipe-card-footer"><span><span class="material-symbols-outlined">blender</span>${numProds} ${numProds === 1 ? 'producción' : 'producciones'}</span></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//   RECETAS — DETALLE
+// ═══════════════════════════════════════
+function showRecipeDetail(id) {
+  savedScroll[currentPage] = window.scrollY;
+  currentRecipeId = id;
+  history.pushState({ view: 'recipeDetail', id, fromPage: currentPage }, '');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('detailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  window.scrollTo(0, 0);
+  renderRecipeDetail();
+}
+
+function renderRecipeDetail() {
+  const r = recipes.find(x => x.id === currentRecipeId);
+  if (!r) return;
+
+  // Producciones vinculadas (ordenadas por sort_order)
+  const linkedRels = recipeProductions
+    .filter(rp => rp.recipe_id === r.id)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const linkedProds = linkedRels
+    .map(rel => productions.find(p => p.id === rel.production_id))
+    .filter(Boolean);
+
+  const prodsHtml = linkedProds.length > 0
+    ? linkedProds.map((p, idx) => `
+        <div class="prod-link-row">
+          <div style="flex:1; display:flex; align-items:center; gap:8px;" onclick="showProdDetail('${p.id}')">
+            ${isAdmin ? `<div class="reorder-btns">
+              <button class="reorder-btn" ${idx === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); moveLinkedProd('${r.id}',${idx},-1)"><span class="material-symbols-outlined">keyboard_arrow_up</span></button>
+              <button class="reorder-btn" ${idx === linkedProds.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); moveLinkedProd('${r.id}',${idx},1)"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
+            </div>` : ''}
+            <div>
+              <div class="prod-link-name">${escapeHtml(p.name)}</div>
+              <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
+            </div>
+          </div>
+          <span class="material-symbols-outlined" style="color:var(--outline);" onclick="showProdDetail('${p.id}')">chevron_right</span>
+        </div>`).join('')
+    : `<p style="font-size:13px; color:var(--text2); padding:8px 0;">Sin producciones vinculadas</p>`;
+
+  const ings = r.ingredients.map(ing =>
+    `<div class="ing-row">
+      <span class="ing-name">${escapeHtml(ing.name)}</span>
+      <span class="ing-amount">${formatAmount(ing.amount)} ${escapeHtml(ing.unit)}</span>
+    </div>`).join('');
+
+  const steps = r.steps.map((s, i) =>
+    `<div class="step-row">
+      <div class="step-num">${i + 1}</div>
+      <div class="step-text">${escapeHtml(s)}</div>
+    </div>`).join('');
+
+  const photoHtml = r.photo
+    ? `<img class="detail-img" src="${escapeAttr(r.photo)}" alt="Foto del plato" data-src="${escapeAttr(r.photo)}" loading="lazy" onload="this.classList.add('loaded')" onclick="openLightbox(this.dataset.src)" style="cursor:zoom-in;">`
+    : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
+
+  const adminBtns = isAdmin ? `
+    <button class="btn-pill" onclick="openEditRecipe()">
+      <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Editar
+    </button>
+    <button class="btn-pill" onclick="openLinkModal('${r.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">link</span> Vincular
+    </button>
+    <button class="btn-pill danger" onclick="deleteRecipe('${r.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+    </button>` : '';
+
+  document.getElementById('detailPage').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+      <button class="back-btn" onclick="backTo('recipes')">
+        <span class="material-symbols-outlined">arrow_back</span> Volver
+      </button>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-pill ghost" onclick="openCommentModal(this.dataset.name,'recipe','${r.id}')" data-name="${escapeHtml(r.name)}">
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error
+        </button>
+        ${adminBtns}
+      </div>
+    </div>
+    ${photoHtml}
+    <div class="card">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
+      </div>
+      <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(r.name)}</h2>
+      <p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(r.description)}</p>
+    </div>
+    ${r.ingredients.length > 0 ? `
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
+      ${ings}
+    </div>` : ''}
+    ${r.steps.length > 0 ? `
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
+      ${steps}
+    </div>` : ''}
+    ${r.plating ? `
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">restaurant</span> Montaje</div>
+      <p style="font-size:14px; line-height:1.6;">${escapeHtml(r.plating)}</p>
+    </div>` : ''}
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">blender</span> Producciones</div>
+      ${prodsHtml}
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${(() => {
+        const prodAllergens = linkedProds.flatMap(p => p.allergens || []);
+        const recipeAllergens = r.allergens || [];
+        const all = [...new Set([...prodAllergens, ...recipeAllergens])];
+        return renderAllergenBadges(all);
+      })()}
+    </div>
+  `;
+}
+
+// Funciones de restauración: vuelven a mostrar una vista de detalle concreta
+// cuando el botón atrás aterriza sobre ella (p. ej. al cerrar un editor o una
+// receta vinculada que se abrió encima de ese detalle).
+function restoreRecipeDetail(id) {
+  currentRecipeId = id;
+  currentMultiplier = 1;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('detailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderRecipeDetail();
+}
+
+function restoreProdDetail(id, fromPage) {
+  currentProdId = id;
+  currentMultiplier = 1;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('productionDetailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddProductionRow').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderProdDetail(fromPage);
+}
+
+function backTo(page) {
+  exitInnerView();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(page + 'Page').classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+  currentPage = page;
+  if (page === 'recipes') {
+    document.getElementById('adminAddRecipeRow').style.display = isAdmin ? '' : 'none';
+  }
+  if (page === 'productions') {
+    document.getElementById('adminAddProductionRow').style.display = isAdmin ? '' : 'none';
+  }
+  // Restaurar la posición de scroll donde estaba el usuario
+  const y = savedScroll[page] || 0;
+  requestAnimationFrame(() => window.scrollTo(0, y));
+}
+
+// ═══════════════════════════════════════
+//   RECETAS — EDITOR
+// ═══════════════════════════════════════
+function openAddRecipe() {
+  recipeEditorMode = 'add';
+  recipeEditorData = { id: Date.now().toString(), name: '', category: 'Carnes', servings: 4, description: '', photo: '', plating: '', ingredients: [], steps: [] };
+  recipeEditorBaseline = JSON.stringify(recipeEditorData);
+  renderRecipeEditor();
+  enterEditor('editorPage');
+}
+
+function openEditRecipe() {
+  recipeEditorMode = 'edit';
+  recipeEditorData = JSON.parse(JSON.stringify(recipes.find(r => r.id === currentRecipeId)));
+  recipeEditorBaseline = JSON.stringify(recipeEditorData);
+  renderRecipeEditor();
+  enterEditor('editorPage');
+}
+
+function enterEditor(pageId) {
+  history.pushState({ view: 'editor', pageId }, '');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('adminAddProductionRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+}
+
+function renderRecipeEditor() {
+  const r = recipeEditorData;
+  const isNew = recipeEditorMode === 'add';
+
+  const photoSection = `
+    <div class="form-group">
+      <div class="form-label">Foto del plato</div>
+      ${r.photo
+        ? `<img class="photo-preview" src="${escapeAttr(r.photo)}">
+           <button class="btn-pill danger" onclick="recipeEditorData.photo=''; if (recipeThumbCol) recipeEditorData.photo_thumb=null; renderRecipeEditor();" style="margin-bottom:8px;">
+             <span class="material-symbols-outlined" style="font-size:15px;">delete</span> Quitar foto
+           </button>`
+        : `<div class="photo-upload-area" onclick="document.getElementById('recipePhotoInput').click()">
+             <span class="material-symbols-outlined">add_photo_alternate</span>
+             <p>Toca para añadir una foto</p>
+           </div>`}
+      <input type="file" id="recipePhotoInput" accept="image/*" style="display:none;" onchange="handleRecipePhoto(event)">
+      <div class="form-group" style="margin-top:8px; margin-bottom:0;">
+        <div class="form-label">O pega una URL</div>
+        <div class="form-input ce-input" contenteditable="true" data-placeholder="https://..." oninput="recipeEditorData.photo=this.innerText.trim(); if (recipeThumbCol) recipeEditorData.photo_thumb=null;">${escapeHtml(r.photo || '')}</div>
+      </div>
+    </div>`;
+
+  const ings = r.ingredients.map((ing, i) => `
+    <div class="ing-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
+      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="recipeEditorData.ingredients[${i}].name=this.innerText.trim()">${escapeHtml(ing.name)}</div>
+      <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="recipeEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
+      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="recipeEditorData.ingredients[${i}].unit=this.innerText.trim()">${escapeHtml(ing.unit)}</div>
+      <button class="btn-remove" onclick="recipeEditorData.ingredients.splice(${i},1); renderRecipeEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  const stps = r.steps.map((s, i) => `
+    <div class="step-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
+      <div class="step-edit-num">${i + 1}</div>
+      <textarea rows="2" oninput="recipeEditorData.steps[${i}]=this.value">${escapeHtml(s)}</textarea>
+      <button class="btn-remove" onclick="recipeEditorData.steps.splice(${i},1); renderRecipeEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  document.getElementById('editorPage').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <button class="back-btn" onclick="cancelRecipeEditor()">
+        <span class="material-symbols-outlined">close</span> Cancelar
+      </button>
+      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva receta' : 'Editar receta'}</span>
+      <button class="btn-pill filled" id="saveRecipeBtn" onclick="saveRecipe()">Guardar</button>
+    </div>
+    <div class="card">
+      ${photoSection}
+      <div class="form-group">
+        <div class="form-label">Nombre</div>
+        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.innerText.trim()">${escapeHtml(r.name)}</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Categoría</div>
+        <select class="form-select" onchange="recipeEditorData.category=this.value">
+          ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
+            `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Descripción</div>
+        <textarea class="form-textarea" rows="2" oninput="recipeEditorData.description=this.value">${escapeHtml(r.description)}</textarea>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Descripción del montaje</div>
+        <textarea class="form-textarea" rows="3" placeholder="Cómo emplatar el plato..." oninput="recipeEditorData.plating=this.value">${escapeHtml(r.plating || '')}</textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${renderAllergenSelector(r.allergens || [], 'toggleRecipeAllergen')}
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
+        <button class="btn-pill" onclick="recipeEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderRecipeEditor(); focusLast('#recipeIngList .ing-edit-name');">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
+        </button>
+      </div>
+      <div id="recipeIngList">${ings}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
+        <button class="btn-pill" onclick="recipeEditorData.steps.push(''); renderRecipeEditor(); focusLast('#recipeStepList textarea');">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
+        </button>
+      </div>
+      <div id="recipeStepList">${stps}</div>
+    </div>`;
+
+  initSortable('recipeIngList', recipeEditorData.ingredients, renderRecipeEditor);
+  initSortable('recipeStepList', recipeEditorData.steps, renderRecipeEditor);
+}
+
+// ─── Fotos: reducir en el móvil antes de subir ───
+// Una foto de cámara (4-8 MB) se queda en unos 200-400 KB a 1600 px, sin
+// diferencia visible en pantalla, y se crea además una miniatura (~480 px)
+// para las tarjetas de la lista. Todo en el navegador: sin servidor.
+const PHOTO_BUCKET = 'recipe-photos';
+const PHOTO_MAX = 1600, PHOTO_Q = 0.8;
+const THUMB_MAX = 480,  THUMB_Q = 0.72;
+
+// Decodifica la imagen respetando la orientación de la cámara (si no, las
+// fotos hechas en vertical podían salir tumbadas)
+async function decodeImage(blob) {
+  try { return await createImageBitmap(blob, { imageOrientation: 'from-image' }); }
+  catch (e) {
+    const url = URL.createObjectURL(blob);
+    try {
+      return await new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = () => rej(new Error('No se pudo leer la imagen'));
+        img.src = url;
+      });
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  }
+}
+
+function imageToJpeg(src, maxSide, quality) {
+  const w0 = src.width || src.naturalWidth, h0 = src.height || src.naturalHeight;
+  const scale = Math.min(1, maxSide / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * scale)), h = Math.max(1, Math.round(h0 * scale));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); // fotos PNG con transparencia → fondo blanco
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, h);
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('No se pudo comprimir')), 'image/jpeg', quality));
+}
+
+// Ruta dentro del bucket a partir del enlace público (null si la foto es de otra web)
+function photoPathFromUrl(url) {
+  const m = String(url || '').match(/\/storage\/v1\/object\/public\/recipe-photos\/([^?#]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Sube la foto reducida (+ miniatura). Si no se puede reducir, sube la original.
+async function uploadRecipeImages(blob, origName) {
+  const bucket = sb.storage.from(PHOTO_BUCKET);
+  const base = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  let big = null, thumb = null;
+  try {
+    const img = await decodeImage(blob);
+    big = await imageToJpeg(img, PHOTO_MAX, PHOTO_Q);
+    if (recipeThumbCol) thumb = await imageToJpeg(img, THUMB_MAX, THUMB_Q);
+    if (img.close) img.close();
+  } catch (e) { console.warn('No se pudo reducir la foto, se sube la original:', e); }
+
+  const put = async (path, data, type) => {
+    const { error } = await bucket.upload(path, data, { contentType: type, cacheControl: '31536000', upsert: false });
+    if (error) throw error;
+    recipeEditorUploads.push(path);
+    return bucket.getPublicUrl(path).data.publicUrl;
+  };
+  if (!big) {
+    const ext = String(origName || 'jpg').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    return { photo: await put(`${base}.${ext}`, blob, blob.type || 'image/jpeg'), thumb: null };
+  }
+  const photo = await put(`${base}_opt.jpg`, big, 'image/jpeg');
+  const thumbUrl = thumb ? await put(`${base}_thumb.jpg`, thumb, 'image/jpeg') : null;
+  return { photo, thumb: thumbUrl };
+}
+
+// Borra del almacenamiento las fotos que ya no usa ninguna receta (nunca una
+// que siga en uso). Si falla (p. ej. sin permiso de borrado), no pasa nada.
+async function cleanupRecipePhotos(paths) {
+  const inUse = new Set();
+  recipes.forEach(r => { [r.photo, r.photo_thumb].forEach(u => { const p = photoPathFromUrl(u); if (p) inUse.add(p); }); });
+  const toRemove = [...new Set(paths.filter(Boolean))].filter(p => !inUse.has(p));
+  if (!toRemove.length) return;
+  try { await sb.storage.from(PHOTO_BUCKET).remove(toRemove); } catch (e) { console.warn('No se pudieron borrar fotos antiguas:', e); }
+}
+
+async function handleRecipePhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  showToast('Reduciendo y subiendo foto…');
+  try {
+    const { photo, thumb } = await uploadRecipeImages(file, file.name);
+    recipeEditorData.photo = photo;
+    if (recipeThumbCol) recipeEditorData.photo_thumb = thumb;
+    renderRecipeEditor();
+    showToast('Foto subida ✓');
+  } catch (err) {
+    console.error('Error subiendo foto:', err);
+    if (!handleAuthError(err)) showToast('Error al subir la foto');
+  } finally {
+    if (event.target) event.target.value = ''; // permite volver a elegir la misma foto
+  }
+}
+
+async function saveRecipe() {
+  recipeEditorData.name = (recipeEditorData.name || '').trim();
+  if (!recipeEditorData.name) { showToast('El nombre es obligatorio'); return; }
+  const btn = document.getElementById('saveRecipeBtn');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    const { error } = await sb.from('recipes').upsert(recipeEditorData);
+    if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+    return true;
+  });
+  if (!ok) return;
+  const prevSaved = recipes.find(r => r.id === recipeEditorData.id);
+  const oldPaths = prevSaved ? [photoPathFromUrl(prevSaved.photo), photoPathFromUrl(prevSaved.photo_thumb)] : [];
+  if (recipeEditorMode === 'add') recipes.push(recipeEditorData);
+  else recipes = recipes.map(r => r.id === recipeEditorData.id ? recipeEditorData : r);
+  cleanupRecipePhotos(oldPaths); // la foto anterior, si se ha sustituido
+  currentRecipeId = recipeEditorData.id;
+  recipeEditorBaseline = JSON.stringify(recipeEditorData); // ya guardado: sin cambios pendientes
+  showToast('Receta guardada ✓');
+  refreshPedidosIfVisible();
+  exitRecipeEditor(true);
+}
+
+function cancelRecipeEditor() { return requestExitRecipeEditor(); }
+
+function exitRecipeEditor(goToDetail) {
+  exitInnerView();
+  if (goToDetail && currentRecipeId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('detailPage').classList.add('active');
+    renderRecipeDetail();
+  } else {
+    backTo('recipes');
+    renderRecipes();
+  }
+  recipeEditorMode = null; recipeEditorData = null; recipeEditorBaseline = null;
+  const uploads = recipeEditorUploads; recipeEditorUploads = [];
+  cleanupRecipePhotos(uploads); // fotos subidas en el editor que no se llegaron a guardar
+}
+
+async function deleteRecipe(id) {
+  const ok = await showConfirm({
+    title:       'Eliminar receta',
+    message:     '¿Seguro que quieres eliminar esta receta? Esta acción no se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('recipes').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      const gone = recipes.find(r => r.id === id);
+      recipes = recipes.filter(r => r.id !== id);
+      if (gone) cleanupRecipePhotos([photoPathFromUrl(gone.photo), photoPathFromUrl(gone.photo_thumb)]);
+    },
+  });
+  if (!ok) return;
+  showToast('Receta eliminada');
+  refreshPedidosIfVisible();
+  backTo('recipes'); renderRecipes();
+}
+
+// ═══════════════════════════════════════
+//   VINCULAR PRODUCCIONES
+// ═══════════════════════════════════════
+function openLinkModal(recipeId) {
+  linkingRecipeId = recipeId;
+  document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
+  document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
+  selectedProdIds = recipeProductions.filter(rp => rp.recipe_id === recipeId).map(rp => rp.production_id);
+  const sortedProds = [...productions].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+  document.getElementById('linkProductionList').innerHTML = sortedProds.length === 0
+    ? '<p style="color:var(--text2); font-size:13px;">No hay producciones creadas aún.</p>'
+    : sortedProds.map(p => `
+        <div class="link-prod-row" onclick="toggleProdLink('${p.id}', this)">
+          <div>
+            <div style="font-size:14px; font-weight:600;">${escapeHtml(p.name)}</div>
+            <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
+          </div>
+          <span class="material-symbols-outlined check-icon" style="color:${selectedProdIds.includes(p.id) ? 'var(--primary)' : 'var(--outline-light)'};">
+            ${selectedProdIds.includes(p.id) ? 'check_circle' : 'radio_button_unchecked'}
+          </span>
+        </div>`).join('');
+  openModalNav('linkModal');
+}
+
+function toggleProdLink(prodId, row) {
+  if (selectedProdIds.includes(prodId)) {
+    selectedProdIds = selectedProdIds.filter(id => id !== prodId);
+  } else {
+    selectedProdIds.push(prodId);
+  }
+  const icon = row.querySelector('.check-icon');
+  icon.textContent = selectedProdIds.includes(prodId) ? 'check_circle' : 'radio_button_unchecked';
+  icon.style.color = selectedProdIds.includes(prodId) ? 'var(--primary)' : 'var(--outline-light)';
+}
+
+async function saveLinkProductions() {
+  const btn = document.querySelector('#linkModal .btn-action');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    // Primero guardar los marcados y después quitar los desmarcados: si algo
+    // falla a mitad, nunca se pierden los vínculos que ya existían.
+    if (selectedProdIds.length > 0) {
+      const rows = selectedProdIds.map((pid, i) => ({
+        id: `${linkingRecipeId}_${pid}`,
+        recipe_id: linkingRecipeId,
+        production_id: pid,
+        sort_order: i,
+      }));
+      const { error: upErr } = await sb.from('recipe_productions').upsert(rows);
+      if (upErr) throw upErr;
+    }
+    const toRemove = recipeProductions
+      .filter(rp => rp.recipe_id === linkingRecipeId && !selectedProdIds.includes(rp.production_id))
+      .map(rp => rp.id);
+    if (toRemove.length > 0) {
+      const { error: delErr } = await sb.from('recipe_productions').delete().in('id', toRemove);
+      if (delErr) throw delErr;
+    }
+    recipeProductions = recipeProductions.filter(rp => rp.recipe_id !== linkingRecipeId);
+    selectedProdIds.forEach((pid, i) => recipeProductions.push({ id: `${linkingRecipeId}_${pid}`, recipe_id: linkingRecipeId, production_id: pid, sort_order: i }));
+    return true;
+  }).catch(err => { console.error(err); if (!handleAuthError(err)) showToast('Error al guardar los vínculos'); return false; });
+  if (!ok) return;
+  closeModal('linkModal');
+  showToast('Producciones vinculadas ✓');
+  renderRecipeDetail();
+}
+
+async function moveLinkedProd(recipeId, idx, dir) {
+  const rels = recipeProductions
+    .filter(rp => rp.recipe_id === recipeId)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= rels.length) return;
+  // Intercambiar
+  const tmp = rels[idx];
+  rels[idx] = rels[newIdx];
+  rels[newIdx] = tmp;
+  // Reasignar sort_order y guardar
+  const oldOrder = rels.map(r => r.sort_order);
+  try {
+    for (let i = 0; i < rels.length; i++) {
+      rels[i].sort_order = i;
+      const { error } = await sb.from('recipe_productions').update({ sort_order: i }).eq('id', rels[i].id);
+      if (error) throw error;
+    }
+  } catch (err) {
+    console.error(err);
+    rels.forEach((r, i) => { r.sort_order = oldOrder[i]; });
+    if (!handleAuthError(err)) showToast('No se pudo guardar el orden');
+  }
+  renderRecipeDetail();
+}
+
+// ─── Vincular platos desde una producción ───
+let linkingProdId = null;
+let selectedRecipeIds = [];
+
+function openLinkRecipesModal(prodId) {
+  linkingProdId = prodId;
+  selectedRecipeIds = recipeProductions.filter(rp => rp.production_id === prodId).map(rp => rp.recipe_id);
+  const sortedRecipes = [...recipes].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+  document.getElementById('linkProductionList').innerHTML = sortedRecipes.length === 0
+    ? '<p style="color:var(--text2); font-size:13px;">No hay platos creados aún.</p>'
+    : sortedRecipes.map(r => `
+        <div class="link-prod-row" onclick="toggleRecipeLink('${r.id}', this)">
+          <div>
+            <div style="font-size:14px; font-weight:600;">${escapeHtml(r.name)}</div>
+            <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
+          </div>
+          <span class="material-symbols-outlined check-icon" style="color:${selectedRecipeIds.includes(r.id) ? 'var(--primary)' : 'var(--outline-light)'};">
+            ${selectedRecipeIds.includes(r.id) ? 'check_circle' : 'radio_button_unchecked'}
+          </span>
+        </div>`).join('');
+  // Cambiar título y acción del modal
+  document.querySelector('#linkModal .modal-title').textContent = 'Vincular platos';
+  document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkRecipes()');
+  openModalNav('linkModal');
+}
+
+function toggleRecipeLink(recipeId, row) {
+  if (selectedRecipeIds.includes(recipeId)) {
+    selectedRecipeIds = selectedRecipeIds.filter(id => id !== recipeId);
+  } else {
+    selectedRecipeIds.push(recipeId);
+  }
+  const icon = row.querySelector('.check-icon');
+  icon.textContent = selectedRecipeIds.includes(recipeId) ? 'check_circle' : 'radio_button_unchecked';
+  icon.style.color = selectedRecipeIds.includes(recipeId) ? 'var(--primary)' : 'var(--outline-light)';
+}
+
+async function saveLinkRecipes() {
+  const btn = document.querySelector('#linkModal .btn-action');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    // Para cada plato seleccionado, añadir el vínculo si no existe.
+    // Para los deseleccionados, quitarlo.
+    const currentlyLinked = recipeProductions.filter(rp => rp.production_id === linkingProdId).map(rp => rp.recipe_id);
+
+    // Añadir nuevos
+    for (const rid of selectedRecipeIds) {
+      if (!currentlyLinked.includes(rid)) {
+        const order = recipeProductions.filter(rp => rp.recipe_id === rid).length;
+        const row = { id: `${rid}_${linkingProdId}`, recipe_id: rid, production_id: linkingProdId, sort_order: order };
+        const { error } = await sb.from('recipe_productions').insert(row);
+        if (error) throw error;
+        recipeProductions.push(row);
+      }
+    }
+    // Quitar los deseleccionados
+    for (const rid of currentlyLinked) {
+      if (!selectedRecipeIds.includes(rid)) {
+        const { error } = await sb.from('recipe_productions').delete().eq('id', `${rid}_${linkingProdId}`);
+        if (error) throw error;
+        recipeProductions = recipeProductions.filter(rp => rp.id !== `${rid}_${linkingProdId}`);
+      }
+    }
+    return true;
+  }).catch(err => { console.error(err); if (!handleAuthError(err)) showToast('Error al guardar los vínculos'); return false; });
+  if (!ok) { renderProdDetail(currentPage); return; } // refleja lo que sí se llegó a guardar
+  // Restaurar el modal a su estado original (vincular producciones)
+  document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
+  document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
+  closeModal('linkModal');
+  showToast('Platos vinculados ✓');
+  renderProdDetail(currentPage);
+}
+
+// ═══════════════════════════════════════
+//   PRODUCCIONES — LISTA
+// ═══════════════════════════════════════
+function renderProductions() {
+  const si = document.getElementById('searchInput');
+  const raw = (si ? (si.innerText || '') : '').trim();
+  const q = normalizeText(raw);
+  const filtered = productions.filter(p =>
+    !q || normalizeText(p.name).includes(q) || normalizeText(p.category).includes(q)
+  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+
+  const list = document.getElementById('productionList');
+  if (!list) return;
+
+  if (filtered.length === 0) {
+    const msg = productions.length === 0
+      ? 'Aún no hay producciones creadas'
+      : `Ninguna producción coincide con "${escapeHtml(raw)}"`;
+    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">blender</span>${msg}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => `
+    <div class="recipe-card" onclick="showProdDetail('${p.id}')">
+      <div class="recipe-card-body">
+        <div class="recipe-card-meta">
+          <span class="tag ${CAT_TAG[p.category] || ''}">${escapeHtml(p.category)}</span>
+        </div>
+        <h3>${escapeHtml(p.name)}</h3>
+        <p>${escapeHtml(p.description || '')}</p>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════
+//   PRODUCCIONES — DETALLE
+// ═══════════════════════════════════════
+function showProdDetail(id) {
+  savedScroll[currentPage] = window.scrollY;
+  currentProdId = id;
+  currentMultiplier = 1;
+  const fromPage = currentPage;
+  history.pushState({ view: 'prodDetail', id, fromPage }, '');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('productionDetailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddProductionRow').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  window.scrollTo(0, 0);
+  renderProdDetail(fromPage);
+}
+
+function renderProdDetail(fromPage) {
+  const p = productions.find(x => x.id === currentProdId);
+  if (!p) return;
+  const m = currentMultiplier;
+
+  const mBtns = [0.5, 1, 2, 3, 4].map(x =>
+    `<button class="chip ${m === x ? 'active' : ''}" onclick="setProdMultiplier(${x}, '${fromPage || 'productions'}')">${x === 0.5 ? '½' : '×' + x}</button>`
+  ).join('');
+
+  const ings = p.ingredients.map(ing => {
+    const v = ing.amount * m;
+    return `<div class="ing-row">
+      <span class="ing-name">${escapeHtml(ing.name)}</span>
+      <span class="ing-amount">${formatAmount(v)} ${escapeHtml(ing.unit)}</span>
+    </div>`;
+  }).join('');
+
+  const steps = p.steps.map((s, i) =>
+    `<div class="step-row">
+      <div class="step-num">${i + 1}</div>
+      <div class="step-text">${escapeHtml(s)}</div>
+    </div>`).join('');
+
+  const adminBtns = isAdmin ? `
+    <button class="btn-pill" onclick="openEditProduction()">
+      <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Editar
+    </button>
+    <button class="btn-pill" onclick="openLinkRecipesModal('${p.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">link</span> Vincular plato
+    </button>
+    <button class="btn-pill danger" onclick="deleteProduction('${p.id}')">
+      <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+    </button>` : '';
+
+  const backPage = fromPage || 'productions';
+
+  document.getElementById('productionDetailPage').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+      <button class="back-btn" onclick="backTo('${backPage}')">
+        <span class="material-symbols-outlined">arrow_back</span> Volver
+      </button>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-pill ghost" onclick="openCommentModal(this.dataset.name,'production','${p.id}')" data-name="${escapeHtml(p.name)}">
+          <span class="material-symbols-outlined" style="font-size:16px;">report</span> Reportar un error
+        </button>
+        ${adminBtns}
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="tag ${CAT_TAG[p.category] || ''}">${escapeHtml(p.category)}</span>
+      </div>
+      <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(p.name)}</h2>
+      ${p.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(p.description)}</p>` : ''}
+    </div>
+    <div class="multiplier-card">
+      <div class="multiplier-label">
+        <span class="material-symbols-outlined">scale</span> Ajustar cantidades
+        ${m !== 1 ? `<span style="font-size:13px; color:var(--primary)">(×${m})</span>` : ''}
+      </div>
+      <div class="multiplier-row">
+        ${mBtns}
+        <input type="number" min="0.1" step="0.5" value="${m}" onchange="setProdMultiplier(parseFloat(this.value)||1,'${backPage}')">
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
+      ${ings}
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
+      ${steps}
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${renderAllergenBadges(p.allergens)}
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="material-symbols-outlined">menu_book</span> Platos que la usan</div>
+      ${(() => {
+        const linkedRecipeIds = recipeProductions.filter(rp => rp.production_id === p.id).map(rp => rp.recipe_id);
+        const linkedRecipes = recipes.filter(r => linkedRecipeIds.includes(r.id))
+          .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+        return linkedRecipes.length > 0
+          ? linkedRecipes.map(r => `
+              <div class="prod-link-row" onclick="goToRecipeFromProd('${r.id}')">
+                <div>
+                  <div class="prod-link-name">${escapeHtml(r.name)}</div>
+                  <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
+                </div>
+                <span class="material-symbols-outlined" style="color:var(--outline);">chevron_right</span>
+              </div>`).join('')
+          : `<p style="font-size:13px; color:var(--text2); padding:8px 0;">No está vinculada a ningún plato</p>`;
+      })()}
+    </div>`;
+}
+
+function setProdMultiplier(m, fromPage) {
+  // Blindaje: nada de multiplicadores negativos o cero (pondrían cantidades absurdas)
+  currentMultiplier = Math.max(0.1, Number(m) || 1);
+  renderProdDetail(fromPage);
+}
+
+function goToRecipeFromProd(recipeId) {
+  savedScroll[currentPage] = window.scrollY;
+  currentRecipeId = recipeId;
+  currentMultiplier = 1;
+  history.pushState({ view: 'recipeDetail', id: recipeId, fromPage: 'productions' }, '');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('detailPage').classList.add('active');
+  document.getElementById('searchSection').style.display = 'none';
+  document.getElementById('adminAddRecipeRow').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  window.scrollTo(0, 0);
+  renderRecipeDetail();
+}
+
+// ═══════════════════════════════════════
+//   PRODUCCIONES — EDITOR
+// ═══════════════════════════════════════
+function openAddProduction() {
+  prodEditorMode = 'add';
+  const defaultCat = productionCategories.length > 0 ? productionCategories[0].name : '';
+  prodEditorData = { id: Date.now().toString(), name: '', category: defaultCat, description: '', ingredients: [], steps: [] };
+  prodEditorBaseline = JSON.stringify(prodEditorData);
+  renderProdEditor();
+  enterEditor('productionEditorPage');
+}
+
+function openEditProduction() {
+  prodEditorMode = 'edit';
+  prodEditorData = JSON.parse(JSON.stringify(productions.find(p => p.id === currentProdId)));
+  prodEditorBaseline = JSON.stringify(prodEditorData);
+  renderProdEditor();
+  enterEditor('productionEditorPage');
+}
+
+function renderProdEditor() {
+  const p = prodEditorData;
+  const isNew = prodEditorMode === 'add';
+
+  const ings = p.ingredients.map((ing, i) => `
+    <div class="ing-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
+      <div class="ing-edit-name ce-input" contenteditable="true" data-placeholder="Ingrediente" oninput="prodEditorData.ingredients[${i}].name=this.innerText.trim()">${escapeHtml(ing.name)}</div>
+      <div class="ing-edit-amount ce-input" contenteditable="true" inputmode="decimal" data-placeholder="0" oninput="prodEditorData.ingredients[${i}].amount=parseFloat(this.innerText.replace(',','.'))||0">${ing.amount}</div>
+      <div class="ing-edit-unit ce-input" contenteditable="true" data-placeholder="ud" oninput="prodEditorData.ingredients[${i}].unit=this.innerText.trim()">${escapeHtml(ing.unit)}</div>
+      <button class="btn-remove" onclick="prodEditorData.ingredients.splice(${i},1); renderProdEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  const stps = p.steps.map((s, i) => `
+    <div class="step-edit-row" data-index="${i}">
+      <div class="drag-handle"><span class="material-symbols-outlined">drag_indicator</span></div>
+      <div class="step-edit-num">${i + 1}</div>
+      <textarea rows="2" oninput="prodEditorData.steps[${i}]=this.value">${escapeHtml(s)}</textarea>
+      <button class="btn-remove" onclick="prodEditorData.steps.splice(${i},1); renderProdEditor();">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>`).join('');
+
+  document.getElementById('productionEditorPage').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <button class="back-btn" onclick="cancelProdEditor()">
+        <span class="material-symbols-outlined">close</span> Cancelar
+      </button>
+      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva producción' : 'Editar producción'}</span>
+      <button class="btn-pill filled" id="saveProdBtn" onclick="saveProduction()">Guardar</button>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <div class="form-label">Nombre</div>
+        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la producción..." oninput="prodEditorData.name=this.innerText.trim()">${escapeHtml(p.name)}</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Categoría</div>
+        <select class="form-select" onchange="prodEditorData.category=this.value">
+          ${productionCategories.map(c =>
+            `<option ${p.category === c.name ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Descripción (opcional)</div>
+        <textarea class="form-textarea" rows="2" oninput="prodEditorData.description=this.value">${escapeHtml(p.description || '')}</textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;"><span class="material-symbols-outlined">warning</span> Alérgenos</div>
+      ${renderAllergenSelector(p.allergens || [], 'toggleProdAllergen')}
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">grocery</span> Ingredientes</div>
+        <button class="btn-pill" onclick="prodEditorData.ingredients.push({id:Date.now().toString(),name:'',amount:0,unit:'g'}); renderProdEditor(); focusLast('#prodIngList .ing-edit-name');">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir
+        </button>
+      </div>
+      <div id="prodIngList">${ings}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="section-title" style="margin-bottom:0;"><span class="material-symbols-outlined">format_list_numbered</span> Elaboración</div>
+        <button class="btn-pill" onclick="prodEditorData.steps.push(''); renderProdEditor(); focusLast('#prodStepList textarea');">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir paso
+        </button>
+      </div>
+      <div id="prodStepList">${stps}</div>
+    </div>`;
+
+  initSortable('prodIngList', prodEditorData.ingredients, renderProdEditor);
+  initSortable('prodStepList', prodEditorData.steps, renderProdEditor);
+}
+
+async function saveProduction() {
+  prodEditorData.name = (prodEditorData.name || '').trim();
+  if (!prodEditorData.name) { showToast('El nombre es obligatorio'); return; }
+  const btn = document.getElementById('saveProdBtn');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    const { error } = await sb.from('productions').upsert(prodEditorData);
+    if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+    return true;
+  });
+  if (!ok) return;
+  if (prodEditorMode === 'add') productions.push(prodEditorData);
+  else productions = productions.map(p => p.id === prodEditorData.id ? prodEditorData : p);
+  currentProdId = prodEditorData.id;
+  prodEditorBaseline = JSON.stringify(prodEditorData);
+  showToast('Producción guardada ✓');
+  refreshPedidosIfVisible();
+  exitProdEditor(true);
+}
+
+function cancelProdEditor() { return requestExitProdEditor(); }
+
+function exitProdEditor(goToDetail) {
+  exitInnerView();
+  if (goToDetail && currentProdId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('productionDetailPage').classList.add('active');
+    renderProdDetail('productions');
+  } else {
+    backTo('productions');
+    renderProductions();
+  }
+  prodEditorMode = null; prodEditorData = null; prodEditorBaseline = null;
+}
+
+async function deleteProduction(id) {
+  const ok = await showConfirm({
+    title:       'Eliminar producción',
+    message:     '¿Seguro que quieres eliminar esta producción? Esta acción no se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('productions').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      productions = productions.filter(p => p.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Producción eliminada');
+  refreshPedidosIfVisible();
+  backTo('productions'); renderProductions();
+}
+
+// ═══════════════════════════════════════
+//   COMENTARIOS
+// ═══════════════════════════════════════
+function openCommentModal(name, section, id) {
+  commentContext = { name, section, id };
+  document.getElementById('commentSectionName').textContent = name;
+  document.getElementById('commentInput').value = '';
+  document.getElementById('commentFormArea').style.display = '';
+  document.getElementById('commentSuccess').style.display  = 'none';
+  openModalNav('commentModal');
+}
+
+async function sendComment() {
+  const text = document.getElementById('commentInput').value.trim();
+  if (!text) return;
+  const newComment = {
+    id:           Date.now().toString(),
+    section:      commentContext.section,
+    section_id:   commentContext.id,
+    section_name: commentContext.name,
+    text,
+    date:         new Date().toLocaleDateString('es-ES'),
+    resolved:     false,
+  };
+  const btn = document.querySelector('#commentModal .btn-action');
+  const ok = await runWithLoading(btn, 'Enviando...', async () => {
+    const { error } = await sb.from('comments').insert(newComment);
+    if (error) { showToast('Error al enviar'); return false; }
+    return true;
+  });
+  if (!ok) return;
+  comments.unshift(newComment);
+  updateBadges();
+  document.getElementById('commentFormArea').style.display = 'none';
+  document.getElementById('commentSuccess').style.display  = '';
+  setTimeout(() => closeModal('commentModal'), 2200);
+}
+
+// ═══════════════════════════════════════
+//   ADMIN / LOGIN
+// ═══════════════════════════════════════
+async function toggleAdmin() {
+  if (isAdmin) {
+    try { await sb.auth.signOut(); } catch(e) {}
+    isAdmin = false;
+    document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+    document.getElementById('adminAddRecipeRow').style.display    = 'none';
+    document.getElementById('adminAddProductionRow').style.display = 'none';
+    document.getElementById('addWeightBtn').style.display = 'none';
+    document.getElementById('addBrineBtn').style.display  = 'none';
+    if (currentPage === 'fichas') renderFichas();
+    renderEventsButton();
+    showToast('Sesión cerrada');
+  } else {
+    // Crear modal dinámicamente — el campo password no existe en el DOM
+    // hasta que se necesita, evitando que Android lo asocie con otros campos
+    const existing = document.getElementById('loginModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'loginModal';
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title">Acceso Administrador</span>
+          <button class="modal-close" onclick="closeLoginModal()">✕</button>
+        </div>
+        <div style="text-align:center; padding:12px 0 20px;">
+          <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">lock</span>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Contraseña</div>
+          <input type="password" class="form-input" id="loginInput"
+            placeholder="Contraseña de administrador"
+            onkeydown="if(event.key==='Enter') doLogin()">
+        </div>
+        <p id="loginError" style="color:var(--danger); font-size:13px; display:none; margin-bottom:12px;">Contraseña incorrecta</p>
+        <button class="btn-action" onclick="doLogin()">Entrar</button>
+      </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) closeLoginModal(); });
+    document.body.appendChild(modal);
+    setTimeout(() => document.getElementById('loginInput')?.focus(), 150);
+  }
+}
+
+function closeLoginModal() {
+  const modal = document.getElementById('loginModal');
+  if (modal) modal.remove();
+}
+
+async function doLogin() {
+  const input = document.getElementById('loginInput');
+  const err   = document.getElementById('loginError');
+  const btn   = document.querySelector('#loginModal .btn-action');
+  if (err) err.style.display = 'none';
+  const password = input ? input.value : '';
+  if (!password) { if (err) { err.textContent = 'Introduce la contraseña'; err.style.display = ''; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password });
+    if (error) throw error;
+    isAdmin = true;
+    closeLoginModal();
+    activateAdminUI();
+    showToast('Bienvenido, Chef 👨‍🍳');
+    if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
+    if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
+    if (currentPage === 'fichas' && utilTab === 'admin') renderAdmin();
+    renderEventsButton();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+    if (err) { err.textContent = 'Contraseña incorrecta'; err.style.display = ''; }
+  }
+}
+
+function activateAdminUI() {
+  document.getElementById('adminBtn').innerHTML =
+    `<span class="material-symbols-outlined" style="font-size:16px;">person</span> Chef
+     <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
+  if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
+  if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
+  if (currentPage === 'fichas') renderFichas();
+}
+
+async function restoreAdminSession() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      isAdmin = true;
+      activateAdminUI();
+    }
+  } catch(e) {}
+}
+
+// Los comentarios del personal se pueden enviar sin iniciar sesión (RLS lo
+// permite a propósito), así que es texto no confiable: hay que escaparlo
+// antes de insertarlo en el HTML del panel de Admin.
+// Panel de Admin: sugerencias de la IA pendientes de aprobar, y avisos ya
+// activos (aprobados) por si hay que retirar alguno (partido aplazado, etc.)
+// Marca/desmarca un evento como de alto riesgo (mucho trabajo previsto).
+// Solo tiene efecto real con sesión de admin (RLS lo exige); optimista en
+// pantalla, se revierte si el guardado falla.
+async function toggleHighRisk(id) {
+  const item = importantDates.find(d => d.id === id);
+  if (!item) return;
+  const newValue = !item.high_risk;
+
+  const applyLocally = val => {
+    importantDates = importantDates.map(d => d.id === id ? { ...d, high_risk: val } : d);
+    renderImportantDatesAdmin();
+    renderEventsButton();
+    const modal = document.getElementById('eventsModal');
+    if (modal && modal.style.display === 'flex') renderEventsModalBody();
+  };
+
+  applyLocally(newValue);
+  try {
+    const { data, error } = await sb.from('important_dates').update({ high_risk: newValue }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al guardar');
+      applyLocally(!newValue); // revertir
+    }
+  } catch (e) {
+    showToast('Error al guardar');
+    applyLocally(!newValue);
+  }
+}
+
+function renderImportantDatesAdmin() {
+  const el = document.getElementById('importantDatesSection');
+  if (!el) return;
+  if (!isAdmin) { el.innerHTML = ''; return; }
+
+  const pending = importantDates.filter(d => d.status === 'pendiente')
+    .sort((a, b) => a.event_date.localeCompare(b.event_date));
+  const today = new Date().toISOString().slice(0, 10);
+  const active = importantDates.filter(d => d.status === 'aprobado' && d.event_date >= today)
+    .sort((a, b) => a.event_date.localeCompare(b.event_date));
+
+  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
+  const fmtDate = iso => new Date(iso + 'T00:00:00')
+    .toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  const highRiskBtn = d => `
+        <button class="btn-icon" onclick="toggleHighRisk('${d.id}')" aria-label="${d.high_risk ? 'Quitar alto riesgo' : 'Marcar alto riesgo'}">
+          <span class="material-symbols-outlined" style="font-size:18px; color:${d.high_risk ? 'var(--danger)' : 'var(--outline)'};">warning</span>
+        </button>`;
+
+  const row = (d, actions) => `
+    <div class="comment-card ${d.high_risk ? 'high-risk' : ''}">
+      <div style="flex:1;">
+        <div class="comment-recipe">${ICONS[d.category] || '📅'} ${escapeHtml(fmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''}</div>
+        <div class="comment-text">${escapeHtml(d.title)}</div>
+        ${d.note ? `<div class="comment-date">${escapeHtml(d.note)}</div>` : ''}
+      </div>
+      <div style="display:flex; gap:6px; flex-shrink:0;">${highRiskBtn(d)}${actions}</div>
+    </div>`;
+
+  const pendingHtml = pending.length === 0
+    ? `<div class="card" style="text-align:center; padding:20px; color:var(--text2); font-size:13px;">Sin sugerencias pendientes</div>`
+    : pending.map(d => row(d, `
+        <button class="btn-pill" onclick="approveImportantDate('${d.id}', this)">
+          <span class="material-symbols-outlined" style="font-size:15px;">check</span> Aprobar
+        </button>
+        <button class="btn-icon" onclick="discardImportantDate('${d.id}', this)" aria-label="Descartar sugerencia">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">close</span>
+        </button>`)).join('');
+
+  const activeHtml = active.length === 0 ? '' : `
+    <div class="section-title" style="margin-top:14px;">
+      <span class="material-symbols-outlined">event_available</span> Avisos activos
+    </div>
+    ${active.map(d => row(d, `
+        <button class="btn-icon" onclick="deleteImportantDate('${d.id}')" aria-label="Eliminar aviso">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>`)).join('')}`;
+
+  el.innerHTML = `
+    <div class="section-title" style="cursor:pointer; justify-content:space-between;" onclick="toggleImportantDatesSection()">
+      <span style="display:flex; align-items:center; gap:6px;">
+        <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
+        ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
+      </span>
+      <span class="material-symbols-outlined">${importantDatesExpanded ? 'expand_less' : 'expand_more'}</span>
+    </div>
+    ${importantDatesExpanded ? `
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+        <button class="btn-pill" onclick="openImportCsvModal()">
+          <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
+        </button>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2);">
+          Días de antelación
+          <input type="number" class="form-input" min="1" max="30" value="${eventsWindowDays}"
+                 onchange="updateEventsWindowDays(this.value)" style="width:64px; padding:6px 8px;">
+        </label>
+      </div>
+      ${pendingHtml}
+      ${activeHtml}
+    ` : ''}`;
+}
+
+function toggleImportantDatesSection() {
+  importantDatesExpanded = !importantDatesExpanded;
+  renderImportantDatesAdmin();
+}
+
+async function approveImportantDate(id, btn) {
+  await runWithLoading(btn, '', async () => {
+    const { data, error } = await sb.from('important_dates').update({ status: 'aprobado' }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al aprobar');
+      throw effectiveError;
+    }
+    importantDates = importantDates.map(d => d.id === id ? { ...d, status: 'aprobado' } : d);
+  }).catch(() => {});
+  renderImportantDatesAdmin();
+  renderEventsButton();
+}
+
+async function discardImportantDate(id, btn) {
+  await runWithLoading(btn, '', async () => {
+    const { data, error } = await sb.from('important_dates').update({ status: 'descartado' }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al descartar');
+      throw effectiveError;
+    }
+    importantDates = importantDates.map(d => d.id === id ? { ...d, status: 'descartado' } : d);
+  }).catch(() => {});
+  renderImportantDatesAdmin();
+}
+
+async function deleteImportantDate(id) {
+  const ok = await showConfirm({
+    title:       'Eliminar aviso',
+    message:     '¿Seguro que quieres eliminar este aviso? No se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('important_dates').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      importantDates = importantDates.filter(d => d.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Aviso eliminado');
+  renderImportantDatesAdmin();
+  renderEventsButton();
+  const modal = document.getElementById('eventsModal');
+  if (modal && modal.style.display === 'flex') renderEventsModalBody();
+}
+
+async function updateEventsWindowDays(value) {
+  const days = Math.max(1, Math.min(30, parseInt(value, 10) || 5));
+  eventsWindowDays = days;
+  renderEventsButton(); // se aplica al instante, sin esperar a guardar
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: 'events_window_days', value: String(days) });
+    if (error) { if (!handleAuthError(error)) showToast('Error al guardar el ajuste'); }
+  } catch (e) { showToast('Error al guardar el ajuste'); }
+}
+
+function openImportCsvModal() {
+  document.getElementById('csvImportInput').value = '';
+  document.getElementById('csvImportResult').textContent = '';
+  openModalNav('importCsvModal');
+}
+
+// Pega el CSV separado por ";" que ha dado Gemini (fecha;hora;titulo;categoria;nota),
+// filtra las filas que no cumplan el formato mínimo, descarta las que ya
+// existan en la base de datos (en cualquier estado: pendiente/aprobado/
+// descartado) comparando fecha + categoría + título sin acentos ni
+// mayúsculas, y guarda el resto como sugerencias pendientes de aprobar.
+async function importCsvEvents(btn) {
+  const input    = document.getElementById('csvImportInput');
+  const resultEl = document.getElementById('csvImportResult');
+  const raw = (input.value || '').trim();
+  if (!raw) { resultEl.textContent = 'Pega el CSV primero.'; return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+  const rows = [];
+  for (const line of lines) {
+    const parts = line.split(';').map(p => p.trim());
+    if (parts.length < 4) continue;
+    const [fecha, hora, titulo, categoria, nota] = parts;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) continue; // descarta la cabecera y líneas raras
+    if (!titulo) continue;
+    rows.push({
+      event_date: fecha,
+      event_time: (() => { const m = String(hora || '').match(/^(\d{1,2}):(\d{2})/); return m && +m[1] < 24 && +m[2] < 60 ? `${m[1].padStart(2, '0')}:${m[2]}` : null; })(), // "null", "21:00h"… → válido o vacío
+      title:      titulo,
+      category:   ['futbol', 'concierto', 'evento'].includes(categoria) ? categoria : 'evento',
+      note:       nota || null,
+      status:     'pendiente',
+      source:     'ia',
+    });
+  }
+
+  if (rows.length === 0) {
+    resultEl.textContent = '⚠️ No se ha reconocido ninguna fila válida. Revisa que las fechas estén en formato AAAA-MM-DD y separadas por ";".';
+    return;
+  }
+
+  // Recintos que han cambiado de nombre por patrocinio pero son el mismo
+  // sitio: si el título trae uno de estos nombres, se sustituye por el
+  // actual antes de comparar, para que "Leiva en WiZink" y "Leiva en
+  // Movistar Arena" se reconozcan como el mismo concierto. Añade aquí
+  // cualquier otro recinto que cambie de nombre en el futuro.
+  const VENUE_ALIASES = [
+    [/\bwizink center\b/g,   'movistar arena'],
+    [/\bwizink\b/g,          'movistar arena'],
+    [/\bbarclaycard center\b/g, 'movistar arena'],
+    [/\bpalacio de los? deportes\b/g, 'movistar arena'],
+  ];
+  const applyVenueAliases = s => VENUE_ALIASES.reduce((acc, [re, to]) => acc.replace(re, to), s);
+
+  // Compara títulos de forma resistente a variaciones de redacción: separa
+  // por guion/"vs"/"v." y ordena los trozos alfabéticamente, así "Real
+  // Madrid - Barcelona" y "Barcelona vs Real Madrid" se reconocen como el
+  // mismo evento aunque Gemini los redacte distinto entre una consulta y otra.
+  const canonicalTitle = title => applyVenueAliases(normalizeText(title))
+    .split(/\s*(?:-|vs\.?|v\.)\s*/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .sort()
+    .join('|');
+
+  // Sin comparar la categoría: la IA a veces llama "concierto" y otras "evento" a lo mismo
+  const isDuplicate = ev => importantDates.some(d =>
+    d.event_date === ev.event_date &&
+    canonicalTitle(d.title) === canonicalTitle(ev.title)
+  );
+  const newRows = rows.filter(r => !isDuplicate(r));
+  const skipped = rows.length - newRows.length;
+
+  // Además de comparar con lo que ya había guardado, evita meter dos veces
+  // el mismo evento si el propio CSV pegado lo repite por error.
+  const seenInBatch = new Set();
+  const dedupedRows = newRows.filter(r => {
+    const key = `${r.event_date}|${canonicalTitle(r.title)}`;
+    if (seenInBatch.has(key)) return false;
+    seenInBatch.add(key);
+    return true;
+  });
+  const skippedInBatch = newRows.length - dedupedRows.length;
+
+  if (dedupedRows.length === 0) {
+    resultEl.textContent = `Las ${rows.length} fila(s) ya estaban guardadas. Nada nuevo que importar.`;
+    return;
+  }
+
+  const ok = await runWithLoading(btn, 'Importando...', async () => {
+    const { data, error } = await sb.from('important_dates').insert(dedupedRows).select();
+    if (error) { if (!handleAuthError(error)) resultEl.textContent = 'Error al guardar en la base de datos.'; throw error; }
+    importantDates = importantDates.concat(data || []);
+  }).then(() => true).catch(() => false);
+
+  if (!ok) return;
+
+  const omitted = skipped + skippedInBatch;
+  resultEl.textContent = `✅ ${dedupedRows.length} evento(s) nuevo(s) importado(s) como pendiente(s).` +
+    (omitted > 0 ? ` (${omitted} repetido(s) y se han omitido.)` : '');
+  input.value = '';
+  renderImportantDatesAdmin();
+  showToast('Eventos importados ✓');
+}
+
+function renderAdmin() {
+  renderImportantDatesAdmin();
+  const pending  = comments.filter(c => !c.resolved);
+  const resolved = comments.filter(c =>  c.resolved);
+
+  document.getElementById('adminStats').innerHTML = `
+    <div class="stat-card"><span class="material-symbols-outlined">menu_book</span><div class="stat-card-num">${recipes.length}</div><div class="stat-card-lbl">Recetas</div></div>
+    <div class="stat-card"><span class="material-symbols-outlined">blender</span><div class="stat-card-num">${productions.length}</div><div class="stat-card-lbl">Producciones</div></div>
+    <div class="stat-card"><span class="material-symbols-outlined">mark_chat_unread</span><div class="stat-card-num">${isAdmin ? pending.length : '—'}</div><div class="stat-card-lbl">Pendientes</div></div>`;
+
+  if (!isAdmin) {
+    document.getElementById('pendingTitle').innerHTML = '';
+    document.getElementById('commentsList').innerHTML = `
+      <div class="card" style="text-align:center; padding:32px; color:var(--text2);">
+        <span class="material-symbols-outlined" style="font-size:48px; color:var(--outline); display:block; margin-bottom:12px;">lock</span>
+        <p style="font-weight:700;">Acceso restringido</p>
+        <p style="font-size:13px; margin-top:4px;">Inicia sesión como admin para ver los comentarios.</p>
+        <button class="btn-pill filled" style="margin-top:16px;" onclick="toggleAdmin()">Iniciar sesión</button>
+      </div>`;
+    document.getElementById('resolvedSection').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('pendingTitle').innerHTML =
+    `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
+     ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}`;
+
+  document.getElementById('commentsList').innerHTML = pending.length === 0
+    ? `<div class="card" style="text-align:center; padding:24px; color:var(--text2);">
+        <span class="material-symbols-outlined" style="font-size:40px; color:var(--primary); display:block; margin-bottom:8px;">check_circle</span>
+        Sin comentarios pendientes
+       </div>`
+    : pending.map(c => `
+        <div class="comment-card">
+          <div style="flex:1;">
+            <div class="comment-recipe">${escapeHtml(c.section_name)}</div>
+            <div class="comment-text">${escapeHtml(c.text)}</div>
+            <div class="comment-date">${escapeHtml(c.date)}</div>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="btn-pill" onclick="resolveComment('${c.id}', this)">
+              <span class="material-symbols-outlined" style="font-size:15px;">check</span> Resolver
+            </button>
+            <button class="btn-icon" onclick="deleteComment('${c.id}')" aria-label="Eliminar comentario">
+              <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+            </button>
+          </div>
+        </div>`).join('');
+
+  document.getElementById('resolvedSection').innerHTML = resolved.length === 0 ? '' : `
+    <div class="section-title" style="margin-top:8px;"><span class="material-symbols-outlined">task_alt</span> Resueltos</div>
+    ${resolved.map(c => `
+      <div class="comment-card" style="opacity:0.7;">
+        <div style="flex:1;"><div class="comment-recipe">${escapeHtml(c.section_name)} ✓</div><div class="comment-text" style="font-size:13px;">${escapeHtml(c.text)}</div></div>
+        <button class="btn-icon" onclick="deleteComment('${c.id}')" aria-label="Eliminar comentario">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>
+      </div>`).join('')}`;
+
+  // Categorías de producción
+  const catHtml = productionCategories.map(c => `
+    <div class="ficha-row">
+      <div class="ficha-name">${escapeHtml(c.name)}</div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-icon" onclick="renameProdCategory('${c.id}')">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+        </button>
+        <button class="btn-icon" onclick="deleteProdCategory('${c.id}')">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('resolvedSection').innerHTML += `
+    <div class="section-title" style="margin-top:16px;">
+      <span class="material-symbols-outlined">label</span> Categorías de producción
+    </div>
+    <div class="card">
+      ${catHtml}
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <div class="form-input ce-input" id="newCatInput" contenteditable="true" data-placeholder="Nueva categoría..." style="flex:1;"></div>
+        <button class="btn-pill filled" id="addCatBtn" onclick="addProdCategory()">
+          <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+        </button>
+      </div>
+    </div>`;
+
+  renderRadioAdmin();
+  renderPhotoAdmin();
+}
+
+// ─── Fotos de platos (Admin): optimizar las ya subidas ─────────
+// Las fotos subidas antes de v62 van a tamaño completo (varios MB). Este
+// botón las reduce una vez, crea su miniatura y borra la original pesada.
+function recipeNeedsPhotoOptimize(r) {
+  if (!r.photo) return false;
+  if (!/_opt\.jpg(\?|#|$)/.test(r.photo)) return true;   // aún es la original
+  return recipeThumbCol && !r.photo_thumb;                 // reducida pero sin miniatura
+}
+
+function renderPhotoAdmin() {
+  const box = document.getElementById('resolvedSection');
+  if (!box) return;
+  const pending = recipes.filter(recipeNeedsPhotoOptimize).length;
+  const withPhoto = recipes.filter(r => r.photo).length;
+  box.innerHTML += `
+    <div class="section-title" style="margin-top:16px;">
+      <span class="material-symbols-outlined">photo_library</span> Fotos de platos
+    </div>
+    <div class="card">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:10px;">
+        ${pending > 0
+          ? `${pending} de ${withPhoto} foto(s) sin optimizar. Se reducen para que la lista cargue más rápido y gaste menos datos.`
+          : `Todas las fotos (${withPhoto}) están optimizadas ✓`}
+        ${recipeThumbCol ? '' : '<br><span style="color:var(--danger);">Falta la columna <b>photo_thumb</b> en Supabase: sin ella no se crean miniaturas.</span>'}
+      </div>
+      <button class="btn-pill filled" id="optimizePhotosBtn" onclick="optimizeRecipePhotos()" ${pending > 0 ? '' : 'disabled'}>
+        <span class="material-symbols-outlined" style="font-size:16px;">auto_fix_high</span> Optimizar fotos${pending > 0 ? ` (${pending})` : ''}
+      </button>
+    </div>`;
+}
+
+let _optimizingPhotos = false;
+async function optimizeRecipePhotos() {
+  if (_optimizingPhotos) return;
+  const todo = recipes.filter(recipeNeedsPhotoOptimize);
+  if (!todo.length) return;
+  const ok = await showConfirm({
+    title:       'Optimizar fotos',
+    message:     `Se reducirán ${todo.length} foto(s). Tarda unos segundos por foto: no cierres la app mientras tanto.`,
+    confirmText: 'Optimizar',
+    icon:        'auto_fix_high',
+  });
+  if (!ok) return;
+  _optimizingPhotos = true;
+  let done = 0, failed = 0;
+  const setBtn = txt => { const b = document.getElementById('optimizePhotosBtn'); if (b) { b.disabled = true; b.innerHTML = `<span class="material-symbols-outlined spin" style="font-size:16px;">progress_activity</span> ${txt}`; } };
+  for (const r of todo) {
+    setBtn(`Optimizando ${done + failed + 1}/${todo.length}…`);
+    try {
+      const res = await fetch(r.photo, { mode: 'cors', cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      recipeEditorUploads = [];
+      const { photo, thumb } = await uploadRecipeImages(blob, 'foto.jpg');
+      const newUploads = recipeEditorUploads; recipeEditorUploads = [];
+      if (!/_opt\.jpg$/.test(photo)) { cleanupRecipePhotos(newUploads); throw new Error('No se pudo reducir'); }
+      const patch = { photo };
+      if (recipeThumbCol) patch.photo_thumb = thumb;
+      const oldPaths = [photoPathFromUrl(r.photo), photoPathFromUrl(r.photo_thumb)];
+      const { data, error } = await sb.from('recipes').update(patch).eq('id', r.id).select();
+      if (error || !data || !data.length) {
+        cleanupRecipePhotos(newUploads);
+        throw error || new Error('No se ha guardado: revisa tu sesión de admin');
+      }
+      Object.assign(r, patch);
+      cleanupRecipePhotos(oldPaths); // borra la original pesada
+      done++;
+    } catch (e) {
+      console.warn('No se pudo optimizar la foto de', r.name, e);
+      failed++;
+      if (handleAuthError(e)) break;
+    }
+  }
+  _optimizingPhotos = false;
+  showToast(`${done} foto(s) optimizada(s)` + (failed ? ` · ${failed} no se pudieron (p. ej. fotos de otras webs)` : ' ✓'));
+  if (currentPage === 'fichas' && utilTab === 'admin') renderAdmin();
+}
+
+// ─── Emisoras de radio (Admin) ─────────
+let radioEditingId = null; // id de la emisora que se está editando, o null si es un alta nueva
+
+function radioAdminStationType(url) {
+  return /\.m3u8(\?|$)/i.test(url || '') ? 'hls' : 'audio';
+}
+
+function renderRadioAdmin() {
+  const box = document.getElementById('resolvedSection');
+  if (!box) return;
+  const builtin = (window.RADIO_BUILTIN || []).filter(s => !hiddenBuiltinStations.includes(s.id));
+  const builtinRowsHtml = builtin.length === 0
+    ? `<div style="padding:10px 2px; color:var(--text2); font-size:13px;">No quedan emisoras de serie.</div>`
+    : builtin.map(s => `
+      <div class="ficha-row">
+        <div class="ficha-name" style="min-width:0;">
+          <div style="font-weight:800;">${escapeHtml(s.name)}</div>
+          <div style="font-size:11.5px; color:var(--text2);">${s.flag || ''} ${escapeHtml(((window.RADIO_GROUPS || []).find(g => g.key === s.group) || {}).name || 'De serie')}</div>
+        </div>
+        <button class="btn-icon" onclick="radioAdminDeleteBuiltin('${s.id}')">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+        </button>
+      </div>`).join('');
+
+  const rowsHtml = customStations.length === 0
+    ? `<div style="padding:10px 2px; color:var(--text2); font-size:13px;">Aún no has añadido ninguna emisora.</div>`
+    : customStations.map(s => `
+      <div class="ficha-row">
+        <div class="ficha-name" style="min-width:0;">
+          <div style="font-weight:800;">${escapeHtml(s.name)}</div>
+          <div style="font-size:11.5px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(s.url)}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn-icon" onclick="radioAdminEdit('${s.id}')">
+            <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+          </button>
+          <button class="btn-icon" onclick="radioAdminDelete('${s.id}')">
+            <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+          </button>
+        </div>
+      </div>`).join('');
+
+  const editing = radioEditingId != null;
+  box.innerHTML += `
+    <div class="section-title" style="margin-top:16px;">
+      <span class="material-symbols-outlined">radio</span> Emisoras de radio
+    </div>
+    <div class="card">
+      <div style="font-size:11.5px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">De serie</div>
+      ${builtinRowsHtml}
+      <div style="height:1px; background:var(--outline-light); margin:14px 0;"></div>
+      <div style="font-size:11.5px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Añadidas por ti</div>
+      ${rowsHtml}
+      <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+        <div class="form-input ce-input" id="radioNameInput" contenteditable="true" data-placeholder="Nombre de la emisora..."></div>
+        <div class="form-input ce-input" id="radioUrlInput" contenteditable="true" data-placeholder="Enlace directo (.mp3, .aac o .m3u8)..."></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-pill filled" id="radioSaveBtn" style="flex:1;" onclick="radioAdminSave()">
+            <span class="material-symbols-outlined" style="font-size:16px;">${editing ? 'check' : 'add'}</span> ${editing ? 'Guardar cambios' : 'Añadir emisora'}
+          </button>
+          ${editing ? `<button class="btn-pill" onclick="radioAdminCancelEdit()">Cancelar</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  if (editing) {
+    const st = customStations.find(s => s.id === radioEditingId);
+    if (st) {
+      document.getElementById('radioNameInput').innerText = st.name;
+      document.getElementById('radioUrlInput').innerText  = st.url;
+    }
+  }
+}
+
+function radioAdminEdit(id) {
+  radioEditingId = id;
+  renderAdmin();
+}
+
+function radioAdminCancelEdit() {
+  radioEditingId = null;
+  renderAdmin();
+}
+
+async function radioAdminSave() {
+  const nameEl = document.getElementById('radioNameInput');
+  const urlEl  = document.getElementById('radioUrlInput');
+  const name = (nameEl?.innerText || '').trim();
+  let url    = (urlEl?.innerText  || '').trim();
+  if (!name || !url) { showToast('Pon un nombre y un enlace'); return; }
+  if (!/^https?:\/\//i.test(url)) { showToast('El enlace debe empezar por http:// o https://'); return; }
+  // La app va por https: un enlace http:// no sonaría nunca (el navegador lo bloquea).
+  // Se prueba la versión https del mismo servidor, que casi todas las emisoras tienen.
+  let upgraded = false;
+  if (/^http:\/\//i.test(url)) { url = 'https://' + url.slice(7); upgraded = true; }
+  // .pls / .m3u son listas que apuntan al stream, no el stream en sí: no se pueden reproducir directamente
+  if (/\.(pls|m3u)(\?|$)/i.test(url)) { showToast('Ese enlace es una lista (.pls/.m3u): abre el archivo y copia el enlace de dentro'); return; }
+
+  const type = radioAdminStationType(url);
+  const btn = document.getElementById('radioSaveBtn');
+
+  if (radioEditingId) {
+    const ok = await runWithLoading(btn, '', async () => {
+      const { data, error } = await sb.from('radio_stations').update({ name, url, type }).eq('id', radioEditingId).select();
+      if (error || !data || data.length === 0) {
+        const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+        if (!handleAuthError(effectiveError)) showToast('Error al guardar');
+        throw effectiveError;
+      }
+      return true;
+    }).catch(() => false);
+    if (!ok) return;
+    customStations = customStations.map(s => s.id === radioEditingId ? { ...s, name, url, type } : s);
+    radioEditingId = null;
+    showToast('Emisora actualizada ✓' + (upgraded ? ' · enlace cambiado a https://' : ''));
+  } else {
+    const newStation = { id: Date.now().toString(), name, url, type, sort_order: customStations.length + 1 };
+    const ok = await runWithLoading(btn, '', async () => {
+      const { error } = await sb.from('radio_stations').insert(newStation);
+      if (error) {
+        if (!handleAuthError(error)) showToast('Error al añadir (¿existe la tabla radio_stations?)');
+        throw error;
+      }
+      return true;
+    }).catch(() => false);
+    if (!ok) return;
+    customStations.push(newStation);
+    showToast('Emisora añadida ✓' + (upgraded ? ' · enlace cambiado a https://' : ''));
+  }
+  renderAdmin();
+  if (currentPage === 'radio' && typeof renderRadio === 'function') renderRadio();
+}
+
+async function radioAdminDeleteBuiltin(id) {
+  const st = (window.RADIO_BUILTIN || []).find(s => s.id === id);
+  if (!st) return;
+  const ok = await showConfirm({
+    title:       'Eliminar emisora',
+    message:     `¿Seguro que quieres eliminar "${st.name}"? Es una emisora de serie; se puede volver a añadir a mano desde aquí si cambias de opinión.`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { error } = await sb.from('radio_hidden_builtin').insert({ id });
+      if (error) throw error;
+      hiddenBuiltinStations.push(id);
+    },
+  });
+  if (!ok) return;
+  showToast('Emisora eliminada');
+  renderAdmin();
+  if (typeof renderRadio === 'function') renderRadio();
+}
+
+async function radioAdminDelete(id) {
+  const st = customStations.find(s => s.id === id);
+  if (!st) return;
+  const ok = await showConfirm({
+    title:       'Eliminar emisora',
+    message:     `¿Seguro que quieres eliminar "${st.name}"?`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('radio_stations').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      customStations = customStations.filter(s => s.id !== id);
+      if (radioEditingId === id) radioEditingId = null;
+    },
+  });
+  if (!ok) return;
+  showToast('Emisora eliminada');
+  renderAdmin();
+  if (currentPage === 'radio' && typeof renderRadio === 'function') renderRadio();
+}
+
+async function resolveComment(id, btn) {
+  await runWithLoading(btn, '', async () => {
+    const { data, error } = await sb.from('comments').update({ resolved: true }).eq('id', id).select();
+    if (error || !data || data.length === 0) {
+      const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      if (!handleAuthError(effectiveError)) showToast('Error al resolver');
+      throw effectiveError;
+    }
+    comments = comments.map(c => c.id === id ? { ...c, resolved: true } : c);
+  }).catch(() => {});
+  updateBadges(); renderAdmin();
+}
+
+async function deleteComment(id) {
+  const ok = await showConfirm({
+    title:       'Eliminar aviso',
+    message:     '¿Seguro que quieres eliminar este aviso? No se puede deshacer.',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('comments').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      comments = comments.filter(c => c.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Aviso eliminado');
+  updateBadges(); renderAdmin();
+}
+
+// ─── Categorías de producción ─────────
+async function addProdCategory() {
+  const input = document.getElementById('newCatInput');
+  const name = (input?.innerText || '').trim();
+  if (!name) return;
+  const newCat = { id: Date.now().toString(), name, sort_order: productionCategories.length + 1 };
+  const btn = document.getElementById('addCatBtn');
+  const ok = await runWithLoading(btn, '', async () => {
+    const { error } = await sb.from('production_categories').insert(newCat);
+    if (error) { showToast('Error al añadir'); return false; }
+    return true;
+  });
+  if (!ok) return;
+  productionCategories.push(newCat);
+  showToast('Categoría añadida ✓');
+  renderAdmin();
+}
+
+async function renameProdCategory(id) {
+  const cat = productionCategories.find(c => c.id === id);
+  if (!cat) return;
+  const currentName = cat.name;
+  const newName = await showPrompt({
+    title:       'Renombrar categoría',
+    label:       'Nuevo nombre',
+    value:       currentName,
+    placeholder: 'Nombre de la categoría',
+    confirmText: 'Guardar',
+    onConfirm:   async (name) => {
+      if (name === currentName) return;
+      const { data, error } = await sb.from('production_categories').update({ name }).eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      productionCategories = productionCategories.map(c => c.id === id ? { ...c, name } : c);
+      productions = productions.map(p => p.category === currentName ? { ...p, category: name } : p);
+    },
+  });
+  if (!newName || newName === currentName) return;
+  showToast('Categoría renombrada ✓');
+  renderAdmin();
+}
+
+async function deleteProdCategory(id) {
+  const cat = productionCategories.find(c => c.id === id);
+  if (!cat) return;
+  const ok = await showConfirm({
+    title:       'Eliminar categoría',
+    message:     `¿Seguro que quieres eliminar la categoría "${cat.name}"?`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('production_categories').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      productionCategories = productionCategories.filter(c => c.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Categoría eliminada');
+  renderAdmin();
+}
+
+// ═══════════════════════════════════════
+//   AVISO DE EVENTOS (partidos/conciertos importantes)
+// ═══════════════════════════════════════
+// Un icono discreto en la cabecera (visible sin login) avisa de los
+// eventos aprobados dentro de los próximos días. Si hay algo que NADIE
+// del equipo ha visto todavía, el icono se pone llamativo y parpadea.
+// Al tocarlo se abre un modal con el detalle, y se marca como visto para
+// TODO el equipo (columna "seen" en Supabase, no localStorage — un toque
+// en cualquier dispositivo lo apaga para todos). Borrar un evento desde
+// aquí solo está disponible con sesión de admin.
+
+function getUpcomingBannerEvents() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const limit = new Date(today); limit.setDate(limit.getDate() + eventsWindowDays);
+  return importantDates
+    .filter(d => d.status === 'aprobado')
+    .filter(d => {
+      const ed = new Date(d.event_date + 'T00:00:00');
+      return ed >= today && ed <= limit;
+    })
+    .sort((a, b) => a.event_date.localeCompare(b.event_date));
+}
+
+function renderEventsButton() {
+  const btn   = document.getElementById('eventsBtn');
+  const badge = document.getElementById('eventsBadge');
+  if (!btn || !badge) return;
+
+  const upcoming = getUpcomingBannerEvents();
+  if (upcoming.length === 0) { btn.style.display = 'none'; return; }
+
+  const hasNew = upcoming.some(d => !d.seen);
+  btn.style.display = '';
+  btn.classList.toggle('alert', hasNew);
+  badge.style.display = '';
+  badge.textContent = upcoming.length;
+}
+
+function eventBannerFmtDate(iso) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(iso + 'T00:00:00');
+  const diffDays = Math.round((d - today) / 86400000);
+  const dayLabel = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+  if (diffDays === 0) return `Hoy, ${dayLabel}`;
+  if (diffDays === 1) return `Mañana, ${dayLabel}`;
+  return dayLabel;
+}
+
+function renderEventsModalBody() {
+  const body = document.getElementById('eventsModalBody');
+  if (!body) return;
+  const upcoming = getUpcomingBannerEvents();
+  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
+
+  body.innerHTML = upcoming.map(d => `
+    <div class="event-banner-row ${d.high_risk ? 'high-risk' : ''}">
+      <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
+      <div class="event-banner-info">
+        <div class="event-banner-name">${escapeHtml(eventBannerFmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''} — ${escapeHtml(d.title)}</div>
+        ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
+      </div>
+      ${isAdmin ? `
+      <button class="btn-icon" onclick="toggleHighRisk('${d.id}')" aria-label="${d.high_risk ? 'Quitar alto riesgo' : 'Marcar alto riesgo'}">
+        <span class="material-symbols-outlined" style="font-size:18px; color:${d.high_risk ? 'var(--danger)' : 'var(--outline)'};">warning</span>
+      </button>
+      <button class="btn-icon" onclick="deleteImportantDate('${d.id}')" aria-label="Eliminar aviso">
+        <span class="material-symbols-outlined" style="font-size:18px; color:var(--outline);">delete</span>
+      </button>` : ''}
+    </div>`).join('');
+}
+
+async function openEventsModal() {
+  const upcoming = getUpcomingBannerEvents();
+  renderEventsModalBody();
+  openModalNav('eventsModal');
+
+  const unseenIds = upcoming.filter(d => !d.seen).map(d => d.id);
+  if (unseenIds.length > 0) {
+    // Actualización optimista: el icono deja de parpadear al instante,
+    // aunque el guardado en Supabase (compartido para todo el equipo)
+    // tarde un pelín más en confirmarse.
+    importantDates = importantDates.map(d => unseenIds.includes(d.id) ? { ...d, seen: true } : d);
+    renderEventsButton();
+    try {
+      const { data, error } = await sb.from('important_dates').update({ seen: true }).in('id', unseenIds).select();
+      if (error) console.warn('No se pudo marcar como visto:', error.message);
+      else if (!data || data.length === 0) console.warn('No se pudo marcar como visto: revisa la sesión (row-level security)');
+    } catch (e) { console.warn('No se pudo marcar como visto:', e); }
+  }
+}
+
+function updateBadges() {
+  const n = comments.filter(c => !c.resolved).length;
+  const nb = document.getElementById('navBadge');
+  const sb2 = document.getElementById('segAdminBadge');
+  const tb = document.getElementById('commentBadgeTop');
+  if (sb2) { sb2.textContent = n; sb2.style.display = n > 0 ? '' : 'none'; }
+  if (n > 0) { nb.textContent = n; nb.style.display = ''; tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
+  else       { nb.style.display = 'none'; tb.style.display = 'none'; }
+}
+
+// ═══════════════════════════════════════
+//   FICHAS
+// ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//   UTILIDADES (Pesos · Conversión · Pedidos)
+// ═══════════════════════════════════════
+function renderFichas() {
+  const segPed = document.getElementById('seg-pedidos');
+  if (segPed) segPed.style.display = isAdmin ? '' : 'none';
+  if (utilTab === 'pedidos' && !isAdmin) utilTab = 'pesos';
+
+  document.getElementById('seg-pesos').classList.toggle('active', utilTab === 'pesos');
+  document.getElementById('seg-conv').classList.toggle('active', utilTab === 'conv');
+  if (segPed) segPed.classList.toggle('active', utilTab === 'pedidos');
+  document.getElementById('seg-admin').classList.toggle('active', utilTab === 'admin');
+
+  document.getElementById('utilPesos').style.display   = utilTab === 'pesos'   ? '' : 'none';
+  document.getElementById('utilConv').style.display    = utilTab === 'conv'    ? '' : 'none';
+  document.getElementById('utilPedidos').style.display = utilTab === 'pedidos' ? '' : 'none';
+  document.getElementById('utilAdmin').style.display   = utilTab === 'admin'   ? '' : 'none';
+
+  if (utilTab === 'pesos')   renderPesos();
+  if (utilTab === 'conv')    renderConvTab();
+  if (utilTab === 'pedidos') renderPedidos();
+  if (utilTab === 'admin')   renderAdmin();
+}
+function setUtilTab(tab) { utilTab = tab; renderFichas(); }
+
+function renderPesos() {
+  document.getElementById('addWeightBtn').style.display = isAdmin ? '' : 'none';
+  document.getElementById('addBrineBtn').style.display  = isAdmin ? '' : 'none';
+  renderWeights();
+  renderBrines();
+}
+
+function renderConvTab() {
+  initConverter();
+  updateRuleOfThree();
+}
+
+// ─── Regla de tres ─────────────────────
+function updateRuleOfThree() {
+  const a = parseFloat(document.getElementById('rotA').value);
+  const b = parseFloat(document.getElementById('rotB').value);
+  const c = parseFloat(document.getElementById('rotC').value);
+  const box = document.getElementById('rotResult');
+  if (isNaN(a) || isNaN(b) || isNaN(c) || a === 0) { box.style.display = 'none'; return; }
+  const x = b * c / a;
+  const d = Number.isInteger(x) ? x : parseFloat(x.toFixed(3));
+  document.getElementById('rotResultVal').textContent = d;
+  document.getElementById('rotResultLbl').textContent = `${fmtNum(a)} : ${fmtNum(b)}  =  ${fmtNum(c)} : ${d}`;
+  box.style.display = '';
+}
+function fmtNum(n) { return Number.isInteger(n) ? n : parseFloat(n.toFixed(3)); }
+
+// ═══════════════════════════════════════
+//   LISTA DE PEDIDOS
+// ═══════════════════════════════════════
+let _pedIndexByKey = {};
+
+function escAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Reconstruye el estado guardado (check/comentario/grupo/edición) por materia prima.
+function rebuildOrderState() {
+  orderState = {};
+  (orderItems || []).forEach(it => {
+    const key = it.key || normalizeText(it.name);
+    if (!key) return;
+    orderState[key] = {
+      name: it.name || key,
+      supplier_group: it.supplier_group || null,
+      checked: !!it.checked,
+      comment: it.comment || '',
+      hidden: !!it.hidden,
+      manual: !!it.manual,
+      display_name: it.display_name || null,
+    };
+  });
+}
+
+// Lista de materias primas en vivo desde ingredientes de recetas + producciones,
+// más los nombres de pesos de ración y de salmueras.
+function buildMateriasPrimas() {
+  const map = {}; // key normalizada -> nombre a mostrar
+  const addName = (raw) => {
+    const cleaned = cleanIngredientName(raw);
+    if (!cleaned) return;
+    const key = normalizeText(cleaned);
+    if (!key || map[key]) return;
+    map[key] = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  };
+  const addIngredients = (arr) => (arr || []).forEach(e => (e.ingredients || []).forEach(ing => addName(ing.name)));
+  addIngredients(recipes);
+  addIngredients(productions);
+  (weights || []).forEach(w => addName(w.name));     // pesos de ración
+  (brines  || []).forEach(b => addName(b.product));  // salmueras
+  return map;
+}
+
+// La lista de pedidos es 100% manual: se construye solo con los artículos
+// que el admin añade (no se saca de recetas, producciones, pesos ni salmueras).
+function buildPedidoEntries() {
+  const entries = [];
+  Object.keys(orderState).forEach(key => {
+    const st = orderState[key];
+    if (!st || !st.manual) return; // solo ítems añadidos a mano
+    const display = st.display_name || st.name || key;
+    entries.push({
+      key, display,
+      group: st.supplier_group || classifyIngredient(display),
+      checked: !!st.checked, comment: st.comment || '',
+    });
+  });
+  return { entries };
+}
+
+function renderPedidos() {
+  const root = document.getElementById('utilPedidos');
+  if (!root) return;
+  if (!isAdmin) {
+    root.innerHTML = `<div class="ped-locked"><span class="material-symbols-outlined">lock</span>Esta sección es solo para administradores.</div>`;
+    return;
+  }
+  root.innerHTML = `
+    <div class="ped-toolbar">
+      <div class="ped-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="pedSearchInput" placeholder="Buscar en la lista…" oninput="onPedidosSearch(this.value)">
+      </div>
+      ${orderEditCols ? `<button class="btn-pill ${pedidosEdit ? '' : 'ghost'}" id="pedEditBtn" onclick="setPedidosEdit(${!pedidosEdit})">
+        <span class="material-symbols-outlined" style="font-size:15px;">${pedidosEdit ? 'done' : 'edit'}</span> ${pedidosEdit ? 'Listo' : 'Editar'}
+      </button>` : ''}
+      <button class="btn-pill ghost" onclick="resetPedidos()">
+        <span class="material-symbols-outlined" style="font-size:15px;">restart_alt</span> Reiniciar
+      </button>
+    </div>
+    ${!orderEditCols ? `<div class="ped-hint">Para poder crear y editar la lista, ejecuta la pequeña actualización SQL que te paso.</div>` : ''}
+    <div class="ped-count" id="pedCount"></div>
+    <div id="pedList"></div>
+    <div class="ped-send-bar">
+      <button class="btn-action" id="pedSendBtn" onclick="sendPedidoPDF()"></button>
+    </div>`;
+  document.getElementById('pedSearchInput').value = pedidosSearch;
+  renderPedidosList();
+}
+
+function onPedidosSearch(v) { pedidosSearch = v; renderPedidosList(); }
+function setPedidosEdit(on) { pedidosEdit = !!on; renderPedidos(); }
+
+function renderPedidosList() {
+  const listEl = document.getElementById('pedList');
+  if (!listEl) return;
+  const q = normalizeText(pedidosSearch);
+
+  const { entries: all } = buildPedidoEntries();
+  _pedIndexByKey = {};
+  all.forEach(e => { _pedIndexByKey[e.key] = e; });
+
+  const totalItems   = all.length;
+  const totalChecked = all.filter(e => e.checked).length;
+
+  let entries = all;
+  if (q) entries = entries.filter(e => normalizeText(e.display).includes(q));
+
+  const byGroup = {};
+  entries.forEach(e => (byGroup[e.group] = byGroup[e.group] || []).push(e));
+  const order = [...SUPPLIER_GROUPS.map(g => g.id), 'otros'];
+
+  let html = '';
+  if (orderEditCols) {
+    html += `<button class="btn-pill ped-add" onclick="addManualMateriaPrima()">
+      <span class="material-symbols-outlined" style="font-size:16px;">add</span> Añadir artículo
+    </button>`;
+  }
+
+  if (entries.length === 0) {
+    html += `<div class="empty-state"><span class="material-symbols-outlined">${q ? 'search_off' : 'inventory_2'}</span>${q ? 'Sin coincidencias' : 'Lista vacía. Pulsa "Añadir artículo" para empezar tu lista de pedidos.'}</div>`;
+  } else {
+    order.forEach(gid => {
+      const list = byGroup[gid];
+      if (!list || !list.length) return;
+      const meta = groupMeta(gid);
+      list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base' }));
+      html += `<div class="order-group-head"><span class="gh-emoji">${meta.emoji}</span> ${meta.label} <span class="gh-count">${list.length}</span></div>`;
+      list.forEach(e => {
+        const k = encodeURIComponent(e.key);
+        if (pedidosEdit) {
+          html += `
+            <div class="order-row edit">
+              <span class="order-name">${escapeHtml(e.display)}</span>
+              <button class="order-act btn-icon" onclick="renamePedido('${k}')" title="Renombrar"><span class="material-symbols-outlined">edit</span></button>
+              <button class="order-act btn-icon" onclick="openGroupPicker('${k}')" title="Cambiar grupo"><span class="material-symbols-outlined">swap_horiz</span></button>
+              <button class="order-act btn-icon" onclick="deletePedido('${k}')" title="Eliminar"><span class="material-symbols-outlined" style="color:var(--danger);">delete</span></button>
+            </div>`;
+        } else {
+          html += `
+            <div class="order-row ${e.checked ? 'checked' : ''}">
+              <span class="order-check material-symbols-outlined" onclick="togglePedido('${k}')">${e.checked ? 'check_circle' : 'radio_button_unchecked'}</span>
+              <span class="order-name">${escapeHtml(e.display)}</span>
+              <input class="order-comment" type="text" placeholder="Nota…" value="${escAttr(e.comment)}" onchange="setPedidoComment('${k}', this.value)">
+              <button class="order-move btn-icon" onclick="openGroupPicker('${k}')"><span class="material-symbols-outlined">swap_horiz</span></button>
+            </div>`;
+        }
+      });
+    });
+  }
+  listEl.innerHTML = html;
+
+  const countEl = document.getElementById('pedCount');
+  if (countEl) {
+    countEl.textContent = pedidosEdit
+      ? `${totalItems} artículo${totalItems === 1 ? '' : 's'}`
+      : `${totalChecked} marcados · ${totalItems} artículo${totalItems === 1 ? '' : 's'}`;
+  }
+  const sendBtn = document.getElementById('pedSendBtn');
+  if (sendBtn) sendBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:19px; vertical-align:middle;">picture_as_pdf</span> Enviar pedido (${totalChecked})`;
+}
+
+// Guarda (upsert) el estado de una materia prima en Supabase.
+async function upsertOrderItem(key, display, patch, prevOverride) {
+  const cur = orderState[key] || { name: display, supplier_group: null, checked: false, comment: '', hidden: false, manual: false, display_name: null };
+  const prev = prevOverride !== undefined ? prevOverride : (orderState[key] ? { ...orderState[key] } : null);
+  const next = { ...cur, ...patch, name: cur.name || display };
+  orderState[key] = next;
+  const row = {
+    key, name: next.name, supplier_group: next.supplier_group,
+    checked: next.checked, comment: next.comment, updated_at: new Date().toISOString(),
+  };
+  if (orderEditCols) {
+    row.hidden = !!next.hidden;
+    row.manual = !!next.manual;
+    row.display_name = next.display_name || null;
+  }
+  try {
+    const { error } = await sb.from('order_items').upsert(row, { onConflict: 'key' });
+    if (error) throw error;
+  } catch (e) {
+    console.error('Error guardando order_items:', e);
+    // Deshacer el cambio en pantalla: no se ha guardado
+    if (prev) orderState[key] = prev; else delete orderState[key];
+    if (currentPage === 'fichas' && utilTab === 'pedidos') renderPedidosList();
+    if (!handleAuthError(e)) showToast('No se pudo guardar (¿sin conexión?)');
+  }
+}
+
+async function togglePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  const checked = !(orderState[key]?.checked);
+  const prev = orderState[key] ? { ...orderState[key] } : null;
+  orderState[key] = { ...(orderState[key] || { name: display, supplier_group: null, comment: '' }), checked };
+  renderPedidosList();
+  await upsertOrderItem(key, display, { checked }, prev);
+}
+
+async function setPedidoComment(enc, value) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  orderState[key] = { ...(orderState[key] || { name: display, supplier_group: null, checked: false }), comment: value };
+  await upsertOrderItem(key, display, { comment: value });
+}
+
+function openGroupPicker(enc) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  const current = e ? e.group : classifyIngredient(display);
+  closeGroupPicker();
+  const all = [...SUPPLIER_GROUPS, OTHER_GROUP];
+  const modal = document.createElement('div');
+  modal.id = 'groupPickerModal';
+  modal.className = 'modal-overlay';
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Grupo de "${escAttr(display)}"</span>
+        <button class="modal-close" onclick="closeGroupPicker()">✕</button>
+      </div>
+      <div>${all.map(g => `
+        <div class="gp-option ${g.id === current ? 'selected' : ''}" onclick="assignIngredientGroup('${enc}','${g.id}')">
+          <span class="gp-emoji">${g.emoji}</span>
+          <span class="gp-label">${g.label}</span>
+          ${g.id === current ? '<span class="material-symbols-outlined" style="margin-left:auto; color:var(--primary);">check</span>' : ''}
+        </div>`).join('')}</div>
+    </div>`;
+  modal.addEventListener('click', ev => { if (ev.target === modal) closeGroupPicker(); });
+  document.body.appendChild(modal);
+}
+function closeGroupPicker() { const m = document.getElementById('groupPickerModal'); if (m) m.remove(); }
+
+async function assignIngredientGroup(enc, gid) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const display = e ? e.display : (orderState[key]?.name || key);
+  orderState[key] = { ...(orderState[key] || { name: display, checked: false, comment: '' }), supplier_group: gid };
+  closeGroupPicker();
+  renderPedidosList();
+  await upsertOrderItem(key, display, { supplier_group: gid });
+  showToast('Grupo actualizado');
+}
+
+// ─── Edición de la lista ───────────────
+async function addManualMateriaPrima() {
+  const name = await showPrompt({
+    title:       'Nuevo artículo',
+    label:       'Nombre',
+    placeholder: 'Ej: Sal Maldon',
+    confirmText: 'Añadir',
+    icon:        'add_shopping_cart',
+  });
+  if (!name) return;
+  const clean = cleanIngredientName(name) || name.trim();
+  const key = normalizeText(clean);
+  if (!key) return;
+  const display = clean.charAt(0).toUpperCase() + clean.slice(1);
+  orderState[key] = { ...(orderState[key] || { supplier_group: null, checked: false, comment: '' }), name: display, manual: true, hidden: false };
+  await upsertOrderItem(key, display, { manual: true, hidden: false, name: display });
+  renderPedidosList();
+  showToast('Materia prima añadida ✓');
+}
+
+async function renamePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const e = _pedIndexByKey[key];
+  const current = e ? e.display : (orderState[key]?.name || key);
+  const name = await showPrompt({
+    title:       'Renombrar',
+    label:       'Nombre mostrado',
+    value:       current,
+    placeholder: 'Nombre de la materia prima',
+    confirmText: 'Guardar',
+    icon:        'edit',
+  });
+  if (!name || name === current) return;
+  const display = name.trim();
+  await upsertOrderItem(key, display, { display_name: display });
+  renderPedidosList();
+  showToast('Renombrado ✓');
+}
+
+async function deletePedido(enc) {
+  const key = decodeURIComponent(enc);
+  const display = (_pedIndexByKey[key] && _pedIndexByKey[key].display) || orderState[key]?.name || key;
+  const ok = await showConfirm({
+    title:       'Eliminar artículo',
+    message:     `¿Quitar "${display}" de la lista?`,
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('order_items').delete().eq('key', key).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      delete orderState[key];
+    },
+  });
+  if (!ok) return;
+  renderPedidosList();
+  showToast('Eliminado');
+}
+
+async function resetPedidos() {
+  const ok = await showConfirm({
+    title:       'Reiniciar lista',
+    message:     'Se desmarcarán todos los artículos y se borrarán los comentarios. Las asignaciones de grupo se mantienen.',
+    confirmText: 'Reiniciar',
+    danger:      true,
+    icon:        'restart_alt',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('order_items').update({ checked: false, comment: '' }).not('key', 'is', null).select('key');
+      if (error) throw error;
+      if ((!data || data.length === 0) && Object.keys(orderState).length > 0) throw new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      Object.keys(orderState).forEach(k => { orderState[k].checked = false; orderState[k].comment = ''; });
+    },
+  });
+  if (!ok) return;
+  showToast('Lista reiniciada');
+  renderPedidosList();
+}
+
+// Genera el PDF con los marcados y abre el menú de compartir (WhatsApp, etc.).
+async function sendPedidoPDF() {
+  const entries = buildPedidoEntries().entries.filter(e => e.checked && !e.hidden);
+
+  if (!entries.length) { showToast('Marca al menos una materia prima'); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) { showToast('No se pudo cargar el generador de PDF'); return; }
+
+  const btn = document.getElementById('pedSendBtn');
+  await runWithLoading(btn, 'Generando…', async () => {
+    const now   = new Date();
+    const fecha = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    const hora  = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const title = `Pedidos carta del ${fecha} a las ${hora}`;
+
+    const { jsPDF } = window.jspdf;
+
+    // Página estrecha tipo ticket para lectura cómoda en el móvil (sin zoom).
+    const W = 90, M = 8, CW = W - M * 2;
+
+    const byGroup = {};
+    entries.forEach(e => (byGroup[e.group] = byGroup[e.group] || []).push(e));
+    const order = [...SUPPLIER_GROUPS.map(g => g.id), 'otros'];
+
+    // Recorre el contenido midiendo (render=false) o dibujando (render=true).
+    // Devuelve la altura total usada, para crear la página a medida.
+    const layout = (doc, render) => {
+      let y = M;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+      if (render) doc.text('Pedido', M, y);
+      y += 8;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      if (render) { doc.setTextColor(120); doc.text(`${fecha} · ${hora}`, M, y); doc.setTextColor(20); }
+      y += 4;
+      if (render) { doc.setDrawColor(210); doc.line(M, y, W - M, y); }
+      y += 7;
+
+      order.forEach(gid => {
+        const list = byGroup[gid];
+        if (!list || !list.length) return;
+        list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base' }));
+        const meta = groupMeta(gid);
+
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5);
+        if (render) doc.text(`${meta.label}`, M, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
+        list.forEach(e => {
+          let line = `[ ]  ${e.display}`;
+          const nameLines = doc.splitTextToSize(line, CW);
+          if (render) doc.text(nameLines, M, y);
+          y += nameLines.length * 6.2;
+          if (e.comment) {
+            doc.setFontSize(10.5); doc.setTextColor(110);
+            const cLines = doc.splitTextToSize(e.comment, CW - 7);
+            if (render) doc.text(cLines, M + 7, y);
+            y += cLines.length * 5.4;
+            doc.setFontSize(12); doc.setTextColor(20);
+          }
+          y += 2.6; // separación entre artículos
+        });
+        y += 5; // separación entre grupos
+      });
+      return y;
+    };
+
+    // 1ª pasada: medir altura. 2ª pasada: dibujar en una página a medida.
+    const probe = new jsPDF({ unit: 'mm', format: [W, 1200] });
+    const H = Math.max(layout(probe, false) + M, 60);
+    const doc = new jsPDF({ unit: 'mm', format: [W, H] });
+    layout(doc, true);
+
+    const safe = `Pedido ${now.toLocaleDateString('es-ES').replace(/\//g, '-')} ${hora.replace(':', '.')}.pdf`;
+    const blob = doc.output('blob');
+    const file = new File([blob], safe, { type: 'application/pdf' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title, text: title });
+      } else {
+        doc.save(safe);
+        showToast('PDF descargado (este dispositivo no permite compartir archivos)');
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // el usuario canceló
+      console.error('Error al compartir:', err);
+      doc.save(safe);
+      showToast('PDF descargado');
+    }
+  });
+}
+
+// Recalcula la lista si está visible (tras añadir/editar/borrar recetas).
+function refreshPedidosIfVisible() {
+  if (document.getElementById('fichasPage')?.classList.contains('active') && utilTab === 'pedidos') {
+    renderPedidosList();
+  }
+}
+
+function renderWeights() {
+  const el = document.getElementById('weightsList');
+  if (!el) return;
+  el.innerHTML = weights.length === 0
+    ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
+    : weights.map(w => `
+        <div class="ficha-row">
+          <div>
+            <div class="ficha-name">${escapeHtml(w.name)}</div>
+            ${w.notes ? `<div class="ficha-note">${escapeHtml(w.notes)}</div>` : ''}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="ing-amount">${w.grams} g</span>
+            ${isAdmin ? `
+              <button class="btn-icon" onclick="openWeightModal('${w.id}')">
+                <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+              </button>
+              <button class="btn-icon" onclick="deleteWeight('${w.id}')">
+                <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+              </button>` : ''}
+          </div>
+        </div>`).join('');
+}
+
+function renderBrines() {
+  const el = document.getElementById('brinesList');
+  if (!el) return;
+  const cats = [...new Set(brines.map(b => b.category))];
+  el.innerHTML = cats.length === 0
+    ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
+    : cats.map(cat => `
+        <div class="ficha-category">${cat === 'Aves' ? '🐔' : cat === 'Cerdo' ? '🐷' : '🐟'} ${cat}</div>
+        ${brines.filter(b => b.category === cat).map(b => `
+          <div class="ficha-row">
+            <div>
+              <div class="ficha-name">${escapeHtml(b.product)}</div>
+              ${b.notes ? `<div class="ficha-note">${escapeHtml(b.notes)}</div>` : ''}
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="ing-amount">${b.minutes >= 60 ? (b.minutes/60)+' h' : b.minutes+' min'}</span>
+              ${isAdmin ? `
+                <button class="btn-icon" onclick="openBrineModal('${b.id}')">
+                  <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
+                </button>
+                <button class="btn-icon" onclick="deleteBrine('${b.id}')">
+                  <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
+                </button>` : ''}
+            </div>
+          </div>`).join('')}`).join('');
+}
+
+// ─── Pesos CRUD ───────────────────────
+function openWeightModal(id) {
+  editingWeightId = id;
+  const w = id ? weights.find(x => x.id === id) : null;
+  document.getElementById('weightModalTitle').textContent = id ? 'Editar peso' : 'Nuevo peso';
+  document.getElementById('weightName').innerText  = w ? w.name  : '';
+  document.getElementById('weightGrams').innerText = w ? w.grams : '';
+  document.getElementById('weightNotes').innerText = w ? (w.notes || '') : '';
+  openModalNav('weightModal');
+}
+
+async function saveWeight() {
+  const name  = document.getElementById('weightName').innerText.trim();
+  const grams = parseInt(document.getElementById('weightGrams').innerText);
+  const notes = document.getElementById('weightNotes').innerText.trim();
+  if (!name || !grams) { showToast('Nombre y gramos son obligatorios'); return; }
+  const payload = { name, grams, notes };
+  const btn = document.querySelector('#weightModal .btn-action');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    if (editingWeightId) {
+      const { data, error } = await sb.from('weights').update(payload).eq('id', editingWeightId).select();
+      if (error || !data || data.length === 0) {
+        const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+        if (!handleAuthError(effectiveError)) showToast('Error al guardar');
+        return false;
+      }
+      weights = weights.map(w => w.id === editingWeightId ? { ...w, ...payload } : w);
+    } else {
+      payload.id = Date.now().toString();
+      const { error } = await sb.from('weights').insert(payload);
+      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+      weights.push(payload);
+    }
+    return true;
+  });
+  if (!ok) return;
+  closeModal('weightModal'); showToast('Guardado ✓'); renderWeights();
+}
+
+async function deleteWeight(id) {
+  const w = weights.find(x => x.id === id);
+  const ok = await showConfirm({
+    title:       'Eliminar peso',
+    message:     w ? `¿Eliminar "${w.name}" de la lista de pesos?` : '¿Eliminar este peso?',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('weights').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      weights = weights.filter(w => w.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Eliminado'); renderWeights();
+}
+
+// ─── Salmueras CRUD ───────────────────
+function openBrineModal(id) {
+  editingBrineId = id;
+  const b = id ? brines.find(x => x.id === id) : null;
+  document.getElementById('brineModalTitle').textContent = id ? 'Editar salmuera' : 'Nueva salmuera';
+  document.getElementById('brineName').innerText    = b ? b.product  : '';
+  document.getElementById('brineCategory').value = b ? b.category : 'Aves';
+  document.getElementById('brineMinutes').innerText = b ? b.minutes  : '';
+  document.getElementById('brineNotes').innerText   = b ? (b.notes || '') : '';
+  openModalNav('brineModal');
+}
+
+async function saveBrine() {
+  const product  = document.getElementById('brineName').innerText.trim();
+  const category = document.getElementById('brineCategory').value;
+  const minutes  = parseInt(document.getElementById('brineMinutes').innerText);
+  const notes    = document.getElementById('brineNotes').innerText.trim();
+  if (!product || !minutes) { showToast('Producto y tiempo son obligatorios'); return; }
+  const payload = { product, category, minutes, notes };
+  const btn = document.querySelector('#brineModal .btn-action');
+  const ok = await runWithLoading(btn, 'Guardando...', async () => {
+    if (editingBrineId) {
+      const { data, error } = await sb.from('brines').update(payload).eq('id', editingBrineId).select();
+      if (error || !data || data.length === 0) {
+        const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+        if (!handleAuthError(effectiveError)) showToast('Error al guardar');
+        return false;
+      }
+      brines = brines.map(b => b.id === editingBrineId ? { ...b, ...payload } : b);
+    } else {
+      payload.id = Date.now().toString();
+      const { error } = await sb.from('brines').insert(payload);
+      if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+      brines.push(payload);
+    }
+    return true;
+  });
+  if (!ok) return;
+  closeModal('brineModal'); showToast('Guardado ✓'); renderBrines();
+}
+
+async function deleteBrine(id) {
+  const b = brines.find(x => x.id === id);
+  const ok = await showConfirm({
+    title:       'Eliminar salmuera',
+    message:     b ? `¿Eliminar la salmuera de "${b.product}"?` : '¿Eliminar esta salmuera?',
+    confirmText: 'Eliminar',
+    danger:      true,
+    icon:        'delete',
+    onConfirm:   async () => {
+      const { data, error } = await sb.from('brines').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
+      brines = brines.filter(b => b.id !== id);
+    },
+  });
+  if (!ok) return;
+  showToast('Eliminado'); renderBrines();
+}
+
+// ═══════════════════════════════════════
+//   CONVERSOR
+// ═══════════════════════════════════════
+const CONV_TYPES = {
+  Peso:        { units: ['g','kg','oz','lb'],                   toBase: { g:1, kg:1000, oz:28.3495, lb:453.592 } },
+  Volumen:     { units: ['ml','L','taza','fl oz','tbsp','tsp'], toBase: { ml:1, L:1000, taza:236.588, 'fl oz':29.5735, tbsp:14.7868, tsp:4.92892 } },
+  Temperatura: { units: ['°C','°F'], toBase: null },
+  'Tazas → g': { units: ['taza','tbsp','tsp','g'], toBase: null, byIngredient: true },
+};
+
+// Gramos por TAZA (236 ml) de cada ingrediente. De ahí se derivan tbsp y tsp.
+// 1 taza = 16 tbsp = 48 tsp.
+const ING_GRAMS_PER_CUP = {
+  'Harina':           120,
+  'Azúcar blanco':    200,
+  'Azúcar moreno':    220,
+  'Azúcar glass':     130,
+  'Mantequilla':      227,
+  'Arroz':            195,
+  'Sal fina':         290,
+  'Sal gruesa':       220,
+  'Miel':             340,
+  'Cacao en polvo':   100,
+  'Agua / líquidos':  236,
+  'Leche':            245,
+  'Nata':             240,
+  'Aceite':           218,
+  'Almendra molida':  96,
+  'Pan rallado':      108,
+};
+// Factor de cada unidad respecto a 1 taza (cuánta taza es 1 unidad de esa)
+const CUP_FRACTION = { taza: 1, tbsp: 1/16, tsp: 1/48 };
+let convType = 'Peso';
+
+function initConverter() {
+  document.getElementById('convTypeChips').innerHTML = Object.keys(CONV_TYPES).map(t =>
+    `<button class="chip ${t === convType ? 'active' : ''}" onclick="setConvType('${t}')">${t}</button>`
+  ).join('');
+  const units = CONV_TYPES[convType].units;
+  ['convFrom','convTo'].forEach((id, i) => {
+    const s = document.getElementById(id);
+    s.innerHTML = units.map(u => `<option>${u}</option>`).join('');
+    s.value = units[i === 0 ? 0 : 1];
+  });
+
+  // Selector de ingrediente: solo visible en el modo "Tazas → g"
+  const ingRow = document.getElementById('convIngredientRow');
+  const ingSel = document.getElementById('convIngredient');
+  if (CONV_TYPES[convType].byIngredient) {
+    if (!ingSel.options.length) {
+      ingSel.innerHTML = Object.keys(ING_GRAMS_PER_CUP).map(n => `<option>${n}</option>`).join('');
+    }
+    ingRow.style.display = '';
+  } else {
+    ingRow.style.display = 'none';
+  }
+
+  updateConverter();
+  document.getElementById('tempRef').innerHTML = [
+    ['Bajo','150°C','300°F'],['Medio','180°C','356°F'],['Fuerte','200°C','392°F'],
+    ['Muy fuerte','220°C','428°F'],['Brasa','240°C','464°F'],['Máximo','260°C','500°F'],
+  ].map(([l,c,f]) =>
+    `<div class="ref-cell"><div class="ref-cell-lbl">${l}</div><div class="ref-cell-val">${c}</div><div class="ref-cell-sub">${f}</div></div>`
+  ).join('');
+}
+
+function setConvType(t) { convType = t; initConverter(); }
+
+function updateConverter() {
+  const val  = parseFloat(document.getElementById('convValue').value);
+  const from = document.getElementById('convFrom').value;
+  const to   = document.getElementById('convTo').value;
+  if (isNaN(val)) { document.getElementById('convResult').textContent = '—'; return; }
+  let result;
+  if (convType === 'Temperatura') result = from === to ? val : from === '°C' ? val*9/5+32 : (val-32)*5/9;
+  else if (CONV_TYPES[convType].byIngredient) {
+    // Conversión taza/tbsp/tsp ⇄ gramos según el ingrediente elegido
+    const ing = document.getElementById('convIngredient').value;
+    const gPerCup = ING_GRAMS_PER_CUP[ing] || 0;
+    // pasar 'from' a gramos
+    const gFrom = from === 'g' ? val : val * CUP_FRACTION[from] * gPerCup;
+    // pasar gramos al 'to'
+    result = to === 'g' ? gFrom : gFrom / (CUP_FRACTION[to] * gPerCup);
+  }
+  else { const b = CONV_TYPES[convType].toBase; result = val*b[from]/b[to]; }
+  let d;
+  if (Number.isInteger(result)) d = result;
+  else if (to === 'g' || to === 'ml') d = parseFloat(result.toFixed(1));
+  else d = parseFloat(result.toFixed(2));
+  document.getElementById('convResult').textContent     = d + ' ' + to;
+  document.getElementById('convResultLabel').textContent = `${val} ${from} = ${d} ${to}`;
+}
+
+// ═══════════════════════════════════════
+//   UTILIDADES
+// ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//   DIÁLOGO DE CONFIRMACIÓN PROPIO
+// ═══════════════════════════════════════
+// Sustituye al confirm() del navegador. Devuelve una promesa que
+// resuelve true (confirmar) o false (cancelar). Si se pasa onConfirm,
+// la acción asíncrona se ejecuta mostrando el botón en estado de carga
+// y el diálogo no se cierra hasta que termina.
+let _confirmResolve = null;
+
+function showConfirm(opts = {}) {
+  const {
+    title       = 'Confirmar',
+    message     = '',
+    confirmText = 'Confirmar',
+    cancelText  = 'Cancelar',
+    danger      = false,
+    icon        = danger ? 'warning' : 'help',
+    onConfirm   = null,
+  } = opts;
+
+  return new Promise(resolve => {
+    const existing = document.getElementById('confirmModal');
+    if (existing) existing.remove();
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      _confirmResolve = null;
+      const m = document.getElementById('confirmModal');
+      if (m) m.remove();
+      resolve(result);
+    };
+    // Permite que el botón "atrás" de Android cancele el diálogo
+    _confirmResolve = () => finish(false);
+
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'modal-overlay confirm-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-sheet confirm-sheet" onclick="event.stopPropagation()">
+        <div class="confirm-icon ${danger ? 'danger' : ''}">
+          <span class="material-symbols-outlined">${icon}</span>
+        </div>
+        <div class="confirm-title">${title}</div>
+        ${message ? `<p class="confirm-message">${message}</p>` : ''}
+        <div class="confirm-actions">
+          <button class="btn-confirm cancel" id="confirmCancelBtn">${cancelText}</button>
+          <button class="btn-confirm ok ${danger ? 'danger' : ''}" id="confirmOkBtn">${confirmText}</button>
+        </div>
+      </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) finish(false); });
+    document.body.appendChild(modal);
+
+    const cancelBtn = modal.querySelector('#confirmCancelBtn');
+    const okBtn     = modal.querySelector('#confirmOkBtn');
+
+    cancelBtn.addEventListener('click', () => finish(false));
+    okBtn.addEventListener('click', async () => {
+      if (!onConfirm) { finish(true); return; }
+      const orig = okBtn.innerHTML;
+      okBtn.disabled = true; cancelBtn.disabled = true;
+      okBtn.innerHTML = `<span class="material-symbols-outlined spin">progress_activity</span>`;
+      okBtn.classList.add('btn-loading');
+      try {
+        await onConfirm();
+        finish(true);
+      } catch (err) {
+        console.error(err);
+        if (handleAuthError(err)) { finish(false); return; }
+        showToast('Error, inténtalo de nuevo');
+        okBtn.disabled = false; cancelBtn.disabled = false;
+        okBtn.classList.remove('btn-loading');
+        okBtn.innerHTML = orig;
+      }
+    });
+
+    setTimeout(() => okBtn.focus(), 100);
+  });
+}
+
+// Diálogo de entrada de texto propio (sustituye a prompt()).
+// Resuelve con el texto introducido, o null si se cancela. Si se pasa
+// onConfirm(valor), se ejecuta con el botón en estado de carga.
+function showPrompt(opts = {}) {
+  const {
+    title       = '',
+    label       = '',
+    value       = '',
+    placeholder = '',
+    confirmText = 'Guardar',
+    cancelText  = 'Cancelar',
+    icon        = 'edit',
+    onConfirm   = null,
+  } = opts;
+
+  return new Promise(resolve => {
+    const existing = document.getElementById('confirmModal');
+    if (existing) existing.remove();
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      _confirmResolve = null;
+      const m = document.getElementById('confirmModal');
+      if (m) m.remove();
+      resolve(result);
+    };
+    _confirmResolve = () => finish(null);
+
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'modal-overlay confirm-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-sheet confirm-sheet" onclick="event.stopPropagation()">
+        <div class="confirm-icon"><span class="material-symbols-outlined">${icon}</span></div>
+        ${title ? `<div class="confirm-title">${title}</div>` : ''}
+        <div class="form-group" style="text-align:left; margin-top:14px;">
+          ${label ? `<div class="form-label">${label}</div>` : ''}
+          <input type="text" class="form-input" id="promptInput" placeholder="${placeholder}"
+            onkeydown="if(event.key==='Enter') document.getElementById('promptOkBtn').click();">
+        </div>
+        <div class="confirm-actions">
+          <button class="btn-confirm cancel" id="promptCancelBtn">${cancelText}</button>
+          <button class="btn-confirm ok" id="promptOkBtn">${confirmText}</button>
+        </div>
+      </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) finish(null); });
+    document.body.appendChild(modal);
+
+    const input     = modal.querySelector('#promptInput');
+    const cancelBtn = modal.querySelector('#promptCancelBtn');
+    const okBtn     = modal.querySelector('#promptOkBtn');
+    input.value = value;
+
+    cancelBtn.addEventListener('click', () => finish(null));
+    okBtn.addEventListener('click', async () => {
+      const text = input.value.trim();
+      if (!text) { input.focus(); return; }
+      if (!onConfirm) { finish(text); return; }
+      const orig = okBtn.innerHTML;
+      okBtn.disabled = true; cancelBtn.disabled = true; input.disabled = true;
+      okBtn.innerHTML = `<span class="material-symbols-outlined spin">progress_activity</span>`;
+      okBtn.classList.add('btn-loading');
+      try {
+        await onConfirm(text);
+        finish(text);
+      } catch (err) {
+        console.error(err);
+        if (handleAuthError(err)) { finish(null); return; }
+        showToast('Error, inténtalo de nuevo');
+        okBtn.disabled = false; cancelBtn.disabled = false; input.disabled = false;
+        okBtn.classList.remove('btn-loading');
+        okBtn.innerHTML = orig;
+      }
+    });
+
+    setTimeout(() => { input.focus(); input.select(); }, 120);
+  });
+}
+
+// ═══════════════════════════════════════
+//   ESTADO DE CARGA EN BOTONES (consistente)
+// ═══════════════════════════════════════
+// Deshabilita el botón, muestra un spinner + etiqueta mientras corre la
+// tarea asíncrona y restaura el estado original al terminar (o fallar).
+async function runWithLoading(btn, label, task) {
+  if (!btn) return task();
+  const original     = btn.innerHTML;
+  const wasDisabled  = btn.disabled;
+  btn.disabled = true;
+  btn.classList.add('btn-loading');
+  btn.innerHTML = `<span class="material-symbols-outlined spin">progress_activity</span>${label ? ' ' + label : ''}`;
+  try {
+    return await task();
+  } finally {
+    btn.disabled = wasDisabled;
+    btn.classList.remove('btn-loading');
+    btn.innerHTML = original;
+  }
+}
+
+// ═══════════════════════════════════════
+//   CAMBIOS SIN GUARDAR (editores)
+// ═══════════════════════════════════════
+function isRecipeEditorDirty() {
+  return !!recipeEditorData && recipeEditorBaseline !== null
+    && JSON.stringify(recipeEditorData) !== recipeEditorBaseline;
+}
+function isProdEditorDirty() {
+  return !!prodEditorData && prodEditorBaseline !== null
+    && JSON.stringify(prodEditorData) !== prodEditorBaseline;
+}
+
+// Intenta salir del editor de recetas. Si hay cambios sin guardar pide
+// confirmación. Devuelve true si finalmente se salió, false si se queda.
+async function requestExitRecipeEditor() {
+  if (isRecipeEditorDirty()) {
+    const ok = await showConfirm({
+      title:       'Cambios sin guardar',
+      message:     'Si sales ahora perderás los cambios que no has guardado.',
+      confirmText: 'Salir sin guardar',
+      cancelText:  'Seguir editando',
+      icon:        'edit_off',
+    });
+    if (!ok) return false;
+  }
+  exitRecipeEditor(recipeEditorMode === 'edit');
+  return true;
+}
+
+async function requestExitProdEditor() {
+  if (isProdEditorDirty()) {
+    const ok = await showConfirm({
+      title:       'Cambios sin guardar',
+      message:     'Si sales ahora perderás los cambios que no has guardado.',
+      confirmText: 'Salir sin guardar',
+      cancelText:  'Seguir editando',
+      icon:        'edit_off',
+    });
+    if (!ok) return false;
+  }
+  exitProdEditor(prodEditorMode === 'edit');
+  return true;
+}
+
+// Abre un modal estático y registra un estado en el historial, para que el
+// botón atrás de Android lo cierre sin desajustar la navegación de fondo.
+function openModalNav(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'flex';
+  el.dataset.nav = '1'; // tiene su propia entrada en el historial
+  history.pushState({ view: 'staticModal', id }, '');
+}
+// Cierra un modal. Si se abrió con openModalNav y su entrada sigue arriba
+// del historial (se cierra con la X o tocando fuera), la retira en silencio
+// para que el botón atrás no tenga "pulsaciones muertas" después.
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'none';
+  delete el.dataset.nav;
+  popOwnModalEntry(id);
+}
+function popOwnModalEntry(id) {
+  const st = history.state;
+  if (st && st.view === 'staticModal' && st.id === id) {
+    _silentPop = true;
+    history.back();
+  }
+}
+
+// ═══════════════════════════════════════
+//   MODO OSCURO
+// ═══════════════════════════════════════
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  try { localStorage.setItem('rubencechef-theme', isDark ? 'dark' : 'light'); } catch(e) {}
+  updateThemeIcon(isDark);
+}
+
+function updateThemeIcon(isDark) {
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.querySelector('.material-symbols-outlined').textContent = isDark ? 'light_mode' : 'dark_mode';
+}
+
+function initTheme() {
+  let saved = 'light';
+  try { saved = localStorage.getItem('rubencechef-theme') || 'light'; } catch(e) {}
+  const isDark = saved === 'dark';
+  if (isDark) document.body.classList.add('dark');
+  updateThemeIcon(isDark);
+}
+
+function openLightbox(src) {
+  let lb = document.getElementById('lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'lightbox';
+    lb.className = 'lightbox-overlay';
+    lb.style.display = 'none';
+    lb.innerHTML = `
+      <button class="lightbox-close" onclick="closeLightbox()" aria-label="Cerrar imagen">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <img id="lightboxImg" class="lightbox-img">`;
+    lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+    document.body.appendChild(lb);
+  }
+  document.getElementById('lightboxImg').src = src;
+  lb.style.display = 'flex';
+  // Registrar en historial para que el botón atrás de Android lo cierre
+  history.pushState({ view: 'lightbox' }, '');
+}
+
+function closeLightbox(fromBack) {
+  const lb = document.getElementById('lightbox');
+  if (lb) lb.style.display = 'none';
+  // Cerrada con la X o tocando fuera: retirar su entrada del historial
+  if (!fromBack && history.state && history.state.view === 'lightbox') {
+    _silentPop = true;
+    history.back();
+  }
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  if (toastTimer) clearTimeout(toastTimer);
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  toastTimer = setTimeout(() => t.remove(), 2800);
+}
+
+// ═══════════════════════════════════════
+//   INIT
+// ═══════════════════════════════════════
+initTheme();
+
+// Crear el campo de búsqueda como contenteditable para evitar el autorelleno de Android
+const searchInput = document.createElement('div');
+searchInput.setAttribute('id', 'searchInput');
+searchInput.setAttribute('contenteditable', 'true');
+searchInput.setAttribute('data-placeholder', 'Buscar...');
+searchInput.setAttribute('role', 'searchbox');
+searchInput.className = 'search-contenteditable';
+searchInput.style.cssText = 'border:none;background:none;outline:none;font-size:14px;font-family:Nunito,sans-serif;color:var(--text);flex:1;width:100%;min-height:20px;';
+// Helper para leer el texto de búsqueda
+searchInput.getValue = function() { return this.innerText.trim(); };
+searchInput.addEventListener('input', onSearch);
+document.getElementById('searchInputWrap').appendChild(searchInput);
+
+const _vEl = document.getElementById('appVersion');
+if (_vEl) _vEl.textContent = APP_VERSION;
+renderRecipeSkeletons();
+loadData();
+
+// Service Worker desactivado temporalmente
+// if ('serviceWorker' in navigator) {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker.register('/rubencecheff/sw.js').catch(() => {});
+//   });
+// }
+
+// Refresco de datos en segundo plano (sustituye a la antigua recarga de la
+// página cada 15 min, que cortaba la radio). Vuelve a pedir los datos a
+// Supabase sin recargar nada: la radio y los timers siguen como estaban.
+// Se hace cada 15 min y al volver a la app si llevaba 5 min o más fuera.
+// No actúa si estás editando, escribiendo o con una ventana abierta, para no
+// quitarte lo que tienes delante; lo reintenta en el siguiente ciclo.
+let _lastDataRefresh = Date.now();
+async function refreshDataSilently() {
+  if (document.visibilityState !== 'visible') return;
+  if (document.getElementById('editorPage').classList.contains('active')) return;
+  if (document.getElementById('productionEditorPage').classList.contains('active')) return;
+  if (document.querySelector('.modal-overlay[style*="flex"], #lightbox[style*="flex"], #groupPickerModal')) return;
+  const ae = document.activeElement;
+  if (ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return;
+  try {
+    const res = await Promise.all([
+      sb.from('recipes').select('*').order('name'),
+      sb.from('productions').select('*').order('name'),
+      sb.from('recipe_productions').select('*'),
+      sb.from('comments').select('*').order('created_at', { ascending: false }),
+      sb.from('weights').select('*').order('name'),
+      sb.from('brines').select('*').order('category'),
+      sb.from('production_categories').select('*').order('sort_order'),
+      sb.from('important_dates').select('*').order('event_date'),
+      sb.from('order_items').select('*'),
+      sb.from('radio_stations').select('*').order('sort_order'),
+      sb.from('radio_hidden_builtin').select('*'),
+    ]);
+    // Si algo falla (sin cobertura, tabla inexistente...), no se toca nada.
+    if (res.slice(0, 7).some(r => r.error)) return;
+    // Por si mientras tanto has empezado a editar algo
+    if (document.getElementById('editorPage').classList.contains('active') ||
+        document.getElementById('productionEditorPage').classList.contains('active')) return;
+    const norm = it => {
+      it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
+      it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
+      it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
+      if (it.name == null) it.name = '';
+      if (it.description == null) it.description = '';
+      return it;
+    };
+    recipes               = (res[0].data || []).map(norm);
+    productions           = (res[1].data || []).map(norm);
+    recipeProductions     = res[2].data || [];
+    comments              = res[3].data || [];
+    weights               = res[4].data || [];
+    brines                = res[5].data || [];
+    productionCategories  = res[6].data || [];
+    if (!res[7].error)  importantDates        = res[7].data || [];
+    if (!res[8].error)  { orderItems = res[8].data || []; rebuildOrderState(); }
+    if (!res[9].error)  customStations        = res[9].data || [];
+    if (!res[10].error) hiddenBuiltinStations = (res[10].data || []).map(r => r.id);
+    _lastDataRefresh = Date.now();
+
+    // Repintar lo que se esté viendo
+    const active = (document.querySelector('.page.active') || {}).id;
+    if (active === 'recipesPage') renderRecipes();
+    else if (active === 'productionsPage') renderProductions();
+    else if (active === 'fichasPage') renderFichas();
+    else if (active === 'detailPage' && recipes.some(r => r.id === currentRecipeId)) renderRecipeDetail();
+    else if (active === 'productionDetailPage' && productions.some(p => p.id === currentProdId)) renderProdDetail(currentPage);
+    renderEventsButton();
+    updateBadges();
+    if (typeof renderRadio === 'function') renderRadio();
+  } catch (e) { console.warn('Refresco en segundo plano fallido:', e?.message || e); }
+}
+setInterval(refreshDataSilently, 15 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Date.now() - _lastDataRefresh > 5 * 60 * 1000) refreshDataSilently();
+});
+
+// Botón atrás de Android
+// Historial: si la entrada actual es la de un modal que ya no está abierto
+// (p. ej. la Radio se minimizó al cambiar de pestaña), la siguiente
+// navegación la sustituye en vez de apilarse encima. Así no quedan
+// entradas huérfanas que obliguen a pulsar "atrás" varias veces.
+let _silentPop = false;
+let _histCur   = null; // estado de la entrada en la que estamos
+(function () {
+  const origPush    = history.pushState.bind(history);
+  const origReplace = history.replaceState.bind(history);
+  history.pushState = function (state, title, url) {
+    const cur = history.state;
+    if (cur && cur.view === 'staticModal') {
+      const el = document.getElementById(cur.id);
+      if (!el || el.style.display !== 'flex') { _histCur = state; return origReplace(state, title, url); }
+    }
+    _histCur = state;
+    return origPush(state, title, url);
+  };
+  history.replaceState = function (state, title, url) {
+    _histCur = state;
+    return origReplace(state, title, url);
+  };
+})();
+history.pushState({ view: 'home' }, '');
+
+// Avisar al cerrar/recargar la app si hay cambios sin guardar en un editor
+window.addEventListener('beforeunload', (e) => {
+  const editingRecipe = document.getElementById('editorPage').classList.contains('active') && isRecipeEditorDirty();
+  const editingProd   = document.getElementById('productionEditorPage').classList.contains('active') && isProdEditorDirty();
+  if (editingRecipe || editingProd) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+window.addEventListener('popstate', (e) => {
+  // Retirada silenciosa de la entrada de un modal cerrado con la X
+  if (_silentPop) { _silentPop = false; _histCur = e.state; return; }
+  const leaving = _histCur;  // entrada de la que venimos (la que el "atrás" acaba de consumir)
+  _histCur = e.state;
+  const state = e.state;
+
+  // 1a) Cerrar el lightbox si está abierto (B1 — tiene su propio estado en historial)
+  //     (popstate entrega la entrada a la que se llega: si la foto está
+  //     abierta, el "atrás" acaba de consumir su entrada; solo hay que cerrarla)
+  const lbOpen = document.getElementById('lightbox');
+  if (lbOpen && lbOpen.style.display === 'flex') {
+    closeLightbox(true);
+    return;
+  }
+  if (state && state.view === 'lightbox') { history.back(); return; } // entrada huérfana
+
+  // 1b) Cerrar el groupPickerModal si está abierto (B2 — no registraba estado)
+  const gp = document.getElementById('groupPickerModal');
+  if (gp) { closeGroupPicker(); history.pushState(leaving || { view: 'modal' }, ''); return; }
+
+  // 1c) Cerrar modales estáticos (comentar, peso, salmuera, vincular) que
+  //     registraron su estado 'staticModal' al abrirse. El atrás ya consumió
+  //     ese estado, así que solo cerramos: no re-empujamos historial.
+  //     Nota: popstate entrega la entrada a la que se LLEGA, no la que se
+  //     abandona. Aterrizar en una entrada 'staticModal' cuyo modal ya está
+  //     cerrado significa que es una entrada huérfana: se salta.
+  if (state && state.view === 'staticModal') {
+    const m = document.getElementById(state.id);
+    const isOpen = m && m.style.display === 'flex';
+    const anyOpen = document.querySelector('.modal-overlay[style*="flex"]');
+    if (!isOpen && !anyOpen) { history.back(); return; }  // huérfana y nada que cerrar: saltarla
+    if (isOpen) return;                                     // seguimos "dentro" de ese modal
+    // si hay otro modal abierto, lo gestiona el paso 1d
+  }
+
+  // 1d) Hay un modal abierto: el "atrás" lo cierra.
+  const openModal = document.querySelector('.modal-overlay[style*="flex"]');
+  if (openModal) {
+    // La Radio no se cierra: se minimiza a burbuja (si no, seguía sonando sin
+    // controles visibles y parecía que la burbuja había desaparecido).
+    if (openModal.id === 'radioModal' && typeof radioMinimize === 'function') {
+      radioMinimize({ fromBack: true });
+      return;
+    }
+    // El timer no se puede cerrar con "atrás" mientras suena: hay que pulsar Detener.
+    if (openModal.id === 'timerModal' && typeof timerIsRinging === 'function' && timerIsRinging()) {
+      history.pushState(leaving || { view: 'staticModal', id: 'timerModal' }, '');
+      return;
+    }
+    // Modales con entrada propia: el "atrás" ya la consumió, solo se cierran.
+    if (openModal.dataset.nav === '1') {
+      openModal.style.display = 'none';
+      delete openModal.dataset.nav;
+      return;
+    }
+    // Modales dinámicos (login, confirmación) sin entrada propia: el "atrás"
+    // consumió la entrada de la vista actual, así que se restaura.
+    if (openModal.id === 'loginModal') closeLoginModal();
+    else if (openModal.id === 'confirmModal' && _confirmResolve) _confirmResolve(); // cancela el diálogo
+    else openModal.style.display = 'none';
+    history.pushState(leaving || { view: 'modal' }, '');
+    return;
+  }
+
+  // 2) Si hay un editor abierto, SIEMPRE pasar primero por el aviso de
+  //    cambios sin guardar, sin importar a qué vista íbamos a volver.
+  //    Esto evita perder cambios al pulsar atrás desde un editor abierto
+  //    desde dentro de un detalle (no solo desde la lista).
+  if (document.getElementById('editorPage').classList.contains('active')) {
+    requestExitRecipeEditor().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
+    return;
+  }
+  if (document.getElementById('productionEditorPage').classList.contains('active')) {
+    requestExitProdEditor().then(exited => { if (!exited) history.pushState({ view: 'editor' }, ''); });
+    return;
+  }
+
+  // 3) Restaurar la vista concreta a la que aterrizamos, según su marcador.
+  if (state && state.view === 'tab') {
+    showPage(state.page, null, true);
+    return;
+  }
+
+  if (state && state.view === 'recipeDetail') {
+    restoreRecipeDetail(state.id);
+    return;
+  }
+
+  if (state && state.view === 'prodDetail') {
+    restoreProdDetail(state.id, state.fromPage);
+    return;
+  }
+
+
+  // 4) Por defecto (estado nulo o 'home'): pestaña Platos, el punto de partida.
+  showPage('recipes', null, true);
+  history.pushState({ view: 'home' }, '');
+});
