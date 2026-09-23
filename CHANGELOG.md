@@ -4,6 +4,22 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v63
+
+### Cambiado
+- **Radio renovada**: la ventana ocupa el 95 % de la pantalla. Arriba, el reproductor en una tarjeta (vinilo, emisora con su descripción y "En directo", y los controles), con el texto bien separado de los botones. Debajo, la lista de emisoras.
+- **Nuevas emisoras de serie (37)**: las 9 españolas (LOS40, LOS40 Classic, LOS40 Urban, LOS40 Dance, KISS FM, Cadena Dial, Cadena 100, Rock FM, Radiolé) y 28 canales de SomaFM agrupados por estilo. Se quitan las anteriores. Cadena 100 y Rock FM venían con http:// y van con https:// (http no suena en la app).
+- **Filtros por estilo** (chips deslizables: Todas, Favoritas, España, Ambient, House / Dance, Rock / Metal…) y la lista separada en secciones con su número de emisoras.
+- **Controles nuevos**: botón grande de reproducir/pausa y dos botones redondos a los lados (favorita y parar), a juego con la app.
+- La emisora que suena se marca con unas barras de ecualizador animadas.
+- En horizontal ancho (monitor, tablet), reproductor a la izquierda y lista a la derecha; en móviles bajos, el vinilo se reduce para dejar sitio a la lista.
+
+### Añadido
+- **Favoritas**: estrella en cada emisora (y en el reproductor para la que suena). Las favoritas se marcan con estrella amarilla y salen al principio de la lista. Se guardan en este dispositivo.
+- En Admin, las emisoras de serie muestran su estilo.
+
+---
+
 ## v62
 
 ### Añadido
