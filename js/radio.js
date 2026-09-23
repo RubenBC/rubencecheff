@@ -13,26 +13,30 @@
 
   // Grupos (en este orden). 'short' es el texto de los filtros de arriba.
   const GROUPS = [
-    { key: 'es',      name: 'España',                           short: 'España' },
-    { key: 'amb',     name: 'Electrónica / ambient',            short: 'Ambient' },
-    { key: 'house',   name: 'House / dance / IDM',              short: 'House / Dance' },
-    { key: 'rock',    name: 'Rock / indie / metal',             short: 'Rock / Metal' },
-    { key: 'soul',    name: 'Soul / funk / R&B',                short: 'Soul / Funk' },
-    { key: 'jazz',    name: 'Jazz',                             short: 'Jazz' },
-    { key: 'latin',   name: 'Brasileña / latina',               short: 'Brasil / Latina' },
-    { key: 'reggae',  name: 'Reggae',                           short: 'Reggae' },
-    { key: 'country', name: 'Country / americana',              short: 'Country' },
-    { key: 'folk',    name: 'Celta / folk',                     short: 'Celta / Folk' },
-    { key: 'lounge',  name: 'Lounge / vintage / bandas sonoras', short: 'Lounge' },
-    { key: 'custom',  name: 'Otras emisoras',                   short: 'Otras' },
+    { key: 'es',      name: 'España',                  short: 'España' },
+    { key: 'mix',     name: 'Variada / ecléctica',     short: 'Variada' },
+    { key: 'pop',     name: 'Pop',                     short: 'Pop' },
+    { key: 'rock',    name: 'Rock / metal',            short: 'Rock / Metal' },
+    { key: 'electro', name: 'Electrónica / hip-hop',   short: 'Electrónica' },
+    { key: 'soul',    name: 'Soul / funk / groove',    short: 'Soul / Funk' },
+    { key: 'jazz',    name: 'Jazz',                    short: 'Jazz' },
+    { key: 'world',   name: 'Músicas del mundo / reggae', short: 'Mundo / Reggae' },
+    { key: 'chill',   name: 'Tranquila',               short: 'Tranquila' },
+    { key: 'classic', name: 'Clásica',                 short: 'Clásica' },
+    { key: 'custom',  name: 'Otras emisoras',          short: 'Otras' },
   ];
 
   // Emisoras de serie. Expuestas en window.RADIO_BUILTIN para que el panel
   // de Admin pueda listarlas y ofrecer borrarlas (tabla radio_hidden_builtin).
-  // Los id llevan prefijo (es_/soma_) para que no hereden borrados de la lista anterior.
+  // Solo emisoras que permiten escucharse desde otras webs y apps:
+  //   · españolas (las que ya funcionaban)
+  //   · Radio France (FIP y France Musique): radio pública francesa, sus flujos son públicos
+  //   · Radio Paradise: sus enlaces están pensados para usarse en cualquier reproductor
+  // (SomaFM se quitó: bloquea la reproducción dentro de otras webs.)
   // Los enlaces http:// de la lista original van en https:// (http no suena en la app).
-  const E = (id, name, desc, url) => ({ id: 'es_' + id, group: 'es', flag: '🇪🇸', name, desc, type: 'audio', url });
-  const SOMA = (group, id, name, desc) => ({ id: 'soma_' + id, group, flag: '🇺🇸', name, desc, type: 'audio', url: 'https://ice5.somafm.com/' + id + '-128-mp3' });
+  const E  = (id, name, desc, url) => ({ id: 'es_' + id, group: 'es', flag: '🇪🇸', name, desc, type: 'audio', url });
+  const RF = (group, slug, name, desc) => ({ id: 'fr_' + slug, group, flag: '🇫🇷', name, desc, type: 'audio', url: 'https://icecast.radiofrance.fr/' + slug + '-hifi.aac?id=radiofrance' });
+  const RP = (group, path, name, desc) => ({ id: 'rp_' + path.replace(/[^a-z0-9]/g, ''), group, flag: '🇺🇸', name, desc, type: 'audio', url: 'https://stream.radioparadise.com/' + path });
   const BUILTIN = [
     E('los40',        'LOS40',         'Pop, hits actuales y clásicos',                    'https://playerservices.streamtheworld.com/api/livestream-redirect/Los40.mp3'),
     E('los40classic', 'LOS40 Classic', 'Rock y pop clásicos',                              'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_CLASSIC.mp3'),
@@ -44,41 +48,24 @@
     E('rockfm',       'Rock FM',       'Rock clásico',                                      'https://flucast26-h-cloud.flumotion.com/cope/rockfm-low.mp3'),
     E('radiole',      'Radiolé',       'Música española, copla, flamenco y rumba',          'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOLE.mp3'),
 
-    SOMA('amb', 'groovesalad',  'Groove Salad',         'Ambient, downtempo, chill electrónico'),
-    SOMA('amb', 'gsclassic',    'Groove Salad Classic', 'Downtempo/electrónica estilo años 2000'),
-    SOMA('amb', 'dronezone',    'Drone Zone',           'Ambient atmosférico y minimalista'),
-    SOMA('amb', 'deepspaceone', 'Deep Space One',       'Ambient electrónico, experimental y espacial'),
-    SOMA('amb', 'spacestation', 'Space Station Soma',   'Electrónica espacial y mid-tempo'),
-    SOMA('amb', 'synphaera',    'Synphaera Radio',      'Ambient electrónico y música espacial'),
-    SOMA('amb', 'darkzone',     'The Dark Zone',        'Ambient oscuro y experimental'),
-
-    SOMA('house', 'beatblender', 'Beat Blender',   'Deep house y downtempo'),
-    SOMA('house', 'thetrip',     'The Trip',       'Progressive house y trance'),
-    SOMA('house', 'cliqhop',     'cliqhop idm',    'IDM, glitch y electrónica experimental'),
-    SOMA('house', 'fluid',       'Fluid',          'Hip-hop instrumental, future soul y electrónica'),
-    SOMA('house', 'poptron',     'PopTron',        'Electropop e indie dance'),
-    SOMA('house', 'u80s',        'Underground 80s','Synthpop y New Wave británico de los 80'),
-
-    SOMA('rock', 'indiepop',  'Indie Pop Rocks!', 'Indie pop y rock alternativo'),
-    SOMA('rock', 'metal',     'Metal Detector',   'Black, doom, thrash, sludge, prog, stoner, punk e industrial'),
-    SOMA('rock', 'digitalis', 'Digitalis',        'Rock con electrónica y procesamiento digital'),
-    SOMA('rock', 'seventies', 'Left Coast 70s',   'Rock de álbum de los años 70'),
-
-    SOMA('soul', '7soul',   'Seven Inch Soul', 'Soul clásico en vinilo de 45 RPM'),
-    SOMA('soul', 'insound', 'The In-Sound',    'Pop europeo, psicodelia y sonidos groovy de los 60–70'),
-
-    SOMA('jazz', 'sonicuniverse', 'Sonic Universe', 'Jazz contemporáneo, avant-garde y fusiones'),
-
-    SOMA('latin', 'bossa',        'Bossa Beyond',    'Bossa nova, samba y ritmos brasileños'),
-    SOMA('latin', 'suburbsofgoa', 'Suburbs of Goa',  'Electrónica con influencias asiáticas/indias'),
-
-    SOMA('reggae',  'reggae',     'Heavyweight Reggae', 'Reggae, ska y rocksteady'),
-    SOMA('country', 'bootliquor', 'Boot Liquor',        'Americana, country y roots'),
-    SOMA('folk',    'thistle',    'ThistleRadio',       'Música celta y folk de raíces británicas'),
-
-    SOMA('lounge', 'secretagent', 'Secret Agent',          'Lounge, jazz, funk y música con aire de película de espías'),
-    SOMA('lounge', 'illstreet',   'Illinois Street Lounge', 'Exotica, lounge y sonidos vintage'),
-    SOMA('lounge', 'tikitime',    'Tiki Time',              'Música tiki y ritmos tropicales vintage'),
+    RF('mix',     'fip',              'FIP',                'Ecléctica: de todo, elegido a mano y sin anuncios'),
+    RP('mix',     'mp3-128',          'Radio Paradise',     'Mezcla ecléctica de rock, pop, electrónica y más, sin anuncios'),
+    RF('mix',     'fipnouveautes',    'FIP Nouveautés',     'Novedades musicales de todos los estilos'),
+    RF('pop',     'fippop',           'FIP Pop',            'Pop internacional, actual y clásico'),
+    RF('pop',     'fipsacrefrancais', 'FIP Sacré français', 'Pop y canción francesa'),
+    RF('rock',    'fiprock',          'FIP Rock',           'Rock clásico, indie y alternativo'),
+    RP('rock',    'rock-128',         'Radio Paradise Rock','Rock, del clásico al actual'),
+    RF('rock',    'fipmetal',         'FIP Metal',          'Metal en todas sus variantes'),
+    RF('electro', 'fipelectro',       'FIP Electro',        'Electrónica: house, techno, downtempo'),
+    RF('electro', 'fiphiphop',        'FIP Hip-Hop',        'Hip-hop y rap'),
+    RF('soul',    'fipgroove',        'FIP Groove',         'Soul, funk, disco y groove'),
+    RF('jazz',    'fipjazz',          'FIP Jazz',           'Jazz de todas las épocas'),
+    RF('world',   'fipworld',         'FIP Monde',          'Músicas del mundo: África, Latinoamérica, Brasil…'),
+    RF('world',   'fipreggae',        'FIP Reggae',         'Reggae, dub y ska'),
+    RP('chill',   'mellow-128',       'Radio Paradise Mellow', 'Canciones tranquilas, ideales de fondo'),
+    RF('chill',   'francemusiquepianozen', 'France Musique Piano Zen', 'Piano tranquilo y relajante'),
+    RF('classic', 'francemusiquebaroque',  'France Musique La Baroque', 'Música barroca: Bach, Vivaldi, Händel…'),
+    RF('classic', 'francemusiqueclassiquelove', 'France Musique Classique Love', 'Grandes obras clásicas románticas'),
   ];
   window.RADIO_BUILTIN = BUILTIN;
   window.RADIO_GROUPS  = GROUPS;
