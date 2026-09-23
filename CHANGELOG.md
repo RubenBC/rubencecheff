@@ -4,6 +4,17 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v65
+
+### Cambiado
+- **Radio: solo las emisoras españolas de serie** (LOS40, LOS40 Classic, LOS40 Urban, LOS40 Dance, KISS FM, Cadena Dial, Cadena 100, Rock FM, Radiolé). Se quitan las de Radio France y Radio Paradise.
+- **Sin etiquetas de estilo** arriba de la lista: quedan las secciones Favoritas, España y Otras emisoras.
+
+### Añadido
+- **Al añadir o editar una emisora en Admin se puede poner su estilo y un comentario breve**, que se ven debajo del nombre como en las españolas ("Jazz · Jazz clásico y swing"). Necesita las columnas `style` y `comment` en la tabla `radio_stations`; sin ellas la emisora se guarda igual, sin esos datos, y Admin avisa.
+
+---
+
 ## v64
 
 ### Cambiado
