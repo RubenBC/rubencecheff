@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   RADIO EN DIRECTO  (v63)
+   RADIO EN DIRECTO  (v65)
    Ventana emergente con vinilo, que se puede minimizar a una burbuja
    movible visible en cualquier pestaña de la app.
    - MP3/AAC: el <audio> las reproduce de forma nativa.
@@ -11,61 +11,27 @@
 (function () {
   'use strict';
 
-  // Grupos (en este orden). 'short' es el texto de los filtros de arriba.
+  // Secciones de la lista (en este orden)
   const GROUPS = [
-    { key: 'es',      name: 'España',                  short: 'España' },
-    { key: 'mix',     name: 'Variada / ecléctica',     short: 'Variada' },
-    { key: 'pop',     name: 'Pop',                     short: 'Pop' },
-    { key: 'rock',    name: 'Rock / metal',            short: 'Rock / Metal' },
-    { key: 'electro', name: 'Electrónica / hip-hop',   short: 'Electrónica' },
-    { key: 'soul',    name: 'Soul / funk / groove',    short: 'Soul / Funk' },
-    { key: 'jazz',    name: 'Jazz',                    short: 'Jazz' },
-    { key: 'world',   name: 'Músicas del mundo / reggae', short: 'Mundo / Reggae' },
-    { key: 'chill',   name: 'Tranquila',               short: 'Tranquila' },
-    { key: 'classic', name: 'Clásica',                 short: 'Clásica' },
-    { key: 'custom',  name: 'Otras emisoras',          short: 'Otras' },
+    { key: 'es',     name: 'España' },
+    { key: 'custom', name: 'Otras emisoras' },
   ];
 
   // Emisoras de serie. Expuestas en window.RADIO_BUILTIN para que el panel
   // de Admin pueda listarlas y ofrecer borrarlas (tabla radio_hidden_builtin).
-  // Solo emisoras que permiten escucharse desde otras webs y apps:
-  //   · españolas (las que ya funcionaban)
-  //   · Radio France (FIP y France Musique): radio pública francesa, sus flujos son públicos
-  //   · Radio Paradise: sus enlaces están pensados para usarse en cualquier reproductor
-  // (SomaFM se quitó: bloquea la reproducción dentro de otras webs.)
+  // Las demás se añaden desde Admin (tabla radio_stations), con su estilo y comentario.
   // Los enlaces http:// de la lista original van en https:// (http no suena en la app).
-  const E  = (id, name, desc, url) => ({ id: 'es_' + id, group: 'es', flag: '🇪🇸', name, desc, type: 'audio', url });
-  const RF = (group, slug, name, desc) => ({ id: 'fr_' + slug, group, flag: '🇫🇷', name, desc, type: 'audio', url: 'https://icecast.radiofrance.fr/' + slug + '-hifi.aac?id=radiofrance' });
-  const RP = (group, path, name, desc) => ({ id: 'rp_' + path.replace(/[^a-z0-9]/g, ''), group, flag: '🇺🇸', name, desc, type: 'audio', url: 'https://stream.radioparadise.com/' + path });
+  const E = (id, name, desc, url) => ({ id: 'es_' + id, group: 'es', flag: '🇪🇸', name, desc, type: 'audio', url });
   const BUILTIN = [
-    E('los40',        'LOS40',         'Pop, hits actuales y clásicos',                    'https://playerservices.streamtheworld.com/api/livestream-redirect/Los40.mp3'),
-    E('los40classic', 'LOS40 Classic', 'Rock y pop clásicos',                              'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_CLASSIC.mp3'),
-    E('los40urban',   'LOS40 Urban',   'Reggaetón, trap, hip-hop y música urbana',          'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_URBAN.mp3'),
-    E('los40dance',   'LOS40 Dance',   'Dance, house y electrónica comercial',              'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_DANCE.mp3'),
-    E('kissfm',       'KISS FM',       'Pop/rock de los 80, 90 y 2000',                     'https://kissfm.kissfmradio.cires21.com/kissfm.mp3'),
-    E('dial',         'Cadena Dial',   'Pop español',                                       'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL.mp3'),
-    E('cadena100',    'Cadena 100',    'Pop-rock y éxitos',                                 'https://cadena100-streamers-mp3.flumotion.com/cope/cadena100.mp3'),
-    E('rockfm',       'Rock FM',       'Rock clásico',                                      'https://flucast26-h-cloud.flumotion.com/cope/rockfm-low.mp3'),
-    E('radiole',      'Radiolé',       'Música española, copla, flamenco y rumba',          'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOLE.mp3'),
-
-    RF('mix',     'fip',              'FIP',                'Ecléctica: de todo, elegido a mano y sin anuncios'),
-    RP('mix',     'mp3-128',          'Radio Paradise',     'Mezcla ecléctica de rock, pop, electrónica y más, sin anuncios'),
-    RF('mix',     'fipnouveautes',    'FIP Nouveautés',     'Novedades musicales de todos los estilos'),
-    RF('pop',     'fippop',           'FIP Pop',            'Pop internacional, actual y clásico'),
-    RF('pop',     'fipsacrefrancais', 'FIP Sacré français', 'Pop y canción francesa'),
-    RF('rock',    'fiprock',          'FIP Rock',           'Rock clásico, indie y alternativo'),
-    RP('rock',    'rock-128',         'Radio Paradise Rock','Rock, del clásico al actual'),
-    RF('rock',    'fipmetal',         'FIP Metal',          'Metal en todas sus variantes'),
-    RF('electro', 'fipelectro',       'FIP Electro',        'Electrónica: house, techno, downtempo'),
-    RF('electro', 'fiphiphop',        'FIP Hip-Hop',        'Hip-hop y rap'),
-    RF('soul',    'fipgroove',        'FIP Groove',         'Soul, funk, disco y groove'),
-    RF('jazz',    'fipjazz',          'FIP Jazz',           'Jazz de todas las épocas'),
-    RF('world',   'fipworld',         'FIP Monde',          'Músicas del mundo: África, Latinoamérica, Brasil…'),
-    RF('world',   'fipreggae',        'FIP Reggae',         'Reggae, dub y ska'),
-    RP('chill',   'mellow-128',       'Radio Paradise Mellow', 'Canciones tranquilas, ideales de fondo'),
-    RF('chill',   'francemusiquepianozen', 'France Musique Piano Zen', 'Piano tranquilo y relajante'),
-    RF('classic', 'francemusiquebaroque',  'France Musique La Baroque', 'Música barroca: Bach, Vivaldi, Händel…'),
-    RF('classic', 'francemusiqueclassiquelove', 'France Musique Classique Love', 'Grandes obras clásicas románticas'),
+    E('los40',        'LOS40',         'Pop, hits actuales y clásicos',            'https://playerservices.streamtheworld.com/api/livestream-redirect/Los40.mp3'),
+    E('los40classic', 'LOS40 Classic', 'Rock y pop clásicos',                      'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_CLASSIC.mp3'),
+    E('los40urban',   'LOS40 Urban',   'Reggaetón, trap, hip-hop y música urbana',  'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_URBAN.mp3'),
+    E('los40dance',   'LOS40 Dance',   'Dance, house y electrónica comercial',      'https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_DANCE.mp3'),
+    E('kissfm',       'KISS FM',       'Pop/rock de los 80, 90 y 2000',             'https://kissfm.kissfmradio.cires21.com/kissfm.mp3'),
+    E('dial',         'Cadena Dial',   'Pop español',                               'https://playerservices.streamtheworld.com/api/livestream-redirect/CADENADIAL.mp3'),
+    E('cadena100',    'Cadena 100',    'Pop-rock y éxitos',                         'https://cadena100-streamers-mp3.flumotion.com/cope/cadena100.mp3'),
+    E('rockfm',       'Rock FM',       'Rock clásico',                              'https://flucast26-h-cloud.flumotion.com/cope/rockfm-low.mp3'),
+    E('radiole',      'Radiolé',       'Música española, copla, flamenco y rumba',  'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOLE.mp3'),
   ];
   window.RADIO_BUILTIN = BUILTIN;
   window.RADIO_GROUPS  = GROUPS;
@@ -74,7 +40,8 @@
     const hidden = new Set(typeof hiddenBuiltinStations !== 'undefined' ? hiddenBuiltinStations : []);
     const builtin = BUILTIN.filter(s => !hidden.has(s.id));
     const custom = (typeof customStations !== 'undefined' ? customStations : []).map(s => ({
-      id: 'custom_' + s.id, group: 'custom', flag: '📻', name: s.name, desc: 'Añadida por el admin', type: s.type || 'audio', url: s.url,
+      id: 'custom_' + s.id, group: 'custom', flag: '📻', name: s.name, type: s.type || 'audio', url: s.url,
+      desc: [s.style, s.comment].map(x => (x || '').trim()).filter(Boolean).join(' · ') || 'Emisora añadida',
     }));
     return builtin.concat(custom);
   }
@@ -88,18 +55,10 @@
     if (e) e.stopPropagation();
     favs = isFav(id) ? favs.filter(x => x !== id) : favs.concat(id);
     try { localStorage.setItem(LS_FAVS, JSON.stringify(favs)); } catch (err) {}
-    if (filter === 'fav' && !favs.length) filter = 'all';
     render();
   };
   window.radioToggleFavCurrent = function () { if (current) radioToggleFav(current); };
 
-  let filter = 'all'; // 'all' | 'fav' | clave de grupo
-  window.radioSetFilter = function (f) {
-    filter = f;
-    render();
-    const list = document.getElementById('radioList');
-    if (list) list.scrollTop = 0;
-  };
 
   let current = null;   // id de la emisora sonando/cargando, o null
   let status = 'idle';  // 'idle' | 'connecting' | 'playing' | 'paused' | 'error'
@@ -383,19 +342,7 @@
 
     const all = STATIONS_LIST();
 
-    // Filtros (chips): Todas · Favoritas · un chip por grupo que tenga emisoras
-    const chipsEl = $('radioChips');
     const favList = all.filter(x => isFav(x.id));
-    if (filter === 'fav' && !favList.length) filter = 'all';
-    if (filter !== 'all' && filter !== 'fav' && !all.some(x => x.group === filter)) filter = 'all';
-    if (chipsEl) {
-      const chip = (key, label) => `<button class="radio-chip${filter === key ? ' active' : ''}" onclick="radioSetFilter('${key}')">${label}</button>`;
-      chipsEl.innerHTML = chip('all', 'Todas')
-        + (favList.length ? chip('fav', '<span class="material-symbols-outlined radio-chip-star">star</span> Favoritas') : '')
-        + GROUPS.filter(g => all.some(x => x.group === g.key)).map(g => chip(g.key, esc(g.short))).join('');
-      const act = chipsEl.querySelector('.radio-chip.active');
-      if (act && act.scrollIntoView && chipsEl.dataset.last !== filter) { act.scrollIntoView({ block: 'nearest', inline: 'center' }); chipsEl.dataset.last = filter; }
-    }
 
     const card = s => {
       const active = current === s.id;
@@ -422,18 +369,9 @@
       ? `<div class="radio-section">${icon ? `<span class="material-symbols-outlined">${icon}</span>` : ''}${esc(title)}<span class="radio-section-count">${items.length}</span></div>` + items.map(card).join('')
       : '';
 
-    let html = '';
-    if (filter === 'all') {
-      // Favoritas arriba; el resto por grupos (sin repetir las favoritas)
-      html += section('Favoritas', favList, 'star');
-      GROUPS.forEach(g => { html += section(g.name, all.filter(x => x.group === g.key && !isFav(x.id))); });
-    } else if (filter === 'fav') {
-      html += section('Favoritas', favList, 'star');
-    } else {
-      const g = GROUPS.find(x => x.key === filter);
-      const items = all.filter(x => x.group === filter);
-      html += section(g ? g.name : '', items.filter(x => isFav(x.id)).concat(items.filter(x => !isFav(x.id))));
-    }
+    // Favoritas arriba; el resto por secciones (sin repetir las favoritas)
+    let html = section('Favoritas', favList, 'star');
+    GROUPS.forEach(g => { html += section(g.name, all.filter(x => x.group === g.key && !isFav(x.id))); });
     list.innerHTML = html || '<div class="radio-empty">No hay emisoras.</div>';
 
     // vinilo, aguja y "ahora suena"

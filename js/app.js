@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v64';
+const APP_VERSION = 'v65';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -152,6 +152,7 @@ let pedidosSearch = '';
 let pedidosEdit   = false;  // modo edición de la lista de pedidos
 let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
 let recipeThumbCol = false; // ¿existe la columna recipes.photo_thumb (miniatura para la lista)?
+let radioStyleCols = false; // ¿existen las columnas radio_stations.style y .comment?
 let recipeEditorUploads = []; // fotos subidas en esta sesión del editor (para limpiar las que no se usen)
 let isAdmin     = false;
 let currentPage = 'recipes';
@@ -234,7 +235,7 @@ async function loadData() {
       try { const r = await q; if (r.error) throw r.error; return r; }
       catch (e) { console.warn(label + ' no disponible (¿falta crear la tabla?):', e?.message || e); return null; }
     };
-    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes] = await Promise.all([
+    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes, styleRes] = await Promise.all([
       optional('important_dates',      sb.from('important_dates').select('*').order('event_date')),
       optional('radio_stations',       sb.from('radio_stations').select('*').order('sort_order')),
       optional('radio_hidden_builtin', sb.from('radio_hidden_builtin').select('*')),
@@ -243,6 +244,7 @@ async function loadData() {
       // ¿Están las columnas para editar la lista de pedidos (hidden/manual/display_name)?
       optional('order_items (columnas de edición)', sb.from('order_items').select('hidden,manual,display_name').limit(1)),
       optional('recipes.photo_thumb (miniaturas)', sb.from('recipes').select('photo_thumb').limit(1)),
+      optional('radio_stations.style/comment', sb.from('radio_stations').select('style,comment').limit(1)),
     ]);
     importantDates        = idRes ? (idRes.data || []) : [];
     customStations        = rsRes ? (rsRes.data || []) : [];
@@ -251,6 +253,7 @@ async function loadData() {
     orderItems            = oRes ? (oRes.data || []) : [];
     orderEditCols         = !!colsRes;
     recipeThumbCol        = !!thumbRes;
+    radioStyleCols        = !!styleRes;
     rebuildOrderState();
 
     await restoreAdminSession();
@@ -2095,7 +2098,7 @@ function renderRadioAdmin() {
       <div class="ficha-row">
         <div class="ficha-name" style="min-width:0;">
           <div style="font-weight:800;">${escapeHtml(s.name)}</div>
-          <div style="font-size:11.5px; color:var(--text2);">${s.flag || ''} ${escapeHtml(((window.RADIO_GROUPS || []).find(g => g.key === s.group) || {}).name || 'De serie')}</div>
+          <div style="font-size:11.5px; color:var(--text2);">${s.flag || ''} ${escapeHtml(s.desc || '')}</div>
         </div>
         <button class="btn-icon" onclick="radioAdminDeleteBuiltin('${s.id}')">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
@@ -2108,7 +2111,8 @@ function renderRadioAdmin() {
       <div class="ficha-row">
         <div class="ficha-name" style="min-width:0;">
           <div style="font-weight:800;">${escapeHtml(s.name)}</div>
-          <div style="font-size:11.5px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(s.url)}</div>
+          ${(s.style || s.comment) ? `<div style="font-size:12px; color:var(--text2);">${escapeHtml([s.style, s.comment].filter(Boolean).join(' · '))}</div>` : ''}
+          <div style="font-size:11px; color:var(--outline); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(s.url)}</div>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="btn-icon" onclick="radioAdminEdit('${s.id}')">
@@ -2134,6 +2138,9 @@ function renderRadioAdmin() {
       <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
         <div class="form-input ce-input" id="radioNameInput" contenteditable="true" data-placeholder="Nombre de la emisora..."></div>
         <div class="form-input ce-input" id="radioUrlInput" contenteditable="true" data-placeholder="Enlace directo (.mp3, .aac o .m3u8)..."></div>
+        <div class="form-input ce-input" id="radioStyleInput" contenteditable="true" data-placeholder="Estilo (ej. Rock, Jazz, Pop español)..."></div>
+        <div class="form-input ce-input" id="radioCommentInput" contenteditable="true" data-placeholder="Comentario breve (opcional)..."></div>
+        ${radioStyleCols ? '' : `<div style="font-size:12px; color:var(--danger);">Para guardar el estilo y el comentario falta crear sus columnas en Supabase (tabla radio_stations: <b>style</b> y <b>comment</b>).</div>`}
         <div style="display:flex; gap:8px;">
           <button class="btn-pill filled" id="radioSaveBtn" style="flex:1;" onclick="radioAdminSave()">
             <span class="material-symbols-outlined" style="font-size:16px;">${editing ? 'check' : 'add'}</span> ${editing ? 'Guardar cambios' : 'Añadir emisora'}
@@ -2146,8 +2153,10 @@ function renderRadioAdmin() {
   if (editing) {
     const st = customStations.find(s => s.id === radioEditingId);
     if (st) {
-      document.getElementById('radioNameInput').innerText = st.name;
-      document.getElementById('radioUrlInput').innerText  = st.url;
+      document.getElementById('radioNameInput').innerText    = st.name;
+      document.getElementById('radioUrlInput').innerText     = st.url;
+      document.getElementById('radioStyleInput').innerText   = st.style || '';
+      document.getElementById('radioCommentInput').innerText = st.comment || '';
     }
   }
 }
@@ -2178,10 +2187,14 @@ async function radioAdminSave() {
 
   const type = radioAdminStationType(url);
   const btn = document.getElementById('radioSaveBtn');
+  // Estilo y comentario (se ven debajo del nombre, como en las emisoras de serie)
+  const style   = (document.getElementById('radioStyleInput')?.innerText   || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+  const comment = (document.getElementById('radioCommentInput')?.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+  const extra = radioStyleCols ? { style: style || null, comment: comment || null } : {};
 
   if (radioEditingId) {
     const ok = await runWithLoading(btn, '', async () => {
-      const { data, error } = await sb.from('radio_stations').update({ name, url, type }).eq('id', radioEditingId).select();
+      const { data, error } = await sb.from('radio_stations').update({ name, url, type, ...extra }).eq('id', radioEditingId).select();
       if (error || !data || data.length === 0) {
         const effectiveError = error || new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
         if (!handleAuthError(effectiveError)) showToast('Error al guardar');
@@ -2190,11 +2203,11 @@ async function radioAdminSave() {
       return true;
     }).catch(() => false);
     if (!ok) return;
-    customStations = customStations.map(s => s.id === radioEditingId ? { ...s, name, url, type } : s);
+    customStations = customStations.map(s => s.id === radioEditingId ? { ...s, name, url, type, ...extra } : s);
     radioEditingId = null;
     showToast('Emisora actualizada ✓' + (upgraded ? ' · enlace cambiado a https://' : ''));
   } else {
-    const newStation = { id: Date.now().toString(), name, url, type, sort_order: customStations.length + 1 };
+    const newStation = { id: Date.now().toString(), name, url, type, ...extra, sort_order: customStations.length + 1 };
     const ok = await runWithLoading(btn, '', async () => {
       const { error } = await sb.from('radio_stations').insert(newStation);
       if (error) {
@@ -2208,7 +2221,7 @@ async function radioAdminSave() {
     showToast('Emisora añadida ✓' + (upgraded ? ' · enlace cambiado a https://' : ''));
   }
   renderAdmin();
-  if (currentPage === 'radio' && typeof renderRadio === 'function') renderRadio();
+  if (typeof renderRadio === 'function') renderRadio();
 }
 
 async function radioAdminDeleteBuiltin(id) {
@@ -2252,7 +2265,7 @@ async function radioAdminDelete(id) {
   if (!ok) return;
   showToast('Emisora eliminada');
   renderAdmin();
-  if (currentPage === 'radio' && typeof renderRadio === 'function') renderRadio();
+  if (typeof renderRadio === 'function') renderRadio();
 }
 
 async function resolveComment(id, btn) {
