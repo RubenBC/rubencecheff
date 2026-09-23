@@ -11,6 +11,13 @@ const sb = createClient(
 //   CONSTANTES
 // ═══════════════════════════════════════
 const APP_VERSION = 'v66';
+// ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
+// se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
+function versionMismatch() {
+  const src = document.querySelector('script[src*="js/app.js"]')?.getAttribute('src') || '';
+  const m = src.match(/[?&]v=(\d+)/);
+  return !!m && ('v' + m[1]) !== APP_VERSION;
+}
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -289,10 +296,19 @@ async function loadData() {
 
   } catch (err) {
     console.error('Error cargando datos:', err);
+    // Distinguir un fallo de conexión/base de datos de un fallo del propio
+    // código (p. ej. archivos de versiones distintas en GitHub), y enseñar
+    // el detalle para poder saber qué ha pasado.
+    const msg = String(err?.message || err || '');
+    const isDb = !!(err && (err.code || err.details || err.hint)) || /fetch|network|load failed|conex/i.test(msg);
+    const title = versionMismatch()
+      ? 'Hay archivos de versiones distintas. Sube a la vez index.html y js/app.js'
+      : (isDb ? 'Error al conectar con la base de datos' : 'Error al cargar la app');
     const errHtml = `
       <div class="empty-state">
-        <span class="material-symbols-outlined">wifi_off</span>
-        Error al conectar con la base de datos
+        <span class="material-symbols-outlined">${isDb ? 'wifi_off' : 'error'}</span>
+        ${escapeHtml(title)}
+        ${msg ? `<div style="font-size:11.5px; color:var(--text2); margin-top:8px; max-width:320px; word-break:break-word;">Detalle: ${escapeHtml(msg.slice(0, 200))}</div>` : ''}
         <button class="btn-pill filled" style="margin-top:14px;" onclick="loadData()">
           <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> Reintentar
         </button>
@@ -3620,6 +3636,7 @@ document.getElementById('searchInputWrap').appendChild(searchInput);
 
 const _vEl = document.getElementById('appVersion');
 if (_vEl) _vEl.textContent = APP_VERSION;
+if (versionMismatch()) setTimeout(() => showToast('Aviso: index.html y js/app.js son de versiones distintas. Súbelos los dos.'), 1500);
 renderRecipeSkeletons();
 loadData();
 
