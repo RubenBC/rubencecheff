@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v65';
+const APP_VERSION = 'v66';
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
@@ -77,8 +77,10 @@ function handleAuthError(error) {
   try { sb.auth.signOut(); } catch(e) {}
   document.getElementById('adminBtn').innerHTML =
     `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+  document.getElementById('adminBtn').classList.remove('admin-on');
   showToast('Tu sesión ha caducado. Inicia sesión de nuevo.');
-  setTimeout(() => toggleAdmin(), 600);
+  // Se reabre el login sin mover de pantalla (para no perder lo que estabas haciendo)
+  setTimeout(() => { toggleAdmin(); _openAdminAfterLogin = (currentPage === 'admin'); }, 600);
   return true;
 }
 
@@ -147,7 +149,8 @@ let customStations       = []; // emisoras de radio añadidas desde Admin (tabla
 let hiddenBuiltinStations = []; // ids de emisoras de serie que el admin ha borrado (tabla radio_hidden_builtin)
 let orderItems = [];        // filas de la tabla order_items (estado guardado)
 let orderState = {};        // key normalizada -> { name, supplier_group, checked, comment }
-let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos' | 'admin'
+let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos'
+let adminTab   = 'comments'; // pestaña del panel de admin: comments | events | prod | radio | photos
 let pedidosSearch = '';
 let pedidosEdit   = false;  // modo edición de la lista de pedidos
 let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
@@ -305,9 +308,8 @@ async function loadData() {
 //   NAVEGACIÓN
 // ═══════════════════════════════════════
 function showPage(page, btn, skipPush) {
-  // El panel Admin ya no es una pestaña del menú: vive dentro de Utilidades.
-  // Se mantiene esta redirección por si un estado guardado (recarga, historial) aún dice 'admin'.
-  if (page === 'admin') { utilTab = 'admin'; page = 'fichas'; btn = null; }
+  // El panel de admin es una página propia (botón Admin de arriba) y solo con sesión
+  if (page === 'admin' && !isAdmin) page = 'recipes';
   // Si la ventana de Radio está abierta, minimizarla a burbuja al cambiar de pestaña
   if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
   exitInnerView();
@@ -326,14 +328,15 @@ function showPage(page, btn, skipPush) {
 
   const isRecipes = page === 'recipes';
   const isProd    = page === 'productions';
-  // El buscador global siempre visible
-  document.getElementById('searchSection').style.display = '';
+  // El buscador global siempre visible (salvo en el panel de admin, donde no aplica)
+  document.getElementById('searchSection').style.display = page === 'admin' ? 'none' : '';
   document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
   document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
 
   if (isRecipes) renderRecipes();
   if (isProd)    renderProductions();
   if (page === 'fichas')    renderFichas();
+  if (page === 'admin')     renderAdmin();
 
   if (switchingPage) {
     const y = savedScroll[page] || 0;
@@ -1540,19 +1543,41 @@ async function sendComment() {
 // ═══════════════════════════════════════
 //   ADMIN / LOGIN
 // ═══════════════════════════════════════
+// Botón "Admin" de arriba: con sesión abre el panel de administración; sin
+// sesión pide la contraseña y, al entrar, abre el panel.
+let _openAdminAfterLogin = false;
+function openAdminPanel(tab) {
+  if (tab) adminTab = tab;
+  if (!isAdmin) { toggleAdmin(); return; }
+  if (currentPage === 'admin' && document.getElementById('adminPage').classList.contains('active')) { renderAdmin(); return; }
+  showPage('admin', null);
+  window.scrollTo(0, 0);
+}
+
+async function adminLogout() {
+  const ok = await showConfirm({
+    title: 'Cerrar sesión', message: '¿Salir del modo administrador?',
+    confirmText: 'Cerrar sesión', icon: 'logout',
+  });
+  if (!ok) return;
+  try { await sb.auth.signOut(); } catch(e) {}
+  isAdmin = false;
+  document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+  document.getElementById('adminBtn').classList.remove('admin-on');
+  document.getElementById('adminAddRecipeRow').style.display    = 'none';
+  document.getElementById('adminAddProductionRow').style.display = 'none';
+  document.getElementById('addWeightBtn').style.display = 'none';
+  document.getElementById('addBrineBtn').style.display  = 'none';
+  renderEventsButton();
+  showPage('recipes', document.getElementById('nav-recipes'));
+  showToast('Sesión cerrada');
+}
+
 async function toggleAdmin() {
   if (isAdmin) {
-    try { await sb.auth.signOut(); } catch(e) {}
-    isAdmin = false;
-    document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
-    document.getElementById('adminAddRecipeRow').style.display    = 'none';
-    document.getElementById('adminAddProductionRow').style.display = 'none';
-    document.getElementById('addWeightBtn').style.display = 'none';
-    document.getElementById('addBrineBtn').style.display  = 'none';
-    if (currentPage === 'fichas') renderFichas();
-    renderEventsButton();
-    showToast('Sesión cerrada');
+    openAdminPanel();
   } else {
+    _openAdminAfterLogin = true;
     // Crear modal dinámicamente — el campo password no existe en el DOM
     // hasta que se necesita, evitando que Android lo asocie con otros campos
     const existing = document.getElementById('loginModal');
@@ -1606,10 +1631,10 @@ async function doLogin() {
     closeLoginModal();
     activateAdminUI();
     showToast('Bienvenido, Chef 👨‍🍳');
+    renderEventsButton();
+    if (_openAdminAfterLogin) { _openAdminAfterLogin = false; openAdminPanel(); return; }
     if (currentRecipeId && document.getElementById('detailPage').classList.contains('active')) renderRecipeDetail();
     if (currentProdId   && document.getElementById('productionDetailPage').classList.contains('active')) renderProdDetail(currentPage);
-    if (currentPage === 'fichas' && utilTab === 'admin') renderAdmin();
-    renderEventsButton();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     if (err) { err.textContent = 'Contraseña incorrecta'; err.style.display = ''; }
@@ -1618,8 +1643,8 @@ async function doLogin() {
 
 function activateAdminUI() {
   document.getElementById('adminBtn').innerHTML =
-    `<span class="material-symbols-outlined" style="font-size:16px;">person</span> Chef
-     <span class="material-symbols-outlined" style="font-size:14px;">logout</span>`;
+    `<span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span> Admin`;
+  document.getElementById('adminBtn').classList.add('admin-on');
   if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
   if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
   if (currentPage === 'fichas') renderFichas();
@@ -1675,6 +1700,7 @@ function renderImportantDatesAdmin() {
   if (!el) return;
   if (!isAdmin) { el.innerHTML = ''; return; }
 
+  if (currentPage === 'admin') renderAdminTabs(); // número de pendientes en la pestaña
   const pending = importantDates.filter(d => d.status === 'pendiente')
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
   const today = new Date().toISOString().slice(0, 10);
@@ -1720,14 +1746,11 @@ function renderImportantDatesAdmin() {
         </button>`)).join('')}`;
 
   el.innerHTML = `
-    <div class="section-title" style="cursor:pointer; justify-content:space-between;" onclick="toggleImportantDatesSection()">
-      <span style="display:flex; align-items:center; gap:6px;">
-        <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
-        ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
-      </span>
-      <span class="material-symbols-outlined">${importantDatesExpanded ? 'expand_less' : 'expand_more'}</span>
+    <div class="section-title">
+      <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
+      ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
     </div>
-    ${importantDatesExpanded ? `
+    ${true ? `
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
         <button class="btn-pill" onclick="openImportCsvModal()">
           <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
@@ -1737,6 +1760,9 @@ function renderImportantDatesAdmin() {
           <input type="number" class="form-input" min="1" max="30" value="${eventsWindowDays}"
                  onchange="updateEventsWindowDays(this.value)" style="width:64px; padding:6px 8px;">
         </label>
+      </div>
+      <div class="section-title" style="margin-top:18px;">
+        <span class="material-symbols-outlined">pending_actions</span> Pendientes de aprobar
       </div>
       ${pendingHtml}
       ${activeHtml}
@@ -1912,8 +1938,44 @@ async function importCsvEvents(btn) {
   showToast('Eventos importados ✓');
 }
 
+// ─── Panel de administración: pestañas ─────────
+const ADMIN_TABS = [
+  { key: 'comments', label: 'Comentarios', icon: 'forum' },
+  { key: 'events',   label: 'Avisos',      icon: 'stadium' },
+  { key: 'prod',     label: 'Producción',  icon: 'label' },
+  { key: 'radio',    label: 'Radio',       icon: 'radio' },
+  { key: 'photos',   label: 'Fotos',       icon: 'photo_library' },
+];
+const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', prod: 'adminTabProd', radio: 'adminTabRadio', photos: 'adminTabPhotos' };
+
+function setAdminTab(tab) {
+  adminTab = tab;
+  renderAdmin();
+  window.scrollTo(0, 0);
+}
+
+function renderAdminTabs() {
+  const el = document.getElementById('adminTabs');
+  if (!el) return;
+  const counts = {
+    comments: comments.filter(c => !c.resolved).length,
+    events:   importantDates.filter(d => d.status === 'pendiente').length,
+    photos:   recipes.filter(recipeNeedsPhotoOptimize).length,
+  };
+  el.innerHTML = ADMIN_TABS.map(t => `
+    <button class="admin-tab${adminTab === t.key ? ' active' : ''}" role="tab" aria-selected="${adminTab === t.key}" onclick="setAdminTab('${t.key}')">
+      <span class="material-symbols-outlined">${t.icon}</span>${t.label}${counts[t.key] ? `<span class="admin-tab-badge">${counts[t.key]}</span>` : ''}
+    </button>`).join('');
+  const act = el.querySelector('.admin-tab.active');
+  if (act && act.scrollIntoView && el.dataset.last !== adminTab) { act.scrollIntoView({ block: 'nearest', inline: 'center' }); el.dataset.last = adminTab; }
+}
+
 function renderAdmin() {
-  renderImportantDatesAdmin();
+  if (!ADMIN_PANEL_IDS[adminTab]) adminTab = 'comments';
+  Object.entries(ADMIN_PANEL_IDS).forEach(([k, id]) => {
+    const p = document.getElementById(id);
+    if (p) p.style.display = (k === adminTab) ? '' : 'none';
+  });
   const pending  = comments.filter(c => !c.resolved);
   const resolved = comments.filter(c =>  c.resolved);
 
@@ -1923,17 +1985,26 @@ function renderAdmin() {
     <div class="stat-card"><span class="material-symbols-outlined">mark_chat_unread</span><div class="stat-card-num">${isAdmin ? pending.length : '—'}</div><div class="stat-card-lbl">Pendientes</div></div>`;
 
   if (!isAdmin) {
+    document.getElementById('adminTabs').innerHTML = '';
+    Object.values(ADMIN_PANEL_IDS).forEach(id => { const p = document.getElementById(id); if (p) p.style.display = 'none'; });
+    document.getElementById('adminTabComments').style.display = '';
     document.getElementById('pendingTitle').innerHTML = '';
     document.getElementById('commentsList').innerHTML = `
       <div class="card" style="text-align:center; padding:32px; color:var(--text2);">
         <span class="material-symbols-outlined" style="font-size:48px; color:var(--outline); display:block; margin-bottom:12px;">lock</span>
         <p style="font-weight:700;">Acceso restringido</p>
-        <p style="font-size:13px; margin-top:4px;">Inicia sesión como admin para ver los comentarios.</p>
+        <p style="font-size:13px; margin-top:4px;">Inicia sesión como admin para ver el panel.</p>
         <button class="btn-pill filled" style="margin-top:16px;" onclick="toggleAdmin()">Iniciar sesión</button>
       </div>`;
     document.getElementById('resolvedSection').innerHTML = '';
     return;
   }
+
+  renderAdminTabs();
+  if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
+  if (adminTab === 'prod')   { renderProdCategoriesAdmin(); return; }
+  if (adminTab === 'radio')  { renderRadioAdmin(); return; }
+  if (adminTab === 'photos') { renderPhotoAdmin(); return; }
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
@@ -1971,7 +2042,11 @@ function renderAdmin() {
         </button>
       </div>`).join('')}`;
 
-  // Categorías de producción
+}
+
+function renderProdCategoriesAdmin() {
+  const box = document.getElementById('adminTabProd');
+  if (!box) return;
   const catHtml = productionCategories.map(c => `
     <div class="ficha-row">
       <div class="ficha-name">${escapeHtml(c.name)}</div>
@@ -1985,8 +2060,8 @@ function renderAdmin() {
       </div>
     </div>`).join('');
 
-  document.getElementById('resolvedSection').innerHTML += `
-    <div class="section-title" style="margin-top:16px;">
+  box.innerHTML = `
+    <div class="section-title">
       <span class="material-symbols-outlined">label</span> Categorías de producción
     </div>
     <div class="card">
@@ -1998,9 +2073,6 @@ function renderAdmin() {
         </button>
       </div>
     </div>`;
-
-  renderRadioAdmin();
-  renderPhotoAdmin();
 }
 
 // ─── Fotos de platos (Admin): optimizar las ya subidas ─────────
@@ -2013,12 +2085,12 @@ function recipeNeedsPhotoOptimize(r) {
 }
 
 function renderPhotoAdmin() {
-  const box = document.getElementById('resolvedSection');
+  const box = document.getElementById('adminTabPhotos');
   if (!box) return;
   const pending = recipes.filter(recipeNeedsPhotoOptimize).length;
   const withPhoto = recipes.filter(r => r.photo).length;
-  box.innerHTML += `
-    <div class="section-title" style="margin-top:16px;">
+  box.innerHTML = `
+    <div class="section-title">
       <span class="material-symbols-outlined">photo_library</span> Fotos de platos
     </div>
     <div class="card">
@@ -2078,7 +2150,7 @@ async function optimizeRecipePhotos() {
   }
   _optimizingPhotos = false;
   showToast(`${done} foto(s) optimizada(s)` + (failed ? ` · ${failed} no se pudieron (p. ej. fotos de otras webs)` : ' ✓'));
-  if (currentPage === 'fichas' && utilTab === 'admin') renderAdmin();
+  if (currentPage === 'admin') renderAdmin();
 }
 
 // ─── Emisoras de radio (Admin) ─────────
@@ -2089,7 +2161,7 @@ function radioAdminStationType(url) {
 }
 
 function renderRadioAdmin() {
-  const box = document.getElementById('resolvedSection');
+  const box = document.getElementById('adminTabRadio');
   if (!box) return;
   const builtin = (window.RADIO_BUILTIN || []).filter(s => !hiddenBuiltinStations.includes(s.id));
   const builtinRowsHtml = builtin.length === 0
@@ -2125,8 +2197,8 @@ function renderRadioAdmin() {
       </div>`).join('');
 
   const editing = radioEditingId != null;
-  box.innerHTML += `
-    <div class="section-title" style="margin-top:16px;">
+  box.innerHTML = `
+    <div class="section-title">
       <span class="material-symbols-outlined">radio</span> Emisoras de radio
     </div>
     <div class="card">
@@ -2456,12 +2528,10 @@ async function openEventsModal() {
 
 function updateBadges() {
   const n = comments.filter(c => !c.resolved).length;
-  const nb = document.getElementById('navBadge');
-  const sb2 = document.getElementById('segAdminBadge');
   const tb = document.getElementById('commentBadgeTop');
-  if (sb2) { sb2.textContent = n; sb2.style.display = n > 0 ? '' : 'none'; }
-  if (n > 0) { nb.textContent = n; nb.style.display = ''; tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
-  else       { nb.style.display = 'none'; tb.style.display = 'none'; }
+  if (n > 0) { tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
+  else       { tb.style.display = 'none'; }
+  if (currentPage === 'admin') renderAdminTabs();
 }
 
 // ═══════════════════════════════════════
@@ -2478,17 +2548,14 @@ function renderFichas() {
   document.getElementById('seg-pesos').classList.toggle('active', utilTab === 'pesos');
   document.getElementById('seg-conv').classList.toggle('active', utilTab === 'conv');
   if (segPed) segPed.classList.toggle('active', utilTab === 'pedidos');
-  document.getElementById('seg-admin').classList.toggle('active', utilTab === 'admin');
 
   document.getElementById('utilPesos').style.display   = utilTab === 'pesos'   ? '' : 'none';
   document.getElementById('utilConv').style.display    = utilTab === 'conv'    ? '' : 'none';
   document.getElementById('utilPedidos').style.display = utilTab === 'pedidos' ? '' : 'none';
-  document.getElementById('utilAdmin').style.display   = utilTab === 'admin'   ? '' : 'none';
 
   if (utilTab === 'pesos')   renderPesos();
   if (utilTab === 'conv')    renderConvTab();
   if (utilTab === 'pedidos') renderPedidos();
-  if (utilTab === 'admin')   renderAdmin();
 }
 function setUtilTab(tab) { utilTab = tab; renderFichas(); }
 
@@ -3622,6 +3689,7 @@ async function refreshDataSilently() {
     if (active === 'recipesPage') renderRecipes();
     else if (active === 'productionsPage') renderProductions();
     else if (active === 'fichasPage') renderFichas();
+    else if (active === 'adminPage') renderAdmin();
     else if (active === 'detailPage' && recipes.some(r => r.id === currentRecipeId)) renderRecipeDetail();
     else if (active === 'productionDetailPage' && productions.some(p => p.id === currentProdId)) renderProdDetail(currentPage);
     renderEventsButton();
