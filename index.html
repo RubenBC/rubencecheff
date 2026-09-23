@@ -16,7 +16,7 @@
   <title>RubenceChef</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=65">
+  <link rel="stylesheet" href="css/styles.css?v=66">
 </head>
 <body>
 <script>
@@ -36,7 +36,7 @@
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <span id="commentBadgeTop" style="display:none;"></span>
+      <span id="commentBadgeTop" style="display:none; cursor:pointer;" onclick="openAdminPanel('comments')" title="Comentarios pendientes"></span>
       <button class="btn-pill ghost" id="eventsBtn" onclick="openEventsModal()" style="padding:7px 10px; display:none; position:relative;" aria-label="Días con más trabajo previstos">
         <span class="events-btn-label">Próximos eventos</span>
         <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
@@ -118,9 +118,6 @@
       </button>
       <button class="seg-btn" id="seg-pedidos" onclick="setUtilTab('pedidos')">
         <span class="material-symbols-outlined">shopping_cart</span> Pedidos
-      </button>
-      <button class="seg-btn" id="seg-admin" onclick="setUtilTab('admin')">
-        <span class="material-symbols-outlined">admin_panel_settings</span> Admin<span class="seg-badge" id="segAdminBadge" style="display:none;"></span>
       </button>
     </div>
 
@@ -205,14 +202,30 @@
     <!-- Sub: Pedidos -->
     <div id="utilPedidos" style="display:none;"></div>
 
-    <!-- Sub: Admin (antes era una pestaña propia del menú inferior) -->
-    <div id="utilAdmin" style="display:none;">
-      <div class="stats-grid" id="adminStats"></div>
-      <div id="importantDatesSection"></div>
+  </div>
+
+  <!-- PANEL DE ADMINISTRACIÓN (se abre con el botón Admin de arriba) -->
+  <div id="adminPage" class="page">
+    <div class="admin-head">
+      <h2><span class="material-symbols-outlined">admin_panel_settings</span> Administración</h2>
+      <button class="btn-pill admin-logout" onclick="adminLogout()">
+        <span class="material-symbols-outlined" style="font-size:16px;">logout</span> Cerrar sesión
+      </button>
+    </div>
+    <div class="stats-grid" id="adminStats"></div>
+    <div class="admin-tabs" id="adminTabs" role="tablist"></div>
+
+    <div class="admin-panel" id="adminTabComments">
       <div class="section-title" id="pendingTitle"></div>
       <div id="commentsList"></div>
       <div id="resolvedSection"></div>
     </div>
+    <div class="admin-panel" id="adminTabEvents" style="display:none;">
+      <div id="importantDatesSection"></div>
+    </div>
+    <div class="admin-panel" id="adminTabProd" style="display:none;"></div>
+    <div class="admin-panel" id="adminTabRadio" style="display:none;"></div>
+    <div class="admin-panel" id="adminTabPhotos" style="display:none;"></div>
   </div>
 
   <!-- REPRODUCTOR DE RADIO (ventana emergente) -->
@@ -290,7 +303,6 @@
   </button>
   <button class="nav-btn" id="nav-fichas" onclick="showPage('fichas',this)">
     <span class="material-symbols-outlined">handyman</span><span>Utilidades</span>
-    <span class="nav-badge" id="navBadge" style="display:none;"></span>
   </button>
   <button class="nav-btn" id="nav-timer" onclick="window.openTimerModal ? openTimerModal() : showToast('Falta subir js/timer.js')">
     <span class="material-symbols-outlined">notifications</span><span>Timer</span>
@@ -467,8 +479,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
-<script src="js/app.js?v=65"></script>
-<script src="js/timer.js?v=65"></script>
-<script src="js/radio.js?v=65"></script>
+<script src="js/app.js?v=66"></script>
+<script src="js/timer.js?v=66"></script>
+<script src="js/radio.js?v=66"></script>
 </body>
 </html>

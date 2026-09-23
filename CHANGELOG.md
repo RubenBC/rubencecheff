@@ -4,6 +4,17 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v66
+
+### Cambiado
+- **Panel de administración propio**: el botón "Admin" de arriba ya no cierra la sesión. Sin sesión pide la contraseña y, al entrar, abre el panel; con sesión lo abre directamente (el botón se ve resaltado).
+- **Organizado por pestañas**: Comentarios · Avisos · Producción · Radio · Fotos, cada una con lo suyo en vez de todo mezclado en una página. Las pestañas muestran en rojo lo pendiente (comentarios, avisos por aprobar, fotos sin optimizar). Los contadores de recetas, producciones y pendientes quedan arriba, visibles en todas.
+- **Botón "Cerrar sesión" dentro del panel** (pide confirmación y vuelve a Platos).
+- Utilidades pierde la pestaña Admin (Pesos · Conversión · Pedidos). El globo rojo de comentarios pendientes pasa al número rojo de arriba, que al tocarlo abre el panel en Comentarios.
+- Si la sesión caduca, se vuelve a pedir la contraseña sin sacarte de lo que estabas haciendo.
+
+---
+
 ## v65
 
 ### Cambiado
