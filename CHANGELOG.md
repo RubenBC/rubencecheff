@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v73
+
+### Añadido
+- **Control de volumen propio de la radio**, en la pestaña Radio, debajo de los botones. Sube o baja solo el sonido de la radio dentro de la app: no toca el volumen general del móvil ni el de otras aplicaciones (técnicamente no podría aunque quisiera; el navegador solo deja controlar el volumen de su propio sonido, nunca el del sistema). El icono cambia según el nivel y se puede tocar para silenciar y volver a poner el volumen de antes. Se recuerda entre sesiones.
+
+---
+
 ## v72
 
 ### Cambiado
