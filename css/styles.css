@@ -1114,3 +1114,37 @@ body.dark .radio-bubble-btn.stop { background: rgba(255,255,255,0.08); }
 .radio-preview-status { font-size: 12.5px; font-weight: 700; color: var(--text2); }
 .radio-preview-status.ok { color: var(--primary); }
 .radio-preview-status.error { color: var(--danger); }
+
+/* ═══════════════════════════════════════
+   v68 — Auditoría de interfaz
+═══════════════════════════════════════ */
+/* Modo oscuro: los globos rojos llevaban texto blanco sobre rosa claro (casi ilegible) */
+body.dark .badge, body.dark .nav-badge, body.dark .seg-badge, body.dark .admin-tab-badge,
+body.dark .radio-card.error .radio-card-badge { color: #690005; }
+/* Tarjetas de platos sin foto: hueco más bajo (antes 200 px vacíos por plato) */
+.recipe-card-img-placeholder { height: 96px; }
+.recipe-card-img-placeholder .material-symbols-outlined { font-size: 36px; }
+/* Conversión: los tipos se reparten en varias líneas en vez de quedar cortados a la derecha */
+#convTypeChips { flex-wrap: wrap; overflow-x: visible; }
+/* Pedidos: botón Enviar apagado mientras no haya nada marcado (sigue avisando al tocarlo) */
+#pedSendBtn.is-empty { opacity: 0.45; box-shadow: none; }
+/* Zonas táctiles más grandes (con manos mojadas o con guantes en cocina):
+   los iconos de editar/borrar medían ~26 px y estaban muy juntos */
+.btn-icon { min-width: 38px; min-height: 38px; justify-content: center; border-radius: 50%; }
+.modal-close { min-width: 40px; min-height: 40px; }
+.order-check { padding: 6px; margin: -6px; }
+
+/* ═══════════════════════════════════════
+   v70 — La Radio es una pestaña más (página normal, no ventana emergente).
+   La página hace scroll como Platos o Producción, y el menú inferior se ve siempre.
+═══════════════════════════════════════ */
+.radio-page-title { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.radio-page-title .material-symbols-outlined { color: var(--primary); }
+#radioPage .radio-body { flex: none; min-height: 0; gap: 14px; }
+#radioPage .radio-browser { flex: none; min-height: 0; }
+#radioPage .radio-list { flex: none; overflow: visible; padding-bottom: 12px; }
+@media (orientation: landscape) and (min-width: 640px) {
+  #radioPage .radio-body { flex-direction: row; align-items: flex-start; }
+  #radioPage .radio-player { flex: 0 0 300px; position: sticky; top: 90px; }
+  #radioPage .radio-browser { flex: 1; min-width: 0; }
+}
