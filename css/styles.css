@@ -1148,3 +1148,8 @@ body.dark .radio-card.error .radio-card-badge { color: #690005; }
   #radioPage .radio-player { flex: 0 0 300px; position: sticky; top: 90px; }
   #radioPage .radio-browser { flex: 1; min-width: 0; }
 }
+
+/* v72 — El timer se comporta como una pestaña: su panel queda encima del menú
+   inferior, que sigue visible y se puede tocar para cambiar de pestaña */
+#timerModal { bottom: var(--nav-h, 0px); }
+#timerModal .timer-sheet { padding-bottom: 12px; max-height: calc(100vh - var(--nav-h, 0px) - 40px); max-height: calc(100dvh - var(--nav-h, 0px) - 40px); overflow-y: auto; }
