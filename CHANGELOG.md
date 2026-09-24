@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v74
+
+### Añadido
+- **Flecha "Volver" siempre a mano** en el detalle de un plato o de una producción: al bajar por la página, cuando la flecha de arriba deja de verse, aparece una pequeña flecha redonda bajo la barra superior que hace lo mismo. Al volver arriba desaparece. El resto de la página no cambia.
+
+---
+
 ## v73
 
 ### Añadido
