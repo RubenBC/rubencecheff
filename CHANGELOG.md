@@ -4,6 +4,53 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v70
+
+### Cambiado
+- **La Radio es una pestaña más**, como Platos o Producción: al tocarla ya no sube una ventana, sino que se abre como las demás, con el menú inferior siempre visible para cambiar rápido de pestaña. Arriba el reproductor (vinilo, emisora y controles) y debajo la lista, que se desplaza como cualquier página.
+- **Burbuja**: si sales de la pestaña Radio mientras suena, la burbuja aparece en las demás pestañas con sus controles; al tocarla vuelves a la Radio. En la propia pestaña Radio no aparece.
+- El botón atrás funciona con la Radio igual que con el resto de pestañas.
+
+---
+
+## v69 — Tercera auditoría
+
+### Corregido
+- **Pedidos**: un artículo con apóstrofo en el nombre ("Aceite d'oliva") no se podía marcar, renombrar, mover de grupo ni borrar (el botón no hacía nada).
+- **Recetas y producciones** guardaban las filas vacías del editor (ingrediente sin nombre, paso sin texto), que luego salían como huecos. Ahora se descartan al guardar.
+- **Diálogos de confirmación**: un nombre con "<" o "&" (p. ej. "M&M") se mostraba roto. Ahora se muestra tal cual.
+- **Pesos y salmueras**: lo que añadías se quedaba al final de la lista; ahora se mantienen en orden alfabético.
+- **Días de antelación** (Avisos): se podía escribir 50 y se guardaba 30 sin que se viera; ahora la casilla muestra el valor real y confirma el guardado.
+- **Modo oscuro**: al abrir la app se veía un destello blanco antes de ponerse oscura.
+
+### Mejorado
+- **Importar CSV**: acepta campos entre comillas, fechas DD/MM/AAAA y categorías escritas de otra forma ("Fútbol", "CONCIERTO", "partido"); descarta y avisa de las filas con fecha ya pasada.
+- **Pedidos**: añadir un artículo que ya está en la lista avisa en vez de duplicarlo en silencio.
+- **Botones de editar/borrar más grandes** (de ~26 a 38 px) y más separados, para tocarlos bien con las manos mojadas o con guantes.
+
+---
+
+## v68 — Segunda auditoría
+
+### Corregido
+- **Renombrar una categoría de producción** solo cambiaba el nombre en pantalla: las producciones seguían guardadas con el nombre antiguo y al recargar quedaban en una categoría que ya no existía. Ahora se guarda también en ellas.
+- **Borrar una producción** dejaba sus vínculos con platos: la tarjeta del plato seguía diciendo "1 producción" y al volver a vincular fallaba el guardado. Ahora se borran también los vínculos (y lo mismo al borrar un plato).
+- **Borrar una categoría** que usan producciones ahora avisa de cuántas se quedarán sin categoría.
+- **Avisos (Admin)**: "hoy" se calculaba en hora UTC; entre las 00:00 y las 02:00 aparecían como activos los eventos del día anterior.
+- **Modo oscuro**: los números rojos (comentarios, pestañas) tenían texto blanco sobre rosa claro y casi no se leían.
+- **Conversión**: el cuarto tipo de conversión quedaba cortado a la derecha en móviles estrechos; ahora los tipos bajan de línea.
+- El cierre automático de un comentario enviado podía cerrar otro comentario abierto justo después.
+
+### Mejorado
+- **Cantidades con coma decimal** ("1,8 kg" en vez de "1.8 kg"), como se escriben en España.
+- **Platos sin foto**: en la lista el hueco vacío pasa de 200 a 96 px (caben más platos en pantalla) y en el detalle ya no se muestra.
+- **Ventana de eventos** sin eventos: muestra "No hay días con más trabajo previstos" en vez de quedarse en blanco.
+- **Comentario vacío**: avisa en vez de no hacer nada.
+- **El número rojo de comentarios de arriba** solo lo ve el admin (al resto no le servía de nada).
+- **Pedidos**: el botón "Enviar pedido" se ve apagado mientras no hay nada marcado.
+
+---
+
 ## v67
 
 ### Añadido
