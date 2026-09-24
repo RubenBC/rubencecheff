@@ -1168,3 +1168,17 @@ body.dark .radio-card.error .radio-card-badge { color: #690005; }
    inferior, que sigue visible y se puede tocar para cambiar de pestaña */
 #timerModal { bottom: var(--nav-h, 0px); }
 #timerModal .timer-sheet { padding-bottom: 12px; max-height: calc(100vh - var(--nav-h, 0px) - 40px); max-height: calc(100dvh - var(--nav-h, 0px) - 40px); overflow-y: auto; }
+
+/* v74 — Flecha "Volver" flotante en el detalle de platos y producciones:
+   solo aparece cuando la de arriba ya no se ve al bajar por la página */
+.float-back-btn {
+  position: fixed; left: 12px; z-index: 90;
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--outline-light);
+  background: rgba(255,255,255,0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--primary); display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .18s, transform .18s;
+}
+.float-back-btn.show { opacity: 1; transform: none; pointer-events: auto; }
+.float-back-btn .material-symbols-outlined { font-size: 22px; }
+body.dark .float-back-btn { background: rgba(26,35,34,0.88); }
