@@ -68,6 +68,37 @@
   const LIVE_RESYNC_MS = 20000;
 
   const $ = id => document.getElementById(id);
+
+  /* ───────── volumen (solo de la radio, no del sistema) ─────────
+     audio.volume es un control del propio elemento <audio>: ajusta qué
+     fracción del volumen del dispositivo usa este sonido en concreto, sin
+     tocar el volumen general de Windows/Android ni el de otras apps. */
+  const LS_VOL = 'rubencechef-radio-volume';
+  let volume = 100;       // 0-100, lo que se ve en el slider
+  let volBeforeMute = 100; // para restaurar al quitar el silencio
+  try { const v = parseInt(localStorage.getItem(LS_VOL), 10); if (Number.isFinite(v) && v >= 0 && v <= 100) volume = v; } catch (e) {}
+  if (volume > 0) volBeforeMute = volume;
+
+  function applyVolume() {
+    const a = $('radioAudio');
+    if (a) a.volume = volume / 100;
+    const slider = $('radioVolSlider'), pct = $('radioVolPct'), icon = $('radioVolIcon'), btn = $('radioVolBtn');
+    if (slider) { slider.value = volume; slider.style.setProperty('--val', volume + '%'); }
+    if (pct) pct.textContent = volume + '%';
+    if (icon) icon.textContent = volume === 0 ? 'volume_off' : volume < 50 ? 'volume_down' : 'volume_up';
+    if (btn) btn.setAttribute('aria-label', volume === 0 ? 'Quitar silencio' : 'Silenciar');
+  }
+
+  window.radioSetVolume = function (v) {
+    volume = Math.max(0, Math.min(100, parseInt(v, 10) || 0));
+    if (volume > 0) volBeforeMute = volume;
+    try { localStorage.setItem(LS_VOL, String(volume)); } catch (e) {}
+    applyVolume();
+  };
+
+  window.radioToggleMute = function () {
+    radioSetVolume(volume > 0 ? 0 : volBeforeMute);
+  };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const audio = () => $('radioAudio');
 
@@ -139,6 +170,7 @@
     renderRadio();
 
     const a = audio();
+    applyVolume(); // por si el <audio> se ha vuelto a crear o venía de una prueba en Admin
     a.onerror = () => { if (current === id) { status = 'error'; renderRadio(); } };
     a.onwaiting = () => { if (current === id && status === 'playing') { status = 'connecting'; renderRadio(); } };
     a.onplaying = () => { if (current === id) { status = 'playing'; renderRadio(); } };
@@ -315,6 +347,7 @@
   };
 
   function render() {
+    applyVolume(); // refleja el volumen guardado en el deslizador cada vez que se pinta la pestaña
     const list = $('radioList');
     if (!list) return;
     const st = currentStation();
