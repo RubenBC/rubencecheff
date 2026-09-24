@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v71
+
+### Añadido
+- **Recetario completo en PDF** (Admin → Fotos → "Recetario en PDF"): portada, índice con número de página y cada plato y producción en su propia página con foto, categoría, raciones, alérgenos, ingredientes con cantidades, producciones vinculadas, elaboración y montaje. Las fotos se reducen al vuelo para que el archivo no pese demasiado. Al terminar, el botón "Guardar / compartir" lo descarga o lo manda por WhatsApp, correo, Drive…
+
+### Mejorado
+- Orden natural en las listas: "Plato 2" va antes que "Plato 10" (antes salía detrás).
+
+---
+
 ## v70
 
 ### Cambiado
