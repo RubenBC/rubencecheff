@@ -951,6 +951,21 @@ body.dark .radio-ctrl-main { color: #002020; box-shadow: 0 8px 20px rgba(0,0,0,0
 #radioFavBtn.on { color: #F5B301; border-color: #F5B301; }
 #radioFavBtn.on .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
 
+/* Volumen: solo de la radio dentro de la app (no toca el del sistema) */
+.radio-volume { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 300px; margin: 14px auto 0; }
+.radio-vol-btn { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: none; background: none; color: var(--text2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.radio-vol-btn .material-symbols-outlined { font-size: 21px; }
+.radio-vol-slider {
+  flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--val, 100%), var(--outline-light) var(--val, 100%), var(--outline-light) 100%);
+  cursor: pointer; touch-action: pan-y;
+}
+.radio-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer; }
+.radio-vol-slider::-moz-range-thumb { width: 17px; height: 17px; border: none; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer; }
+.radio-vol-slider::-moz-range-progress { background: var(--primary); height: 4px; border-radius: 2px; }
+.radio-vol-slider::-moz-range-track { background: var(--outline-light); height: 4px; border-radius: 2px; }
+.radio-vol-pct { flex-shrink: 0; width: 36px; text-align: right; font-size: 11.5px; font-weight: 700; color: var(--text2); font-variant-numeric: tabular-nums; }
+
 /* ── Lista de emisoras ── */
 .radio-browser { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; min-width: 0; }
 .radio-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; padding: 0 2px 8px; }
