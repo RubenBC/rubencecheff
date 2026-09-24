@@ -330,6 +330,37 @@
   }
 
   /* ───────── acciones (llamadas desde el HTML) ───────── */
+  // El timer se comporta como una pestaña más: su panel se abre por encima de
+  // la página pero SIN tapar el menú inferior, y el icono Timer queda marcado.
+  // Tocar otra pestaña del menú lo cierra (salvo si está sonando).
+  function setTimerNavActive(on) {
+    const tBtn = document.getElementById('nav-timer');
+    if (!tBtn) return;
+    if (on) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      tBtn.classList.add('active');
+    } else {
+      tBtn.classList.remove('active');
+      const pg = (typeof currentPage !== 'undefined') ? currentPage : 'recipes';
+      document.getElementById('nav-' + pg)?.classList.add('active');
+    }
+  }
+  window.timerNavRestore = function () { setTimerNavActive(false); };
+
+  // Altura del menú inferior → variable CSS, para que el panel del timer se
+  // quede justo encima y el menú siga visible y se pueda tocar. En pantallas
+  // anchas donde el menú no va abajo, el panel llega hasta el borde.
+  function measureNav() {
+    const nav = document.getElementById('mainNav');
+    if (!nav) return;
+    const r = nav.getBoundingClientRect();
+    const atBottom = r.height > 0 && r.bottom >= window.innerHeight - 2;
+    document.documentElement.style.setProperty('--nav-h', atBottom ? Math.round(window.innerHeight - r.top) + 'px' : '0px');
+  }
+  window.addEventListener('resize', measureNav);
+  window.addEventListener('orientationchange', () => setTimeout(measureNav, 250));
+  setTimeout(measureNav, 0);
+
   window.openTimerModal = function () {
     if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
     ensureAudio(); // este toque desbloquea el audio para cuando suene
@@ -338,12 +369,24 @@
       if (!anyRinging()) tab = runs.length ? 'list' : 'timer';
       openModalNav('timerModal');
     }
+    setTimerNavActive(true);
     render();
   };
 
   window.closeTimerModal = function () {
     if (anyRinging()) return; // sonando solo se cierra con "Detener"
     closeModal('timerModal');
+    setTimerNavActive(false);
+  };
+
+  // Al tocar otra pestaña del menú: cerrar el panel sin tocar el historial
+  // (la navegación que viene detrás sustituye su entrada)
+  window.timerCloseForNav = function () {
+    const m = $('timerModal');
+    if (!m || m.style.display !== 'flex' || anyRinging()) return;
+    m.style.display = 'none';
+    delete m.dataset.nav;
+    document.getElementById('nav-timer')?.classList.remove('active');
   };
 
   window.setTimerTab = function (t) { tab = t; render(); };

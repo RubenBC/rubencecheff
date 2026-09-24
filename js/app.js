@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v71';
+const APP_VERSION = 'v72';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -330,6 +330,7 @@ function showPage(page, btn, skipPush) {
   // Si la ventana de Radio está abierta, minimizarla a burbuja al cambiar de pestaña
   if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
   if (typeof radioPreviewStop === 'function') radioPreviewStop(); // no dejar sonando una prueba de emisora al salir de Admin
+  if (typeof timerCloseForNav === 'function') timerCloseForNav(); // el panel del timer se cierra al cambiar de pestaña
   exitInnerView();
   hideSearchDropdown();
   const switchingPage = page !== currentPage;
@@ -4208,6 +4209,7 @@ window.addEventListener('popstate', (e) => {
     if (openModal.dataset.nav === '1') {
       openModal.style.display = 'none';
       delete openModal.dataset.nav;
+      if (openModal.id === 'timerModal' && typeof timerNavRestore === 'function') timerNavRestore();
       return;
     }
     // Modales dinámicos (login, confirmación) sin entrada propia: el "atrás"
