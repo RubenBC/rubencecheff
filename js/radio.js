@@ -63,7 +63,6 @@
   let current = null;   // id de la emisora sonando/cargando, o null
   let status = 'idle';  // 'idle' | 'connecting' | 'playing' | 'paused' | 'error'
   let hls = null;
-  let minimized = false; // ventana minimizada a burbuja
   let pausedAt = 0;      // cuándo se pausó (para volver al directo si la pausa fue larga)
   let alarmPaused = false; // la pausó una alarma/timer: se reanuda sola al detenerla
   const LIVE_RESYNC_MS = 20000;
@@ -176,42 +175,23 @@
 
   function currentStation() { return current ? STATIONS_LIST().find(s => s.id === current) : null; }
 
-  /* ───────── abrir / minimizar / cerrar la ventana ───────── */
+  /* ───────── pestaña Radio y burbuja ─────────
+     La radio es una pestaña más del menú inferior. Si sale de ella mientras
+     suena, aparece la burbuja con sus controles en las demás pestañas. */
+  const onRadioPage = () => !!$('radioPage') && $('radioPage').classList.contains('active');
+
+  // Compatibilidad: todo lo que antes "abría la ventana" ahora va a la pestaña
   window.openRadioModal = function () {
-    const m = $('radioModal');
-    hideBubble();
-    minimized = false;
-    if (m.style.display !== 'flex') openModalNav('radioModal');
-    render();
+    if (typeof showPage === 'function') showPage('radio', document.getElementById('nav-radio'));
+    else render();
   };
-
-  // Minimiza si la ventana está abierta; no hace nada si ya estaba cerrada o
-  // ya minimizada. La llaman showPage() y openTimerModal() al cambiar de pestaña.
-  window.radioMinimizeIfOpen = function () {
-    const m = $('radioModal');
-    if (m && m.style.display === 'flex') radioMinimize({ keepHistory: true });
-  };
-
-  // opts.fromBack: el "atrás" ya consumió su entrada del historial.
-  // opts.keepHistory: se minimiza porque se navega a otra parte; la siguiente
-  //   navegación sustituye esa entrada (ver envoltorio de pushState en app.js).
-  // Sin opciones (botón minimizar / tocar fuera): se retira su entrada.
-  window.radioMinimize = function (opts) {
-    opts = (opts && typeof opts === 'object' && !(opts instanceof Event)) ? opts : {};
-    const m = $('radioModal');
-    const wasOpen = m && m.style.display === 'flex';
-    if (m) { m.style.display = 'none'; delete m.dataset.nav; }
-    minimized = true;
-    if (current) showBubble(); else hideBubble();
-    if (wasOpen && !opts.fromBack && !opts.keepHistory && typeof popOwnModalEntry === 'function') popOwnModalEntry('radioModal');
-  };
+  // Ya no hay ventana que minimizar: quedan como no-op por compatibilidad
+  window.radioMinimizeIfOpen = function () {};
+  window.radioMinimize = function () { render(); };
 
   window.radioBubbleClick = function (e) {
     if (bubbleDragged) { bubbleDragged = false; return; } // fue un arrastre, no un toque
-    minimized = false;
-    hideBubble();
-    openModalNav('radioModal');
-    render();
+    openRadioModal();
   };
 
   window.radioBubbleStop = function (e) {
@@ -411,7 +391,8 @@
     }
 
     // burbuja (si está minimizada y hay algo sonando/cargando)
-    if (minimized && current) { showBubble(); } else if (minimized && !current) { hideBubble(); }
+    // burbuja: solo fuera de la pestaña Radio y si hay algo puesto
+    if (current && !onRadioPage()) showBubble(); else hideBubble();
     renderBubble();
 
     // icono del menú inferior: puntito si suena algo aunque la ventana esté minimizada

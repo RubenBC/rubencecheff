@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v67';
+const APP_VERSION = 'v70';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -85,6 +85,7 @@ function handleAuthError(error) {
   document.getElementById('adminBtn').innerHTML =
     `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
   document.getElementById('adminBtn').classList.remove('admin-on');
+  updateBadges();
   showToast('Tu sesión ha caducado. Inicia sesión de nuevo.');
   // Se reabre el login sin mover de pantalla (para no perder lo que estabas haciendo)
   setTimeout(() => { toggleAdmin(); _openAdminAfterLogin = (currentPage === 'admin'); }, 600);
@@ -345,8 +346,8 @@ function showPage(page, btn, skipPush) {
 
   const isRecipes = page === 'recipes';
   const isProd    = page === 'productions';
-  // El buscador global siempre visible (salvo en el panel de admin, donde no aplica)
-  document.getElementById('searchSection').style.display = page === 'admin' ? 'none' : '';
+  // El buscador global siempre visible (salvo en admin y radio, donde no aplica)
+  document.getElementById('searchSection').style.display = (page === 'admin' || page === 'radio') ? 'none' : '';
   document.getElementById('adminAddRecipeRow').style.display    = (isRecipes && isAdmin) ? '' : 'none';
   document.getElementById('adminAddProductionRow').style.display = (isProd    && isAdmin) ? '' : 'none';
 
@@ -354,6 +355,8 @@ function showPage(page, btn, skipPush) {
   if (isProd)    renderProductions();
   if (page === 'fichas')    renderFichas();
   if (page === 'admin')     renderAdmin();
+  // Radio: pinta la pestaña, y en las demás muestra u oculta la burbuja
+  if (typeof renderRadio === 'function') renderRadio();
 
   if (switchingPage) {
     const y = savedScroll[page] || 0;
@@ -515,7 +518,10 @@ function formatAmount(amount) {
   };
   if (Number.isInteger(num)) return num;
   const rounded = parseFloat(num.toFixed(3));
-  return fractions[rounded] !== undefined ? fractions[rounded] : parseFloat(num.toFixed(2));
+  if (fractions[rounded] !== undefined) return fractions[rounded];
+  // Decimales con coma, como se escriben en España ("1,8 kg" y no "1.8 kg",
+  // que en cocina se puede leer como mil ochocientos)
+  return parseFloat(num.toFixed(2)).toLocaleString('es-ES', { maximumFractionDigits: 2 });
 }
 
 // ═══════════════════════════════════════
@@ -557,7 +563,7 @@ function renderRecipes() {
   }
 
   list.innerHTML = filtered.map(r => {
-    const numProds = recipeProductions.filter(rp => rp.recipe_id === r.id).length;
+    const numProds = recipeProductions.filter(rp => rp.recipe_id === r.id && productions.some(p => p.id === rp.production_id)).length;
     return `
     <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
       ${r.photo
@@ -634,7 +640,7 @@ function renderRecipeDetail() {
 
   const photoHtml = r.photo
     ? `<img class="detail-img" src="${escapeAttr(r.photo)}" alt="Foto del plato" data-src="${escapeAttr(r.photo)}" loading="lazy" onload="this.classList.add('loaded')" onclick="openLightbox(this.dataset.src)" style="cursor:zoom-in;">`
-    : `<div class="detail-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`;
+    : ''; // sin foto: sin hueco vacío, el contenido sube
 
   const adminBtns = isAdmin ? `
     <button class="btn-pill" onclick="openEditRecipe()">
@@ -974,6 +980,10 @@ async function handleRecipePhoto(event) {
 async function saveRecipe() {
   recipeEditorData.name = (recipeEditorData.name || '').trim();
   if (!recipeEditorData.name) { showToast('El nombre es obligatorio'); return; }
+  // Filas vacías (ingrediente sin nombre, paso sin texto) no se guardan: antes
+  // aparecían luego como huecos en la receta
+  recipeEditorData.ingredients = (recipeEditorData.ingredients || []).filter(i => (i.name || '').trim());
+  recipeEditorData.steps       = (recipeEditorData.steps || []).map(x => (x || '').trim()).filter(Boolean);
   const btn = document.getElementById('saveRecipeBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('recipes').upsert(recipeEditorData);
@@ -1023,6 +1033,8 @@ async function deleteRecipe(id) {
       if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       const gone = recipes.find(r => r.id === id);
       recipes = recipes.filter(r => r.id !== id);
+      await sb.from('recipe_productions').delete().eq('recipe_id', id);
+      recipeProductions = recipeProductions.filter(rp => rp.recipe_id !== id);
       if (gone) cleanupRecipePhotos([photoPathFromUrl(gone.photo), photoPathFromUrl(gone.photo_thumb)]);
     },
   });
@@ -1039,7 +1051,8 @@ function openLinkModal(recipeId) {
   linkingRecipeId = recipeId;
   document.querySelector('#linkModal .modal-title').textContent = 'Vincular producciones';
   document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
-  selectedProdIds = recipeProductions.filter(rp => rp.recipe_id === recipeId).map(rp => rp.production_id);
+  selectedProdIds = recipeProductions.filter(rp => rp.recipe_id === recipeId).map(rp => rp.production_id)
+    .filter(pid => productions.some(p => p.id === pid)); // ignorar vínculos a producciones borradas
   const sortedProds = [...productions].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
   document.getElementById('linkProductionList').innerHTML = sortedProds.length === 0
     ? '<p style="color:var(--text2); font-size:13px;">No hay producciones creadas aún.</p>'
@@ -1468,6 +1481,8 @@ function renderProdEditor() {
 async function saveProduction() {
   prodEditorData.name = (prodEditorData.name || '').trim();
   if (!prodEditorData.name) { showToast('El nombre es obligatorio'); return; }
+  prodEditorData.ingredients = (prodEditorData.ingredients || []).filter(i => (i.name || '').trim());
+  prodEditorData.steps       = (prodEditorData.steps || []).map(x => (x || '').trim()).filter(Boolean);
   const btn = document.getElementById('saveProdBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('productions').upsert(prodEditorData);
@@ -1511,6 +1526,10 @@ async function deleteProduction(id) {
       if (error) throw error;
       if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
       productions = productions.filter(p => p.id !== id);
+      // Vínculos con platos: si no se quitan, los platos seguían contando esa
+      // producción y al volver a vincular fallaba el guardado.
+      await sb.from('recipe_productions').delete().eq('production_id', id);
+      recipeProductions = recipeProductions.filter(rp => rp.production_id !== id);
     },
   });
   if (!ok) return;
@@ -1523,6 +1542,7 @@ async function deleteProduction(id) {
 //   COMENTARIOS
 // ═══════════════════════════════════════
 function openCommentModal(name, section, id) {
+  clearTimeout(_commentCloseTimer); _commentCloseTimer = null; // no cerrar este por el temporizador del anterior
   commentContext = { name, section, id };
   document.getElementById('commentSectionName').textContent = name;
   document.getElementById('commentInput').value = '';
@@ -1531,9 +1551,10 @@ function openCommentModal(name, section, id) {
   openModalNav('commentModal');
 }
 
+let _commentCloseTimer = null;
 async function sendComment() {
   const text = document.getElementById('commentInput').value.trim();
-  if (!text) return;
+  if (!text) { showToast('Escribe el comentario antes de enviarlo'); document.getElementById('commentInput').focus(); return; }
   const newComment = {
     id:           Date.now().toString(),
     section:      commentContext.section,
@@ -1554,7 +1575,8 @@ async function sendComment() {
   updateBadges();
   document.getElementById('commentFormArea').style.display = 'none';
   document.getElementById('commentSuccess').style.display  = '';
-  setTimeout(() => closeModal('commentModal'), 2200);
+  clearTimeout(_commentCloseTimer);
+  _commentCloseTimer = setTimeout(() => { _commentCloseTimer = null; closeModal('commentModal'); }, 2200);
 }
 
 // ═══════════════════════════════════════
@@ -1582,6 +1604,7 @@ async function adminLogout() {
   isAdmin = false;
   document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
   document.getElementById('adminBtn').classList.remove('admin-on');
+  updateBadges();
   document.getElementById('adminAddRecipeRow').style.display    = 'none';
   document.getElementById('adminAddProductionRow').style.display = 'none';
   document.getElementById('addWeightBtn').style.display = 'none';
@@ -1663,6 +1686,7 @@ function activateAdminUI() {
   document.getElementById('adminBtn').innerHTML =
     `<span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span> Admin`;
   document.getElementById('adminBtn').classList.add('admin-on');
+  updateBadges();
   if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
   if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
   if (currentPage === 'fichas') renderFichas();
@@ -1721,7 +1745,8 @@ function renderImportantDatesAdmin() {
   if (currentPage === 'admin') renderAdminTabs(); // número de pendientes en la pestaña
   const pending = importantDates.filter(d => d.status === 'pendiente')
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
-  const today = new Date().toISOString().slice(0, 10);
+  const _t = new Date();
+  const today = `${_t.getFullYear()}-${String(_t.getMonth() + 1).padStart(2, '0')}-${String(_t.getDate()).padStart(2, '0')}`;
   const active = importantDates.filter(d => d.status === 'aprobado' && d.event_date >= today)
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
 
@@ -1776,7 +1801,7 @@ function renderImportantDatesAdmin() {
         <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2);">
           Días de antelación
           <input type="number" class="form-input" min="1" max="30" value="${eventsWindowDays}"
-                 onchange="updateEventsWindowDays(this.value)" style="width:64px; padding:6px 8px;">
+                 onchange="this.value = updateEventsWindowDays(this.value)" style="width:64px; padding:6px 8px;">
         </label>
       </div>
       <div class="section-title" style="margin-top:18px;">
@@ -1841,14 +1866,20 @@ async function deleteImportantDate(id) {
   if (modal && modal.style.display === 'flex') renderEventsModalBody();
 }
 
-async function updateEventsWindowDays(value) {
+// Devuelve el valor aplicado (1-30) para que la casilla muestre lo que de verdad
+// se guarda (antes se podía escribir 50 y se guardaba 30 sin que se viera)
+function updateEventsWindowDays(value) {
   const days = Math.max(1, Math.min(30, parseInt(value, 10) || 5));
   eventsWindowDays = days;
   renderEventsButton(); // se aplica al instante, sin esperar a guardar
-  try {
-    const { error } = await sb.from('app_settings').upsert({ key: 'events_window_days', value: String(days) });
-    if (error) { if (!handleAuthError(error)) showToast('Error al guardar el ajuste'); }
-  } catch (e) { showToast('Error al guardar el ajuste'); }
+  (async () => {
+    try {
+      const { error } = await sb.from('app_settings').upsert({ key: 'events_window_days', value: String(days) });
+      if (error) { if (!handleAuthError(error)) showToast('Error al guardar el ajuste'); }
+      else showToast(`Avisos con ${days} día${days === 1 ? '' : 's'} de antelación ✓`);
+    } catch (e) { showToast('Error al guardar el ajuste'); }
+  })();
+  return days;
 }
 
 function openImportCsvModal() {
@@ -1868,19 +1899,29 @@ async function importCsvEvents(btn) {
   const raw = (input.value || '').trim();
   if (!raw) { resultEl.textContent = 'Pega el CSV primero.'; return; }
 
-  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+  const lines = raw.replace(/^\uFEFF/, '').split('\n').map(l => l.trim()).filter(l => l);
   const rows = [];
+  let pastCount = 0;
+  const _n = new Date();
+  const todayIso = `${_n.getFullYear()}-${String(_n.getMonth() + 1).padStart(2, '0')}-${String(_n.getDate()).padStart(2, '0')}`;
+  // Categorías tal como las suele escribir una IA ("Fútbol", "CONCIERTO", "partido"...)
+  const CAT = { futbol: 'futbol', partido: 'futbol', concierto: 'concierto', evento: 'evento' };
   for (const line of lines) {
-    const parts = line.split(';').map(p => p.trim());
+    // Cada campo sin espacios ni comillas alrededor ("…" que añaden algunas IA)
+    const parts = line.split(';').map(p => p.trim().replace(/^"(.*)"$/, '$1').trim());
     if (parts.length < 4) continue;
-    const [fecha, hora, titulo, categoria, nota] = parts;
+    let [fecha, hora, titulo, categoria, nota] = parts;
+    // También se acepta DD/MM/AAAA
+    const dmy = String(fecha).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (dmy) fecha = `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) continue; // descarta la cabecera y líneas raras
     if (!titulo) continue;
+    if (fecha < todayIso) { pastCount++; continue; }   // eventos ya pasados: no sirven como aviso
     rows.push({
       event_date: fecha,
       event_time: (() => { const m = String(hora || '').match(/^(\d{1,2}):(\d{2})/); return m && +m[1] < 24 && +m[2] < 60 ? `${m[1].padStart(2, '0')}:${m[2]}` : null; })(), // "null", "21:00h"… → válido o vacío
       title:      titulo,
-      category:   ['futbol', 'concierto', 'evento'].includes(categoria) ? categoria : 'evento',
+      category:   CAT[normalizeText(categoria)] || 'evento',
       note:       nota || null,
       status:     'pendiente',
       source:     'ia',
@@ -1888,7 +1929,9 @@ async function importCsvEvents(btn) {
   }
 
   if (rows.length === 0) {
-    resultEl.textContent = '⚠️ No se ha reconocido ninguna fila válida. Revisa que las fechas estén en formato AAAA-MM-DD y separadas por ";".';
+    resultEl.textContent = pastCount > 0
+      ? `⚠️ Todas las filas (${pastCount}) tienen fechas ya pasadas: no se ha importado nada.`
+      : '⚠️ No se ha reconocido ninguna fila válida. Revisa que las fechas estén en formato AAAA-MM-DD (o DD/MM/AAAA) y separadas por ";".';
     return;
   }
 
@@ -1950,7 +1993,8 @@ async function importCsvEvents(btn) {
 
   const omitted = skipped + skippedInBatch;
   resultEl.textContent = `✅ ${dedupedRows.length} evento(s) nuevo(s) importado(s) como pendiente(s).` +
-    (omitted > 0 ? ` (${omitted} repetido(s) y se han omitido.)` : '');
+    (omitted > 0 ? ` (${omitted} repetido(s) y se han omitido.)` : '') +
+    (pastCount > 0 ? ` (${pastCount} con fecha ya pasada, omitido(s).)` : '');
   input.value = '';
   renderImportantDatesAdmin();
   showToast('Eventos importados ✓');
@@ -2509,6 +2553,13 @@ async function renameProdCategory(id) {
       const { data, error } = await sb.from('production_categories').update({ name }).eq('id', id).select();
       if (error) throw error;
       if (!data || data.length === 0) throw new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
+      // Las producciones guardan el NOMBRE de la categoría: hay que cambiarlo también
+      // en la base de datos (antes solo se cambiaba en pantalla y al recargar volvían
+      // a la categoría antigua, que ya no existía).
+      if (productions.some(p => p.category === currentName)) {
+        const { error: pErr } = await sb.from('productions').update({ category: name }).eq('category', currentName);
+        if (pErr) throw pErr;
+      }
       productionCategories = productionCategories.map(c => c.id === id ? { ...c, name } : c);
       productions = productions.map(p => p.category === currentName ? { ...p, category: name } : p);
     },
@@ -2523,7 +2574,10 @@ async function deleteProdCategory(id) {
   if (!cat) return;
   const ok = await showConfirm({
     title:       'Eliminar categoría',
-    message:     `¿Seguro que quieres eliminar la categoría "${cat.name}"?`,
+    message:     `¿Seguro que quieres eliminar la categoría "${cat.name}"?` + (() => {
+      const n = productions.filter(p => p.category === cat.name).length;
+      return n ? ` ${n} producción${n === 1 ? '' : 'es'} la usa${n === 1 ? '' : 'n'} y se quedará${n === 1 ? '' : 'n'} sin categoría hasta que la${n === 1 ? '' : 's'} edites.` : '';
+    })(),
     confirmText: 'Eliminar',
     danger:      true,
     icon:        'delete',
@@ -2592,6 +2646,10 @@ function renderEventsModalBody() {
   if (!body) return;
   const upcoming = getUpcomingBannerEvents();
   const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
+  if (!upcoming.length) {
+    body.innerHTML = `<div class="empty-state" style="padding:24px 0;"><span class="material-symbols-outlined">event_available</span>No hay días con más trabajo previstos</div>`;
+    return;
+  }
 
   body.innerHTML = upcoming.map(d => `
     <div class="event-banner-row ${d.high_risk ? 'high-risk' : ''}">
@@ -2633,7 +2691,7 @@ async function openEventsModal() {
 function updateBadges() {
   const n = comments.filter(c => !c.resolved).length;
   const tb = document.getElementById('commentBadgeTop');
-  if (n > 0) { tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
+  if (n > 0 && isAdmin) { tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
   else       { tb.style.display = 'none'; }
   if (currentPage === 'admin') renderAdminTabs();
 }
@@ -2824,7 +2882,9 @@ function renderPedidosList() {
       list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base' }));
       html += `<div class="order-group-head"><span class="gh-emoji">${meta.emoji}</span> ${meta.label} <span class="gh-count">${list.length}</span></div>`;
       list.forEach(e => {
-        const k = encodeURIComponent(e.key);
+        // encodeURIComponent no codifica el apóstrofo: un artículo como "aceite d'oliva"
+        // rompía el onclick y no se podía marcar. Se codifica aparte (%27).
+        const k = encodeURIComponent(e.key).replace(/'/g, '%27');
         if (pedidosEdit) {
           html += `
             <div class="order-row edit">
@@ -2854,7 +2914,10 @@ function renderPedidosList() {
       : `${totalChecked} marcados · ${totalItems} artículo${totalItems === 1 ? '' : 's'}`;
   }
   const sendBtn = document.getElementById('pedSendBtn');
-  if (sendBtn) sendBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:19px; vertical-align:middle;">picture_as_pdf</span> Enviar pedido (${totalChecked})`;
+  if (sendBtn) {
+    sendBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:19px; vertical-align:middle;">picture_as_pdf</span> Enviar pedido (${totalChecked})`;
+    sendBtn.classList.toggle('is-empty', totalChecked === 0);
+  }
 }
 
 // Guarda (upsert) el estado de una materia prima en Supabase.
@@ -2956,6 +3019,10 @@ async function addManualMateriaPrima() {
   const clean = cleanIngredientName(name) || name.trim();
   const key = normalizeText(clean);
   if (!key) return;
+  if (orderState[key] && orderState[key].manual && !orderState[key].hidden) {
+    showToast(`"${orderState[key].display_name || orderState[key].name}" ya está en la lista`);
+    return;
+  }
   const display = clean.charAt(0).toUpperCase() + clean.slice(1);
   orderState[key] = { ...(orderState[key] || { supplier_group: null, checked: false, comment: '' }), name: display, manual: true, hidden: false };
   await upsertOrderItem(key, display, { manual: true, hidden: false, name: display });
@@ -3125,7 +3192,7 @@ function renderWeights() {
   if (!el) return;
   el.innerHTML = weights.length === 0
     ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
-    : weights.map(w => `
+    : weights.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' })).map(w => `
         <div class="ficha-row">
           <div>
             <div class="ficha-name">${escapeHtml(w.name)}</div>
@@ -3151,8 +3218,8 @@ function renderBrines() {
   el.innerHTML = cats.length === 0
     ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
     : cats.map(cat => `
-        <div class="ficha-category">${cat === 'Aves' ? '🐔' : cat === 'Cerdo' ? '🐷' : '🐟'} ${cat}</div>
-        ${brines.filter(b => b.category === cat).map(b => `
+        <div class="ficha-category">${cat === 'Aves' ? '🐔' : cat === 'Cerdo' ? '🐷' : '🐟'} ${escapeHtml(cat)}</div>
+        ${brines.filter(b => b.category === cat).sort((a, b) => (a.product || '').localeCompare(b.product || '', 'es', { sensitivity: 'base' })).map(b => `
           <div class="ficha-row">
             <div>
               <div class="ficha-name">${escapeHtml(b.product)}</div>
@@ -3430,11 +3497,11 @@ function showConfirm(opts = {}) {
         <div class="confirm-icon ${danger ? 'danger' : ''}">
           <span class="material-symbols-outlined">${icon}</span>
         </div>
-        <div class="confirm-title">${title}</div>
-        ${message ? `<p class="confirm-message">${message}</p>` : ''}
+        <div class="confirm-title">${escapeHtml(title)}</div>
+        ${message ? `<p class="confirm-message">${escapeHtml(message)}</p>` : ''}
         <div class="confirm-actions">
           <button class="btn-confirm cancel" id="confirmCancelBtn">${cancelText}</button>
-          <button class="btn-confirm ok ${danger ? 'danger' : ''}" id="confirmOkBtn">${confirmText}</button>
+          <button class="btn-confirm ok ${danger ? 'danger' : ''}" id="confirmOkBtn">${escapeHtml(confirmText)}</button>
         </div>
       </div>`;
     modal.addEventListener('click', e => { if (e.target === modal) finish(false); });
@@ -3504,10 +3571,10 @@ function showPrompt(opts = {}) {
     modal.innerHTML = `
       <div class="modal-sheet confirm-sheet" onclick="event.stopPropagation()">
         <div class="confirm-icon"><span class="material-symbols-outlined">${icon}</span></div>
-        ${title ? `<div class="confirm-title">${title}</div>` : ''}
+        ${title ? `<div class="confirm-title">${escapeHtml(title)}</div>` : ''}
         <div class="form-group" style="text-align:left; margin-top:14px;">
-          ${label ? `<div class="form-label">${label}</div>` : ''}
-          <input type="text" class="form-input" id="promptInput" placeholder="${placeholder}"
+          ${label ? `<div class="form-label">${escapeHtml(label)}</div>` : ''}
+          <input type="text" class="form-input" id="promptInput" placeholder="${escapeHtml(placeholder)}"
             onkeydown="if(event.key==='Enter') document.getElementById('promptOkBtn').click();">
         </div>
         <div class="confirm-actions">
