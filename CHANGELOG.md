@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v72
+
+### Cambiado
+- **El Timer se comporta como una pestaña más**: su panel se abre por encima de la página pero ya no tapa el menú inferior, que sigue visible y se puede tocar. El icono Timer queda marcado mientras está abierto. Tocar otra pestaña cierra el panel y te lleva a ella (salvo si está sonando: entonces sigue a la vista hasta pulsar Detener). El botón atrás lo cierra como antes.
+
+---
+
 ## v71
 
 ### Añadido
