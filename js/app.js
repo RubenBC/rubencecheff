@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v70';
+const APP_VERSION = 'v71';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -549,7 +549,7 @@ function renderRecipes() {
   const q = normalizeText(raw); // sin tildes: "cesar" encuentra "César"
   const filtered = recipes.filter(r =>
     !q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q)
-  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
 
   const list = document.getElementById('recipeList');
   if (!list) return;
@@ -1053,7 +1053,7 @@ function openLinkModal(recipeId) {
   document.querySelector('#linkModal .btn-action').setAttribute('onclick', 'saveLinkProductions()');
   selectedProdIds = recipeProductions.filter(rp => rp.recipe_id === recipeId).map(rp => rp.production_id)
     .filter(pid => productions.some(p => p.id === pid)); // ignorar vínculos a producciones borradas
-  const sortedProds = [...productions].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+  const sortedProds = [...productions].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
   document.getElementById('linkProductionList').innerHTML = sortedProds.length === 0
     ? '<p style="color:var(--text2); font-size:13px;">No hay producciones creadas aún.</p>'
     : sortedProds.map(p => `
@@ -1145,7 +1145,7 @@ let selectedRecipeIds = [];
 function openLinkRecipesModal(prodId) {
   linkingProdId = prodId;
   selectedRecipeIds = recipeProductions.filter(rp => rp.production_id === prodId).map(rp => rp.recipe_id);
-  const sortedRecipes = [...recipes].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+  const sortedRecipes = [...recipes].sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
   document.getElementById('linkProductionList').innerHTML = sortedRecipes.length === 0
     ? '<p style="color:var(--text2); font-size:13px;">No hay platos creados aún.</p>'
     : sortedRecipes.map(r => `
@@ -1220,7 +1220,7 @@ function renderProductions() {
   const q = normalizeText(raw);
   const filtered = productions.filter(p =>
     !q || normalizeText(p.name).includes(q) || normalizeText(p.category).includes(q)
-  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+  ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
 
   const list = document.getElementById('productionList');
   if (!list) return;
@@ -1346,7 +1346,7 @@ function renderProdDetail(fromPage) {
       ${(() => {
         const linkedRecipeIds = recipeProductions.filter(rp => rp.production_id === p.id).map(rp => rp.recipe_id);
         const linkedRecipes = recipes.filter(r => linkedRecipeIds.includes(r.id))
-          .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base' }));
+          .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
         return linkedRecipes.length > 0
           ? linkedRecipes.map(r => `
               <div class="prod-link-row" onclick="goToRecipeFromProd('${r.id}')">
@@ -2166,7 +2166,251 @@ function renderPhotoAdmin() {
       <button class="btn-pill filled" id="optimizePhotosBtn" onclick="optimizeRecipePhotos()" ${pending > 0 ? '' : 'disabled'}>
         <span class="material-symbols-outlined" style="font-size:16px;">auto_fix_high</span> Optimizar fotos${pending > 0 ? ` (${pending})` : ''}
       </button>
+    </div>
+
+    <div class="section-title" style="margin-top:18px;">
+      <span class="material-symbols-outlined">picture_as_pdf</span> Recetario en PDF
+    </div>
+    <div class="card">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:10px;">
+        Todos los platos (${recipes.length}) y producciones (${productions.length}) con su foto, ingredientes, elaboración y alérgenos, con índice. Sirve para imprimir o como copia de seguridad.
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <button class="btn-pill filled" id="exportPdfBtn" onclick="exportRecetarioPDF()">
+          <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span> Generar recetario
+        </button>
+        <button class="btn-pill" id="exportPdfSaveBtn" onclick="saveRecetarioPDF()" style="display:none;">
+          <span class="material-symbols-outlined" style="font-size:16px;">download</span> Guardar / compartir
+        </button>
+      </div>
+      <div id="exportPdfStatus" style="font-size:12.5px; color:var(--text2); margin-top:8px;"></div>
     </div>`;
+}
+
+// ─── Recetario completo en PDF (Admin → Fotos) ─────────
+// Un plato o producción por página (con su foto reducida al vuelo), portada,
+// índice con número de página y numeración "Página X de Y". Al terminar se
+// pulsa "Guardar / compartir": compartir un archivo exige un toque reciente
+// y la generación puede tardar, por eso va en un segundo botón.
+let _recetarioPdf = null; // { blob, name }
+let _exportingPdf = false;
+
+async function photoToDataUrl(url) {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) return null;
+    const img = await decodeImage(await res.blob());
+    const jpg = await imageToJpeg(img, 1000, 0.72);
+    if (img.close) img.close();
+    const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(jpg); });
+    const probe = await decodeImage(jpg);
+    const out = { dataUrl, w: probe.width, h: probe.height };
+    if (probe.close) probe.close();
+    return out;
+  } catch (e) { return null; } // foto de otra web sin permiso, sin conexión…: se omite
+}
+
+async function exportRecetarioPDF() {
+  if (_exportingPdf) return;
+  if (!window.jspdf || !window.jspdf.jsPDF) { showToast('No se pudo cargar el generador de PDF'); return; }
+  const btn = document.getElementById('exportPdfBtn');
+  const saveBtn = document.getElementById('exportPdfSaveBtn');
+  const status = document.getElementById('exportPdfStatus');
+  const setStatus = t => { const el = document.getElementById('exportPdfStatus'); if (el) el.textContent = t; };
+  const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base', numeric: true });
+  const items = [
+    ...recipes.slice().sort(byName).map(r => ({ kind: 'recipe', it: r })),
+    ...productions.slice().sort(byName).map(p => ({ kind: 'production', it: p })),
+  ];
+  if (!items.length) { showToast('No hay recetas que exportar'); return; }
+
+  _exportingPdf = true;
+  _recetarioPdf = null;
+  if (saveBtn) saveBtn.style.display = 'none';
+  if (btn) btn.disabled = true;
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210, H = 297, M = 16, CW = W - 2 * M;
+    const TEAL = [0, 106, 106], GREY = [95, 105, 105], TEXT = [25, 30, 30];
+    let y = M;
+    const newPage = () => { doc.addPage(); y = M; };
+    const need = h => { if (y + h > H - M - 8) newPage(); };
+    const para = (text, size, style, color, gap) => {
+      doc.setFont('helvetica', style || 'normal'); doc.setFontSize(size); doc.setTextColor(...(color || TEXT));
+      const lines = doc.splitTextToSize(String(text), CW);
+      const lh = size * 0.42;
+      lines.forEach(l => { need(lh); doc.text(l, M, y); y += lh; });
+      y += gap || 0;
+    };
+    const heading = t => {
+      need(12); y += 3;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...TEAL);
+      doc.text(t.toUpperCase(), M, y); y += 2;
+      doc.setDrawColor(...TEAL); doc.setLineWidth(0.3); doc.line(M, y, M + CW, y); y += 5;
+    };
+    const allergenNames = ids => (ids || []).map(id => (ALLERGENS.find(a => a.id === id) || {}).label).filter(Boolean);
+
+    // Portada
+    const fecha = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(30); doc.setTextColor(...TEAL);
+    doc.text('Recetario', W / 2, 110, { align: 'center' });
+    doc.setFontSize(18); doc.setTextColor(...TEXT);
+    doc.text('RubenceChef · Hotel Kitchen Pro', W / 2, 124, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor(...GREY);
+    doc.text(`${recipes.length} platos · ${productions.length} producciones`, W / 2, 138, { align: 'center' });
+    doc.text(`Generado el ${fecha}`, W / 2, 146, { align: 'center' });
+
+    // Páginas reservadas para el índice (se rellenan al final, cuando ya se
+    // sabe en qué página empieza cada receta)
+    const tocPages = Math.max(1, Math.ceil((items.length + 6) / 38));
+    for (let i = 0; i < tocPages; i++) doc.addPage();
+    const tocFirst = 2;
+
+    const toc = []; // { title, kind, page }
+    let done = 0;
+    for (const { kind, it } of items) {
+      done++;
+      setStatus(`Generando ${done} de ${items.length}…`);
+      if (btn) btn.innerHTML = `<span class="material-symbols-outlined spin" style="font-size:16px;">progress_activity</span> ${done}/${items.length}`;
+      newPage();
+      toc.push({ title: it.name || '(sin nombre)', kind, page: doc.getNumberOfPages() });
+
+      // Cabecera
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...TEAL);
+      doc.text(`${kind === 'recipe' ? 'PLATO' : 'PRODUCCIÓN'}${it.category ? ' · ' + String(it.category).toUpperCase() : ''}`, M, y); y += 7;
+      para(it.name || '(sin nombre)', 20, 'bold', TEXT, 2);
+      if (it.description) para(it.description, 10.5, 'normal', GREY, 3);
+
+      // Foto
+      if (it.photo) {
+        const ph = await photoToDataUrl(it.photo);
+        if (ph) {
+          const maxW = CW, maxH = 95;
+          const sc = Math.min(maxW / ph.w, maxH / ph.h);
+          const w = ph.w * sc, h = ph.h * sc;
+          need(h + 4);
+          doc.addImage(ph.dataUrl, 'JPEG', M + (CW - w) / 2, y, w, h, undefined, 'FAST');
+          y += h + 5;
+        }
+      }
+
+      // Datos
+      const meta = [];
+      if (kind === 'recipe' && it.servings) meta.push(`Raciones: ${it.servings}`);
+      const al = allergenNames(it.allergens);
+      if (meta.length) para(meta.join('   '), 10.5, 'normal', TEXT, 1);
+      para(`Alérgenos: ${al.length ? al.join(', ') : 'ninguno indicado'}`, 10.5, al.length ? 'bold' : 'normal', al.length ? [150, 30, 20] : GREY, 2);
+
+      // Ingredientes (nombre a la izquierda, cantidad a la derecha)
+      if ((it.ingredients || []).length) {
+        heading('Ingredientes');
+        doc.setFontSize(10.5);
+        it.ingredients.forEach(ing => {
+          const qty = `${formatAmount(ing.amount)} ${ing.unit || ''}`.trim();
+          doc.setFont('helvetica', 'normal'); doc.setTextColor(...TEXT);
+          const lines = doc.splitTextToSize(String(ing.name || ''), CW - 35);
+          need(lines.length * 4.6 + 1);
+          lines.forEach((l, i) => { doc.text(l, M, y + i * 4.6); });
+          doc.setFont('helvetica', 'bold');
+          doc.text(qty, M + CW, y, { align: 'right' });
+          y += lines.length * 4.6 + 1.4;
+        });
+      }
+
+      // Producciones vinculadas (platos)
+      if (kind === 'recipe') {
+        const prods = recipeProductions.filter(rp => rp.recipe_id === it.id)
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map(rp => productions.find(p => p.id === rp.production_id)).filter(Boolean);
+        if (prods.length) { heading('Producciones'); prods.forEach(p => para('• ' + p.name, 10.5, 'normal', TEXT, 0.6)); }
+      }
+
+      // Elaboración
+      if ((it.steps || []).length) {
+        heading('Elaboración');
+        it.steps.forEach((st, i) => {
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...TEXT);
+          const lines = doc.splitTextToSize(String(st), CW - 8);
+          need(lines.length * 4.6 + 2);
+          doc.setFont('helvetica', 'bold'); doc.setTextColor(...TEAL); doc.text(`${i + 1}.`, M, y);
+          doc.setFont('helvetica', 'normal'); doc.setTextColor(...TEXT);
+          lines.forEach((l, j) => doc.text(l, M + 8, y + j * 4.6));
+          y += lines.length * 4.6 + 2;
+        });
+      }
+
+      // Montaje
+      if (kind === 'recipe' && it.plating) { heading('Montaje'); para(it.plating, 10.5, 'normal', TEXT, 1); }
+
+      await new Promise(r => setTimeout(r, 0)); // deja respirar a la pantalla
+    }
+
+    // Índice, en las páginas reservadas tras la portada
+    setStatus('Preparando el índice…');
+    let tp = tocFirst;
+    doc.setPage(tp); y = M;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(...TEAL);
+    doc.text('Índice', M, y + 4); y += 14;
+    const tocLine = (label, page, bold) => {
+      if (y > H - M - 12 && tp < tocFirst + tocPages - 1) { tp++; doc.setPage(tp); y = M + 4; }
+      doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(bold ? 12 : 10.5); doc.setTextColor(...(bold ? TEAL : TEXT));
+      doc.text(doc.splitTextToSize(label, CW - 20)[0], M, y);
+      if (page) doc.text(String(page), M + CW, y, { align: 'right' });
+      y += bold ? 8 : 5.6;
+    };
+    tocLine('Platos', null, true);
+    toc.filter(t => t.kind === 'recipe').forEach(t => tocLine(t.title, t.page));
+    y += 3;
+    tocLine('Producciones', null, true);
+    toc.filter(t => t.kind === 'production').forEach(t => tocLine(t.title, t.page));
+
+    // Numeración
+    const total = doc.getNumberOfPages();
+    for (let p = 2; p <= total; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GREY);
+      doc.text(`RubenceChef · Recetario`, M, H - 8);
+      doc.text(`Página ${p} de ${total}`, W - M, H - 8, { align: 'right' });
+    }
+
+    const d = new Date();
+    const name = `Recetario RubenceChef ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.pdf`;
+    _recetarioPdf = { blob: doc.output('blob'), name };
+    const sizeMb = (_recetarioPdf.blob.size / 1048576).toFixed(1).replace('.', ',');
+    setStatus(`✓ Listo: ${total} páginas, ${sizeMb} MB. Pulsa "Guardar / compartir".`);
+    const sb2 = document.getElementById('exportPdfSaveBtn');
+    if (sb2) sb2.style.display = '';
+    showToast('Recetario generado ✓');
+  } catch (e) {
+    console.error('Error generando el recetario:', e);
+    setStatus('No se pudo generar el PDF. Inténtalo de nuevo.');
+    showToast('Error al generar el PDF');
+  } finally {
+    _exportingPdf = false;
+    const b = document.getElementById('exportPdfBtn');
+    if (b) { b.disabled = false; b.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span> Generar recetario`; }
+  }
+}
+
+async function saveRecetarioPDF() {
+  if (!_recetarioPdf) return;
+  const { blob, name } = _recetarioPdf;
+  const file = new File([blob], name, { type: 'application/pdf' });
+  const download = () => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Recetario RubenceChef' });
+    } else { download(); showToast('PDF descargado'); }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+    download(); showToast('PDF descargado');
+  }
 }
 
 let _optimizingPhotos = false;
@@ -2879,7 +3123,7 @@ function renderPedidosList() {
       const list = byGroup[gid];
       if (!list || !list.length) return;
       const meta = groupMeta(gid);
-      list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base' }));
+      list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base', numeric: true }));
       html += `<div class="order-group-head"><span class="gh-emoji">${meta.emoji}</span> ${meta.label} <span class="gh-count">${list.length}</span></div>`;
       list.forEach(e => {
         // encodeURIComponent no codifica el apóstrofo: un artículo como "aceite d'oliva"
@@ -3128,7 +3372,7 @@ async function sendPedidoPDF() {
       order.forEach(gid => {
         const list = byGroup[gid];
         if (!list || !list.length) return;
-        list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base' }));
+        list.sort((a, b) => a.display.localeCompare(b.display, 'es', { sensitivity: 'base', numeric: true }));
         const meta = groupMeta(gid);
 
         doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5);
@@ -3192,7 +3436,7 @@ function renderWeights() {
   if (!el) return;
   el.innerHTML = weights.length === 0
     ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
-    : weights.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' })).map(w => `
+    : weights.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base', numeric: true })).map(w => `
         <div class="ficha-row">
           <div>
             <div class="ficha-name">${escapeHtml(w.name)}</div>
@@ -3219,7 +3463,7 @@ function renderBrines() {
     ? '<p style="color:var(--text2); font-size:13px; padding:8px 0;">Sin datos</p>'
     : cats.map(cat => `
         <div class="ficha-category">${cat === 'Aves' ? '🐔' : cat === 'Cerdo' ? '🐷' : '🐟'} ${escapeHtml(cat)}</div>
-        ${brines.filter(b => b.category === cat).sort((a, b) => (a.product || '').localeCompare(b.product || '', 'es', { sensitivity: 'base' })).map(b => `
+        ${brines.filter(b => b.category === cat).sort((a, b) => (a.product || '').localeCompare(b.product || '', 'es', { sensitivity: 'base', numeric: true })).map(b => `
           <div class="ficha-row">
             <div>
               <div class="ficha-name">${escapeHtml(b.product)}</div>
