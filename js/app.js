@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v73';
+const APP_VERSION = 'v74';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -358,6 +358,7 @@ function showPage(page, btn, skipPush) {
   if (page === 'admin')     renderAdmin();
   // Radio: pinta la pestaña, y en las demás muestra u oculta la burbuja
   if (typeof renderRadio === 'function') renderRadio();
+  if (typeof updateFloatBack === 'function') updateFloatBack();
 
   if (switchingPage) {
     const y = savedScroll[page] || 0;
@@ -4255,3 +4256,38 @@ window.addEventListener('popstate', (e) => {
   showPage('recipes', null, true);
   history.pushState({ view: 'home' }, '');
 });
+
+// ═══════════════════════════════════════
+//   FLECHA "VOLVER" SIEMPRE A MANO (detalle de plato y de producción)
+//   Cuando la flecha de arriba sale de la pantalla al bajar, aparece una
+//   pequeña flecha flotante bajo la barra superior que hace lo mismo.
+//   El resto de la página no cambia.
+// ═══════════════════════════════════════
+(function () {
+  const fb = document.createElement('button');
+  fb.id = 'floatBackBtn';
+  fb.className = 'float-back-btn';
+  fb.setAttribute('aria-label', 'Volver');
+  fb.innerHTML = '<span class="material-symbols-outlined">arrow_back</span>';
+  fb.onclick = () => {
+    const orig = document.querySelector('#detailPage.active .back-btn, #productionDetailPage.active .back-btn');
+    if (orig) orig.click();
+  };
+  document.body.appendChild(fb);
+
+  let ticking = false;
+  function update() {
+    ticking = false;
+    const orig = document.querySelector('#detailPage.active .back-btn, #productionDetailPage.active .back-btn');
+    const topbar = document.querySelector('.topbar');
+    const barBottom = topbar ? topbar.getBoundingClientRect().bottom : 0;
+    const show = !!orig && orig.getBoundingClientRect().bottom < barBottom + 4;
+    if (show) fb.style.top = (barBottom + 10) + 'px';
+    fb.classList.toggle('show', show);
+  }
+  const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
+  // La página hace scroll en <body> (no en window): se escucha en captura para pillarlo
+  document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+  window.addEventListener('resize', onScroll);
+  window.updateFloatBack = onScroll; // al cambiar de página se vuelve a comprobar
+})();
