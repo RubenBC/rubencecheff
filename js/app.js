@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v80';
+const APP_VERSION = 'v81';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -2130,6 +2130,7 @@ try { if (localStorage.getItem('rubencechef-xmas') === 'on') setTimeout(() => ap
 let halloweenMode = false;
 function applyHalloweenMode(on) {
   halloweenMode = !!on;
+window.RC_HALLOWEEN = halloweenMode;
   document.body.classList.toggle('halloween', halloweenMode);
   try { localStorage.setItem('rubencechef-halloween', halloweenMode ? 'on' : 'off'); } catch (e) {}
   if (halloweenMode) batsStart(); else batsStop();

@@ -128,12 +128,31 @@
     return notes.map(([f, b]) => { const n = [f, t, Math.max(0.1, b * beat * 0.85)]; t += b * beat; return n; });
   })();
 
+  // Melodía de Halloween: inicio del "Dies Irae" (canto gregoriano, siglo XIII,
+  // autor desconocido, de dominio público). Es la frase que el cine lleva un
+  // siglo citando como "la melodía del mal" (El resplandor, El rey león,
+  // Star Wars...), así que se reconoce aunque no se sepa su nombre. Más grave
+  // y más despacio que las demás melodías, para que suene siniestra.
+  const DI = (() => {
+    const A = 220.00, B = 246.94, C = 261.63, D = 293.66;
+    const beat = 0.26;
+    const notes = [
+      [C, 1], [B, 1], [C, 1], [A, 1], [B, 1], [C, 1], [C, 1], [C, 2],
+      [B, 1], [C, 1], [D, 1], [C, 1], [B, 1], [A, 1], [B, 1], [C, 3],
+    ];
+    let t = 0;
+    return notes.map(([f, b]) => { const n = [f, t, Math.max(0.12, b * beat * 0.9)]; t += b * beat; return n; });
+  })();
+
   const TONES = {
     1: [[880, 0, 0.15], [1108.7, 0.16, 0.15], [1318.5, 0.32, 0.15], [1760, 0.48, 0.5]],  // 4 tonos seguidos
     xmas: JB,                                                                            // Modo Navidad
+    halloween: DI,                                                                       // Modo Halloween
   };
-  // Tono con el que suena un timer: en Modo Navidad, el villancico; si no, el suyo
-  const ringToneOf = r => (window.RC_XMAS ? 'xmas' : ((r && r.tone) || 1));
+  // Tono con el que suena un timer: si los dos modos están activos a la vez
+  // manda la Navidad; si no, el que corresponda, o el suyo propio si ninguno
+  // está activado.
+  const ringToneOf = r => (window.RC_XMAS ? 'xmas' : window.RC_HALLOWEEN ? 'halloween' : ((r && r.tone) || 1));
   // Un timer guardado cuando existía el "Tono 2" (v50-v51) podría traer tone: 2.
   // Ese tono ya no existe: cualquier valor desconocido usa el tono 1 (antes rompía la melodía).
   const toneOf = n => (TONES[n] ? n : 1);
