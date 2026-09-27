@@ -110,9 +110,30 @@
   // Tono de la alarma. Cada nota: [frecuencia Hz, inicio (s), duración (s)].
   // Tras cada ciclo hay una pausa de 3 s antes de repetir.
   const PAUSE_S = 3;
+  // Melodía navideña: estribillo de "Jingle Bells" (James Lord Pierpont, 1857,
+  // dominio público), una octava arriba para que se oiga bien en la cocina.
+  // Notas: [frecuencia, duración en tiempos]. Se convierte al formato de TONES.
+  const JB = (() => {
+    const E = 659.25, G = 783.99, C = 523.25, D = 587.33, F = 698.46;
+    const beat = 0.2;
+    const notes = [
+      [E, 1], [E, 1], [E, 2],           // jin-gle bells
+      [E, 1], [E, 1], [E, 2],           // jin-gle bells
+      [E, 1], [G, 1], [C, 1.5], [D, 0.5], [E, 4],   // jin-gle all the way
+      [F, 1], [F, 1], [F, 1.5], [F, 0.5],           // oh what fun it
+      [F, 1], [E, 1], [E, 1], [E, 0.5], [E, 0.5],   // is to ride in a
+      [E, 1], [D, 1], [D, 1], [E, 1], [D, 2], [G, 2], // one-horse o-pen sleigh
+    ];
+    let t = 0;
+    return notes.map(([f, b]) => { const n = [f, t, Math.max(0.1, b * beat * 0.85)]; t += b * beat; return n; });
+  })();
+
   const TONES = {
-    1: [[880, 0, 0.15], [1108.7, 0.16, 0.15], [1318.5, 0.32, 0.15], [1760, 0.48, 0.5]]   // 4 tonos seguidos
+    1: [[880, 0, 0.15], [1108.7, 0.16, 0.15], [1318.5, 0.32, 0.15], [1760, 0.48, 0.5]],  // 4 tonos seguidos
+    xmas: JB,                                                                            // Modo Navidad
   };
+  // Tono con el que suena un timer: en Modo Navidad, el villancico; si no, el suyo
+  const ringToneOf = r => (window.RC_XMAS ? 'xmas' : ((r && r.tone) || 1));
   // Un timer guardado cuando existía el "Tono 2" (v50-v51) podría traer tone: 2.
   // Ese tono ya no existe: cualquier valor desconocido usa el tono 1 (antes rompía la melodía).
   const toneOf = n => (TONES[n] ? n : 1);
@@ -154,7 +175,7 @@
     if (anyRinging()) return;                       // ya hay melodía sonando
     const n = nextRun();
     if (!n) { cancelScheduled(); return; }
-    if (sched && sched.forEnd === n.endAt && sched.tone === (n.tone || 1)) return;  // ya está programada para este
+    if (sched && sched.forEnd === n.endAt && sched.tone === ringToneOf(n)) return;  // ya está programada para este
     cancelScheduled();
     const ctx = ensureAudio();
     if (!ctx) return;
@@ -164,7 +185,7 @@
       if (!nx) return;
       const left = nx.endAt - Date.now();
       if (left <= 0 || left > PRE_MS) return;
-      scheduleFrom(audioCtx.currentTime + left / 1000, 10, nx.endAt, nx.tone || 1);
+      scheduleFrom(audioCtx.currentTime + left / 1000, 10, nx.endAt, ringToneOf(nx));
     };
     if (ctx.state === 'running') doIt();
     else ctx.resume().then(doIt).catch(() => {});
@@ -178,7 +199,7 @@
     const ctx = ensureAudio();
     const go = () => {
       if (!anyRinging() || !audioCtx || audioCtx.state !== 'running') return false;
-      if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0, (firstRinging().tone) || 1);
+      if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0, ringToneOf(firstRinging()));
       topUp();
       return true;
     };
@@ -277,7 +298,7 @@
       stopMelody();
       if (wasRinging && typeof radioAlarmEnd === 'function') radioAlarmEnd(); // reanudar la radio si la pausó la alarma
     }
-    else if (sched && sched.tone !== (firstRinging().tone || 1)) { cancelScheduled(); startMelody(); } // sigue sonando otro con distinto tono
+    else if (sched && sched.tone !== ringToneOf(firstRinging())) { cancelScheduled(); startMelody(); } // sigue sonando otro con distinto tono
     if (wasRinging && !anyRinging()) tab = runs.length ? 'list' : 'timer';
     updateTitle();
     save();

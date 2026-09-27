@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v74';
+const APP_VERSION = 'v76';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -83,7 +83,7 @@ function handleAuthError(error) {
   isAdmin = false;
   try { sb.auth.signOut(); } catch(e) {}
   document.getElementById('adminBtn').innerHTML =
-    `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+    `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
   document.getElementById('adminBtn').classList.remove('admin-on');
   updateBadges();
   showToast('Tu sesión ha caducado. Inicia sesión de nuevo.');
@@ -246,7 +246,7 @@ async function loadData() {
       try { const r = await q; if (r.error) throw r.error; return r; }
       catch (e) { console.warn(label + ' no disponible (¿falta crear la tabla?):', e?.message || e); return null; }
     };
-    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes, styleRes] = await Promise.all([
+    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes, styleRes, xmasRes] = await Promise.all([
       optional('important_dates',      sb.from('important_dates').select('*').order('event_date')),
       optional('radio_stations',       sb.from('radio_stations').select('*').order('sort_order')),
       optional('radio_hidden_builtin', sb.from('radio_hidden_builtin').select('*')),
@@ -256,6 +256,7 @@ async function loadData() {
       optional('order_items (columnas de edición)', sb.from('order_items').select('hidden,manual,display_name').limit(1)),
       optional('recipes.photo_thumb (miniaturas)', sb.from('recipes').select('photo_thumb').limit(1)),
       optional('radio_stations.style/comment', sb.from('radio_stations').select('style,comment').limit(1)),
+      optional('app_settings (navidad)', sb.from('app_settings').select('*').eq('key', 'christmas_mode').maybeSingle()),
     ]);
     importantDates        = idRes ? (idRes.data || []) : [];
     customStations        = rsRes ? (rsRes.data || []) : [];
@@ -265,6 +266,7 @@ async function loadData() {
     orderEditCols         = !!colsRes;
     recipeThumbCol        = !!thumbRes;
     radioStyleCols        = !!styleRes;
+    if (xmasRes) applyChristmasMode(!!(xmasRes.data && xmasRes.data.value === 'on'));
     rebuildOrderState();
 
     await restoreAdminSession();
@@ -1604,7 +1606,7 @@ async function adminLogout() {
   if (!ok) return;
   try { await sb.auth.signOut(); } catch(e) {}
   isAdmin = false;
-  document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span> Admin`;
+  document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
   document.getElementById('adminBtn').classList.remove('admin-on');
   updateBadges();
   document.getElementById('adminAddRecipeRow').style.display    = 'none';
@@ -1686,7 +1688,7 @@ async function doLogin() {
 
 function activateAdminUI() {
   document.getElementById('adminBtn').innerHTML =
-    `<span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span> Admin`;
+    `<span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span><span class="btn-label"> Admin</span>`;
   document.getElementById('adminBtn').classList.add('admin-on');
   updateBadges();
   if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
@@ -2002,6 +2004,102 @@ async function importCsvEvents(btn) {
   showToast('Eventos importados ✓');
 }
 
+// ─── Modo Navidad ─────────
+// Lo activa el admin y se guarda en app_settings (clave christmas_mode), así
+// que se ve en todos los móviles. Cambios: nevada discreta, nombre más grande
+// con gorro navideño y el timer suena con "Jingle Bells" (dominio público).
+// Se recuerda también en el dispositivo para aplicarlo al instante al abrir.
+let christmasMode = false;
+function applyChristmasMode(on) {
+  christmasMode = !!on;
+  window.RC_XMAS = christmasMode;
+  document.body.classList.toggle('xmas', christmasMode);
+  try { localStorage.setItem('rubencechef-xmas', christmasMode ? 'on' : 'off'); } catch (e) {}
+  if (christmasMode) snowStart(); else snowStop();
+  renderChristmasToggle();
+}
+
+function renderChristmasToggle() {
+  const holder = document.getElementById('adminXmasRow');
+  if (!holder) return;
+  holder.innerHTML = `
+    <button class="xmas-toggle${christmasMode ? ' on' : ''}" id="xmasToggleBtn" onclick="toggleChristmasMode()" role="switch" aria-checked="${christmasMode}">
+      <span class="xmas-toggle-emoji">🎄</span>
+      <span class="xmas-toggle-text"><b>Modo Navidad</b><small>${christmasMode ? 'Activado en todos los dispositivos' : 'Nevada, gorro navideño y timer con villancico'}</small></span>
+      <span class="xmas-switch"><span></span></span>
+    </button>`;
+}
+
+async function toggleChristmasMode() {
+  const next = !christmasMode;
+  applyChristmasMode(next); // se ve al momento
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: 'christmas_mode', value: next ? 'on' : 'off' });
+    if (error) throw error;
+    showToast(next ? '🎄 Modo Navidad activado' : 'Modo Navidad desactivado');
+  } catch (e) {
+    applyChristmasMode(!next); // no se guardó: se deshace
+    if (!handleAuthError(e)) showToast('No se pudo guardar el modo Navidad');
+  }
+}
+
+// Nevada: pocos copos, pequeños, lentos y semitransparentes, en un lienzo que
+// no recibe toques (no interfiere con nada). Se pausa con la app en segundo
+// plano y es mínima si el móvil pide "reducir movimiento".
+let _snow = null;
+function snowStart() {
+  if (_snow) return;
+  const cv = document.createElement('canvas');
+  cv.id = 'snowCanvas';
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, dpr = 1, flakes = [];
+  const resize = () => {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = reduce ? 12 : Math.round(Math.min(45, Math.max(20, W * H / 22000)));
+    flakes = Array.from({ length: n }, () => newFlake(true));
+  };
+  const newFlake = (anywhere) => ({
+    x: Math.random() * W, y: anywhere ? Math.random() * H : -6,
+    r: 1 + Math.random() * 2.2, vy: 0.25 + Math.random() * 0.55,
+    drift: Math.random() * Math.PI * 2, a: 0.35 + Math.random() * 0.4,
+  });
+  let last = 0, raf = 0, running = true;
+  const frame = (t) => {
+    raf = requestAnimationFrame(frame);
+    if (t - last < 33) return; // ~30 fps: suficiente y gasta menos batería
+    const dt = last ? Math.min(3, (t - last) / 33) : 1; last = t;
+    ctx.clearRect(0, 0, W, H);
+    const dark = document.body.classList.contains('dark');
+    for (const f of flakes) {
+      if (!reduce) { f.y += f.vy * dt; f.drift += 0.01 * dt; f.x += Math.sin(f.drift) * 0.3 * dt; }
+      if (f.y > H + 6) Object.assign(f, newFlake(false));
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = dark ? `rgba(255,255,255,${f.a})` : `rgba(160,200,215,${f.a + 0.15})`;
+      ctx.fill();
+    }
+  };
+  const onVis = () => {
+    if (document.hidden && running) { cancelAnimationFrame(raf); running = false; }
+    else if (!document.hidden && !running) { running = true; last = 0; raf = requestAnimationFrame(frame); }
+  };
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', onVis);
+  resize();
+  raf = requestAnimationFrame(frame);
+  _snow = { cv, stop: () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', onVis); cv.remove(); } };
+}
+function snowStop() { if (_snow) { _snow.stop(); _snow = null; } }
+
+// Aplicar al abrir según lo último conocido en este dispositivo (luego se
+// confirma con la base de datos al cargar)
+try { if (localStorage.getItem('rubencechef-xmas') === 'on') setTimeout(() => applyChristmasMode(true), 0); } catch (e) {}
+
 // ─── Panel de administración: pestañas ─────────
 const ADMIN_TABS = [
   { key: 'comments', label: 'Comentarios', icon: 'forum' },
@@ -2066,6 +2164,7 @@ function renderAdmin() {
   }
 
   renderAdminTabs();
+  renderChristmasToggle();
   if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
   if (adminTab === 'prod')   { renderProdCategoriesAdmin(); return; }
   if (adminTab === 'radio')  { renderRadioAdmin(); return; }
@@ -4075,6 +4174,7 @@ async function refreshDataSilently() {
       sb.from('order_items').select('*'),
       sb.from('radio_stations').select('*').order('sort_order'),
       sb.from('radio_hidden_builtin').select('*'),
+      sb.from('app_settings').select('*').eq('key', 'christmas_mode').maybeSingle(),
     ]);
     // Si algo falla (sin cobertura, tabla inexistente...), no se toca nada.
     if (res.slice(0, 7).some(r => r.error)) return;
@@ -4100,6 +4200,7 @@ async function refreshDataSilently() {
     if (!res[8].error)  { orderItems = res[8].data || []; rebuildOrderState(); }
     if (!res[9].error)  customStations        = res[9].data || [];
     if (!res[10].error) hiddenBuiltinStations = (res[10].data || []).map(r => r.id);
+    if (!res[11].error) applyChristmasMode(!!(res[11].data && res[11].data.value === 'on'));
     _lastDataRefresh = Date.now();
 
     // Repintar lo que se esté viendo
