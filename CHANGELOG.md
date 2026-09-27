@@ -4,6 +4,31 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v79
+
+### Añadido
+- **Modo Halloween**, con su propio interruptor en Admin junto al de Navidad (🎃 Modo Halloween). Se guarda en Supabase, así que se activa o desactiva en todos los dispositivos a la vez. Se puede tener activado junto al modo Navidad si se quiere. Mientras está activo:
+  - Una calabaza junto al nombre RubenceChef, en la cabecera.
+  - Telarañas discretas y muy tenues en las dos esquinas superiores, por encima de la barra de arriba.
+  - Un par de calaveras pequeñas y apagadas, casi invisibles, en las esquinas inferiores.
+  - Unos pocos murciélagos volando despacio de un lado a otro de la pantalla, con las alas aleteando. No se pueden tocar ni molestan al usar la app.
+
+---
+
+## v78
+
+### Cambiado
+- **Los copos de nieve ahora tienen forma de copo de verdad** (seis puntas con sus ramitas), en vez de puntos redondos, y giran despacio al caer.
+
+---
+
+## v77
+
+### Corregido
+- **La nieve no se movía en algunos PC (p. ej. Edge en Windows)**: si Windows tiene desactivados los efectos de animación, el navegador pide "reducir movimiento" y la nevada se quedaba quieta. Ahora en ese caso sigue cayendo, con menos copos y más despacio.
+
+---
+
 ## v76
 
 ### Añadido
