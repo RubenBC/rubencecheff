@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v76';
+const APP_VERSION = 'v79';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -246,7 +246,7 @@ async function loadData() {
       try { const r = await q; if (r.error) throw r.error; return r; }
       catch (e) { console.warn(label + ' no disponible (¿falta crear la tabla?):', e?.message || e); return null; }
     };
-    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes, styleRes, xmasRes] = await Promise.all([
+    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes, styleRes, xmasRes, hallRes] = await Promise.all([
       optional('important_dates',      sb.from('important_dates').select('*').order('event_date')),
       optional('radio_stations',       sb.from('radio_stations').select('*').order('sort_order')),
       optional('radio_hidden_builtin', sb.from('radio_hidden_builtin').select('*')),
@@ -257,6 +257,7 @@ async function loadData() {
       optional('recipes.photo_thumb (miniaturas)', sb.from('recipes').select('photo_thumb').limit(1)),
       optional('radio_stations.style/comment', sb.from('radio_stations').select('style,comment').limit(1)),
       optional('app_settings (navidad)', sb.from('app_settings').select('*').eq('key', 'christmas_mode').maybeSingle()),
+      optional('app_settings (halloween)', sb.from('app_settings').select('*').eq('key', 'halloween_mode').maybeSingle()),
     ]);
     importantDates        = idRes ? (idRes.data || []) : [];
     customStations        = rsRes ? (rsRes.data || []) : [];
@@ -267,6 +268,7 @@ async function loadData() {
     recipeThumbCol        = !!thumbRes;
     radioStyleCols        = !!styleRes;
     if (xmasRes) applyChristmasMode(!!(xmasRes.data && xmasRes.data.value === 'on'));
+    if (hallRes) applyHalloweenMode(!!(hallRes.data && hallRes.data.value === 'on'));
     rebuildOrderState();
 
     await restoreAdminSession();
@@ -2045,7 +2047,7 @@ async function toggleChristmasMode() {
 
 // Nevada: pocos copos, pequeños, lentos y semitransparentes, en un lienzo que
 // no recibe toques (no interfiere con nada). Se pausa con la app en segundo
-// plano y es mínima si el móvil pide "reducir movimiento".
+// plano; si el dispositivo pide "reducir movimiento", cae más lenta y con menos copos.
 let _snow = null;
 function snowStart() {
   if (_snow) return;
@@ -2060,14 +2062,29 @@ function snowStart() {
     W = window.innerWidth; H = window.innerHeight;
     cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = reduce ? 12 : Math.round(Math.min(45, Math.max(20, W * H / 22000)));
+    const n = reduce ? 15 : Math.round(Math.min(45, Math.max(20, W * H / 22000)));
     flakes = Array.from({ length: n }, () => newFlake(true));
   };
   const newFlake = (anywhere) => ({
     x: Math.random() * W, y: anywhere ? Math.random() * H : -6,
-    r: 1 + Math.random() * 2.2, vy: 0.25 + Math.random() * 0.55,
-    drift: Math.random() * Math.PI * 2, a: 0.35 + Math.random() * 0.4,
+    r: 2 + Math.random() * 3.4, vy: 0.25 + Math.random() * 0.55,
+    drift: Math.random() * Math.PI * 2, a: 0.4 + Math.random() * 0.4,
+    rot: Math.random() * Math.PI * 2, rotV: (Math.random() - 0.5) * 0.02,
   });
+  // Silueta sencilla de copo de nieve: 6 brazos con una pequeña rama en cada
+  // uno, girando despacio al caer. Barato de dibujar (son solo trazos).
+  function drawSnowflake(ctx, r, color) {
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(0.6, r * 0.22); ctx.lineCap = 'round';
+    const arm = r * 1.9, mid = arm * 0.55, branch = arm * 0.4;
+    for (let i = 0; i < 6; i++) {
+      ctx.rotate(Math.PI / 3);
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(0, -arm);
+      ctx.moveTo(0, -mid); ctx.lineTo(branch * 0.62, -mid - branch * 0.62);
+      ctx.moveTo(0, -mid); ctx.lineTo(-branch * 0.62, -mid - branch * 0.62);
+      ctx.stroke();
+    }
+  }
   let last = 0, raf = 0, running = true;
   const frame = (t) => {
     raf = requestAnimationFrame(frame);
@@ -2076,12 +2093,18 @@ function snowStart() {
     ctx.clearRect(0, 0, W, H);
     const dark = document.body.classList.contains('dark');
     for (const f of flakes) {
-      if (!reduce) { f.y += f.vy * dt; f.drift += 0.01 * dt; f.x += Math.sin(f.drift) * 0.3 * dt; }
-      if (f.y > H + 6) Object.assign(f, newFlake(false));
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-      ctx.fillStyle = dark ? `rgba(255,255,255,${f.a})` : `rgba(160,200,215,${f.a + 0.15})`;
-      ctx.fill();
+      // Con "reducir movimiento" (Windows con animaciones desactivadas, p. ej. en
+      // Edge) la nieve sigue cayendo, pero más despacio y sin balanceo
+      const sp = reduce ? 0.5 : 1;
+      f.y += f.vy * dt * sp;
+      if (!reduce) { f.drift += 0.01 * dt; f.x += Math.sin(f.drift) * 0.3 * dt; }
+      if (!reduce) f.rot += f.rotV * dt;
+      if (f.y > H + 10) Object.assign(f, newFlake(false));
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.rot);
+      drawSnowflake(ctx, f.r, dark ? `rgba(255,255,255,${f.a})` : `rgba(140,185,205,${f.a + 0.2})`);
+      ctx.restore();
     }
   };
   const onVis = () => {
@@ -2099,6 +2122,124 @@ function snowStop() { if (_snow) { _snow.stop(); _snow = null; } }
 // Aplicar al abrir según lo último conocido en este dispositivo (luego se
 // confirma con la base de datos al cargar)
 try { if (localStorage.getItem('rubencechef-xmas') === 'on') setTimeout(() => applyChristmasMode(true), 0); } catch (e) {}
+
+// ─── Modo Halloween ─────────
+// Igual que el modo Navidad, pero con sus propios adornos: calabaza en la
+// cabecera, telarañas en las esquinas y unos murciélagos volando despacio
+// por la pantalla. Puede activarse a la vez que el modo Navidad si se quiere.
+let halloweenMode = false;
+function applyHalloweenMode(on) {
+  halloweenMode = !!on;
+  document.body.classList.toggle('halloween', halloweenMode);
+  try { localStorage.setItem('rubencechef-halloween', halloweenMode ? 'on' : 'off'); } catch (e) {}
+  if (halloweenMode) batsStart(); else batsStop();
+  renderHalloweenToggle();
+}
+
+function renderHalloweenToggle() {
+  const holder = document.getElementById('adminHalloweenRow');
+  if (!holder) return;
+  holder.innerHTML = `
+    <button class="xmas-toggle halloween-toggle${halloweenMode ? ' on' : ''}" id="halloweenToggleBtn" onclick="toggleHalloweenMode()" role="switch" aria-checked="${halloweenMode}">
+      <span class="xmas-toggle-emoji">🎃</span>
+      <span class="xmas-toggle-text"><b>Modo Halloween</b><small>${halloweenMode ? 'Activado en todos los dispositivos' : 'Calabaza, telarañas y murciélagos volando'}</small></span>
+      <span class="xmas-switch"><span></span></span>
+    </button>`;
+}
+
+async function toggleHalloweenMode() {
+  const next = !halloweenMode;
+  applyHalloweenMode(next); // se ve al momento
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: 'halloween_mode', value: next ? 'on' : 'off' });
+    if (error) throw error;
+    showToast(next ? '🎃 Modo Halloween activado' : 'Modo Halloween desactivado');
+  } catch (e) {
+    applyHalloweenMode(!next); // no se guardó: se deshace
+    if (!handleAuthError(e)) showToast('No se pudo guardar el modo Halloween');
+  }
+}
+
+// Murciélagos: silueta sencilla (cuerpo + alas curvas) que aletea al volar,
+// cruzando la pantalla despacio de un lado a otro a distinta altura. Pocos,
+// pequeños y semitransparentes: no interfieren ni se pueden tocar.
+let _bats = null;
+function batsStart() {
+  if (_bats) return;
+  const cv = document.createElement('canvas');
+  cv.id = 'batsCanvas';
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, dpr = 1, bats = [];
+  const newBat = (anywhere) => {
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    return {
+      x: anywhere ? Math.random() * W : (dir === 1 ? -30 : W + 30),
+      y: 40 + Math.random() * Math.min(H * 0.55, 420),
+      s: 9 + Math.random() * 7, dir, speed: 0.28 + Math.random() * 0.32,
+      bob: Math.random() * Math.PI * 2, flapT: Math.random() * Math.PI * 2,
+      a: 0.45 + Math.random() * 0.3,
+    };
+  };
+  const resize = () => {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = reduce ? 2 : Math.round(Math.min(6, Math.max(3, W / 260)));
+    bats = Array.from({ length: n }, () => newBat(true));
+  };
+  function drawBat(s, flap) {
+    const wingY = -s * 0.32 * flap;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(-s * 0.55, wingY - s * 0.18, -s * 1.15, wingY);
+    ctx.quadraticCurveTo(-s * 0.72, s * 0.06, -s * 0.32, s * 0.04);
+    ctx.quadraticCurveTo(-s * 0.12, s * 0.14, 0, 0);
+    ctx.quadraticCurveTo(s * 0.12, s * 0.14, s * 0.32, s * 0.04);
+    ctx.quadraticCurveTo(s * 0.72, s * 0.06, s * 1.15, wingY);
+    ctx.quadraticCurveTo(s * 0.55, wingY - s * 0.18, 0, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.09, -s * 0.02); ctx.lineTo(-s * 0.15, -s * 0.16); ctx.lineTo(-s * 0.02, -s * 0.06); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.09, -s * 0.02); ctx.lineTo(s * 0.15, -s * 0.16); ctx.lineTo(s * 0.02, -s * 0.06); ctx.closePath(); ctx.fill();
+  }
+  let last = 0, raf = 0, running = true;
+  const frame = (t) => {
+    raf = requestAnimationFrame(frame);
+    if (t - last < 40) return; // ~25 fps
+    const dt = last ? Math.min(3, (t - last) / 40) : 1; last = t;
+    ctx.clearRect(0, 0, W, H);
+    const dark = document.body.classList.contains('dark');
+    ctx.fillStyle = dark ? 'rgba(210,210,225,0.55)' : 'rgba(35,30,40,0.55)';
+    for (const b of bats) {
+      if (!reduce) { b.x += b.dir * b.speed * dt; b.bob += 0.03 * dt; b.flapT += 0.22 * dt; }
+      if (b.x < -40 || b.x > W + 40) Object.assign(b, newBat(false));
+      const flap = 0.55 + 0.45 * Math.sin(b.flapT);
+      const y = b.y + Math.sin(b.bob) * 10;
+      ctx.save();
+      ctx.globalAlpha = b.a;
+      ctx.translate(b.x, y);
+      if (b.dir < 0) ctx.scale(-1, 1);
+      drawBat(b.s, flap);
+      ctx.restore();
+    }
+  };
+  const onVis = () => {
+    if (document.hidden && running) { cancelAnimationFrame(raf); running = false; }
+    else if (!document.hidden && !running) { running = true; last = 0; raf = requestAnimationFrame(frame); }
+  };
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', onVis);
+  resize();
+  raf = requestAnimationFrame(frame);
+  _bats = { cv, stop: () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', onVis); cv.remove(); } };
+}
+function batsStop() { if (_bats) { _bats.stop(); _bats = null; } }
+
+try { if (localStorage.getItem('rubencechef-halloween') === 'on') setTimeout(() => applyHalloweenMode(true), 0); } catch (e) {}
 
 // ─── Panel de administración: pestañas ─────────
 const ADMIN_TABS = [
@@ -2165,6 +2306,7 @@ function renderAdmin() {
 
   renderAdminTabs();
   renderChristmasToggle();
+  renderHalloweenToggle();
   if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
   if (adminTab === 'prod')   { renderProdCategoriesAdmin(); return; }
   if (adminTab === 'radio')  { renderRadioAdmin(); return; }
@@ -4175,6 +4317,7 @@ async function refreshDataSilently() {
       sb.from('radio_stations').select('*').order('sort_order'),
       sb.from('radio_hidden_builtin').select('*'),
       sb.from('app_settings').select('*').eq('key', 'christmas_mode').maybeSingle(),
+      sb.from('app_settings').select('*').eq('key', 'halloween_mode').maybeSingle(),
     ]);
     // Si algo falla (sin cobertura, tabla inexistente...), no se toca nada.
     if (res.slice(0, 7).some(r => r.error)) return;
@@ -4201,6 +4344,7 @@ async function refreshDataSilently() {
     if (!res[9].error)  customStations        = res[9].data || [];
     if (!res[10].error) hiddenBuiltinStations = (res[10].data || []).map(r => r.id);
     if (!res[11].error) applyChristmasMode(!!(res[11].data && res[11].data.value === 'on'));
+    if (!res[12].error) applyHalloweenMode(!!(res[12].data && res[12].data.value === 'on'));
     _lastDataRefresh = Date.now();
 
     // Repintar lo que se esté viendo
