@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v81
+
+### Añadido
+- **Melodía de Halloween para el timer**: con el Modo Halloween activado, suena el inicio del "Dies Irae" (canto gregoriano medieval, de dominio público), la frase que el cine lleva un siglo usando como "la melodía del mal". Es más grave y más lenta que las demás. Si tienes los dos modos activados a la vez, suena la de Navidad.
+
+---
+
 ## v80
 
 ### Cambiado
