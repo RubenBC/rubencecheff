@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v79';
+const APP_VERSION = 'v80';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -2176,10 +2176,10 @@ function batsStart() {
     const dir = Math.random() < 0.5 ? 1 : -1;
     return {
       x: anywhere ? Math.random() * W : (dir === 1 ? -30 : W + 30),
-      y: 40 + Math.random() * Math.min(H * 0.55, 420),
-      s: 9 + Math.random() * 7, dir, speed: 0.28 + Math.random() * 0.32,
+      y: 40 + Math.random() * Math.min(H * 0.85, 640),
+      s: 8 + Math.random() * 10, dir, speed: 0.26 + Math.random() * 0.38,
       bob: Math.random() * Math.PI * 2, flapT: Math.random() * Math.PI * 2,
-      a: 0.45 + Math.random() * 0.3,
+      a: 0.5 + Math.random() * 0.35,
     };
   };
   const resize = () => {
@@ -2187,7 +2187,7 @@ function batsStart() {
     W = window.innerWidth; H = window.innerHeight;
     cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = reduce ? 2 : Math.round(Math.min(6, Math.max(3, W / 260)));
+    const n = reduce ? 4 : Math.round(Math.min(14, Math.max(7, W / 110)));
     bats = Array.from({ length: n }, () => newBat(true));
   };
   function drawBat(s, flap) {
