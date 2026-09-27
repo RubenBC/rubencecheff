@@ -4,6 +4,27 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v76
+
+### Añadido
+- **Modo Navidad**, con un interruptor en Admin (debajo de los contadores). Se guarda en Supabase, así que se activa o desactiva en todos los dispositivos a la vez. Mientras está activo:
+  - Nevada discreta en pantalla: pocos copos, pequeños y lentos, que no se pueden tocar ni tapan botones. Se para con la app en segundo plano y casi desaparece si el móvil tiene activado "reducir movimiento".
+  - El nombre RubenceChef se ve más grande y con un gorro de Papá Noel.
+  - El timer suena con el estribillo de "Jingle Bells" (dominio público).
+
+### Corregido
+- En móviles estrechos (375 px o menos), con la sesión de admin iniciada y avisos activos, el botón Admin de la cabecera se salía por la derecha. Ahora en pantallas pequeñas se queda solo con el icono.
+
+---
+
+## v75 — Cuarta auditoría
+
+### Corregido
+- **Desplazamiento de las páginas**: una regla de estilo hacía que la página se desplazara dentro del `<body>` en vez de en la ventana. Por eso la app no podía controlar la posición: al abrir un plato o una producción desde abajo de la lista, el detalle se abría a media página (o al final) en vez de arriba, y al volver atrás con el botón del móvil perdías el punto de la lista donde estabas. Ahora el detalle siempre se abre arriba y al volver recuperas tu posición en la lista.
+- De paso, con el desplazamiento en la ventana el navegador del móvil puede volver a esconder la barra de direcciones al bajar (más espacio útil).
+
+---
+
 ## v74
 
 ### Añadido
