@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v82
+
+### Cambiado
+- **Los modos Navidad y Halloween se notan mucho más:**
+  - **Franja de color en la cabecera**: se ve nada más abrir la app, sin tocar los colores de los botones ni del resto de la interfaz (helado-verdoso en Navidad, naranja-lila en Halloween; con los dos modos a la vez, una mezcla de ambos). Se adapta también al modo oscuro.
+  - **Iconos de cabecera más grandes** (el gorro y la calabaza crecen) **y ahora hay varios**, no uno solo: en Navidad, un par de copos de nieve sueltos junto al gorro; en Halloween, un par de murciélagos sueltos junto a la calabaza.
+  - **El título de la pestaña del navegador** lleva ahora 🎄 y/o 🎃 delante de "RubenceChef" mientras esos modos estén activos, así se nota el modo aunque tengas otra pestaña delante. Sigue combinándose bien con el aviso "⏰ ¡Tiempo!" cuando suena un timer.
+
+---
+
 ## v81
 
 ### Añadido
