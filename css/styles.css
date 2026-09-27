@@ -1241,3 +1241,41 @@ body.xmas .xmas-hat { left: -12px; top: -17px; }
   body.xmas .xmas-hat svg { width: 30px; height: 24px; }
   body.xmas .xmas-hat { left: -10px; top: -15px; }
 }
+
+/* ═══════════════════════════════════════
+   v79 — MODO HALLOWEEN (se activa desde Admin, independiente del de Navidad)
+═══════════════════════════════════════ */
+.halloween-pumpkin { display: none; }
+body.halloween .halloween-pumpkin {
+  display: inline-flex; position: absolute; left: -30px; top: -1px;
+  pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+/* Si los dos modos están activos a la vez, calabaza y gorro se reparten
+   arriba en vez de superponerse */
+body.halloween.xmas .halloween-pumpkin { left: -46px; top: -13px; }
+body.halloween.xmas .xmas-hat { left: 4px; }
+@media (max-width: 400px) {
+  body.halloween .halloween-pumpkin svg { width: 22px; height: 19px; }
+  body.halloween .halloween-pumpkin { left: -26px; }
+}
+
+#batsCanvas { position: fixed; inset: 0; z-index: 94; pointer-events: none; }
+
+.cobweb { display: none; }
+body.halloween .cobweb {
+  /* Por encima de la barra superior (como una telaraña real en la esquina del
+     marco): pequeña y muy tenue para no tapar los botones de esa esquina. */
+  display: block; position: fixed; top: 0; width: 46px; height: 46px; z-index: 101;
+  color: var(--text2); opacity: 0.38; pointer-events: none;
+}
+.cobweb-left { left: 0; }
+.cobweb-right { right: 0; }
+body.dark .cobweb { color: #9aa5a4; opacity: 0.3; }
+
+.halloween-skull { display: none; }
+body.halloween .halloween-skull {
+  display: block; position: fixed; bottom: calc(70px + env(safe-area-inset-bottom)); z-index: 40;
+  font-size: 18px; opacity: 0.22; pointer-events: none; filter: grayscale(1);
+}
+.halloween-skull-l { left: 10px; transform: rotate(-8deg); }
+.halloween-skull-r { right: 10px; transform: rotate(8deg); }
