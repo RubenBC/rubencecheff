@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v80
+
+### Cambiado
+- **Más murciélagos** en el Modo Halloween (antes 3-6, ahora 7-14 según el ancho de pantalla), repartidos por más altura y ahora también sobre las recetas, no solo por la zona de arriba.
+- **Telarañas de las esquinas mucho más visibles**: más grandes, con trazo más grueso y más oscuras, tanto en claro como en oscuro.
+
+---
+
 ## v79
 
 ### Añadido
