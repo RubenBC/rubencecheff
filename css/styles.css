@@ -1195,16 +1195,28 @@ body.dark .float-back-btn { background: rgba(26,35,34,0.88); }
 ═══════════════════════════════════════ */
 .brand-name { position: relative; }
 .xmas-hat { display: none; }
-body.xmas .brand-name { font-size: 22px; }
+body.xmas .brand-name { font-size: 23px; }
 body.xmas .xmas-hat {
-  display: block; position: absolute; left: -9px; top: -15px;
+  display: block; position: absolute; left: -13px; top: -19px;
   transform: rotate(-22deg); transform-origin: 30% 90%;
   pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
 }
+body.xmas .xmas-hat svg { width: 36px; height: 29px; }
 @media (max-width: 400px) {
   body.xmas .brand-name { font-size: 19px; }
-  body.xmas .xmas-hat svg { width: 26px; height: 21px; }
-  body.xmas .xmas-hat { left: -8px; top: -13px; }
+  body.xmas .xmas-hat svg { width: 28px; height: 23px; }
+  body.xmas .xmas-hat { left: -10px; top: -15px; }
+}
+/* Un par de copos más, sueltos junto al nombre: dan la sensación de "varios",
+   no de un solo adorno suelto */
+.xmas-deco { display: none; }
+body.xmas .xmas-deco { display: inline-block; position: absolute; pointer-events: none; font-size: 13px; }
+body.xmas .xmas-deco-flake1 { right: -16px; top: -4px; }
+body.xmas .xmas-deco-flake2 { right: -6px; bottom: -6px; font-size: 10px; opacity: .85; }
+@media (max-width: 400px) {
+  body.xmas .xmas-deco { font-size: 11px; }
+  body.xmas .xmas-deco-flake1 { right: -13px; }
+  body.xmas .xmas-deco-flake2 { right: -4px; }
 }
 /* Nevada: por encima del contenido pero por debajo de las barras y ventanas,
    y sin recibir toques */
@@ -1234,30 +1246,43 @@ body.xmas .xmas-hat {
   #adminBtn { padding: 7px 10px; }
   .topbar-row > div:last-child { gap: 6px; }
 }
-/* Gorro algo más grande y bien asentado sobre la "R" */
-body.xmas .xmas-hat svg { width: 34px; height: 27px; }
-body.xmas .xmas-hat { left: -12px; top: -17px; }
-@media (max-width: 400px) {
-  body.xmas .xmas-hat svg { width: 30px; height: 24px; }
-  body.xmas .xmas-hat { left: -10px; top: -15px; }
-}
+
+/* Franja de color detrás de la barra de arriba: se nota nada más abrir la
+   app, sin tocar los colores de los botones ni del resto de la interfaz. */
+body.xmas .topbar { background: linear-gradient(120deg, rgba(213,243,240,0.94), rgba(224,247,232,0.94)); }
+body.dark.xmas .topbar { background: linear-gradient(120deg, rgba(9,46,42,0.92), rgba(10,40,24,0.92)); }
 
 /* ═══════════════════════════════════════
    v79 — MODO HALLOWEEN (se activa desde Admin, independiente del de Navidad)
 ═══════════════════════════════════════ */
 .halloween-pumpkin { display: none; }
 body.halloween .halloween-pumpkin {
-  display: inline-flex; position: absolute; left: -30px; top: -1px;
+  display: inline-flex; position: absolute; left: -34px; top: -4px;
   pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
 }
+body.halloween .halloween-pumpkin svg { width: 30px; height: 26px; }
+/* Un par de murciélagos sueltos junto al nombre, además de la calabaza */
+.halloween-deco { display: none; }
+body.halloween .halloween-deco { display: inline-block; position: absolute; pointer-events: none; font-size: 13px; }
+body.halloween .halloween-deco-bat1 { right: -14px; top: -10px; transform: rotate(-12deg); }
+body.halloween .halloween-deco-bat2 { right: 10px; bottom: -7px; font-size: 10px; opacity: .85; transform: rotate(10deg) scaleX(-1); }
 /* Si los dos modos están activos a la vez, calabaza y gorro se reparten
    arriba en vez de superponerse */
-body.halloween.xmas .halloween-pumpkin { left: -46px; top: -13px; }
-body.halloween.xmas .xmas-hat { left: 4px; }
+body.halloween.xmas .halloween-pumpkin { left: -54px; top: -16px; }
+body.halloween.xmas .xmas-hat { left: 8px; }
 @media (max-width: 400px) {
-  body.halloween .halloween-pumpkin svg { width: 22px; height: 19px; }
-  body.halloween .halloween-pumpkin { left: -26px; }
+  body.halloween .halloween-pumpkin svg { width: 25px; height: 22px; }
+  body.halloween .halloween-pumpkin { left: -28px; }
+  body.halloween .halloween-deco { font-size: 11px; }
+  body.halloween .halloween-deco-bat2 { right: 6px; }
 }
+
+/* Franja de color detrás de la barra de arriba, estilo Halloween */
+body.halloween .topbar { background: linear-gradient(120deg, rgba(255,238,220,0.94), rgba(243,225,255,0.94)); }
+body.dark.halloween .topbar { background: linear-gradient(120deg, rgba(46,20,8,0.92), rgba(36,14,46,0.92)); }
+/* Los dos modos a la vez: una franja que mezcla ambos */
+body.halloween.xmas .topbar { background: linear-gradient(120deg, rgba(213,243,240,0.94), rgba(255,232,222,0.94)); }
+body.dark.halloween.xmas .topbar { background: linear-gradient(120deg, rgba(9,46,42,0.92), rgba(46,20,8,0.92)); }
 
 #batsCanvas { position: fixed; inset: 0; z-index: 94; pointer-events: none; }
 
