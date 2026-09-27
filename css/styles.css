@@ -38,7 +38,14 @@ body.dark {
    RESET
 ═══════════════════════════════════════ */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-html, body { height: 100%; overflow-x: hidden; overscroll-behavior-y: contain; }
+/* Sin height:100%: con él, el <body> se convertía en la zona que hace scroll
+   (en vez de la ventana) y la app no podía subir arriba al abrir un plato ni
+   recordar por dónde ibas en la lista. Ahora hace scroll la ventana, como debe. */
+/* overflow-x solo en <html> (se aplica a la ventana): si también se pone en
+   <body>, este pasa a ser "contenedor de scroll" y la barra superior deja de
+   quedarse fija arriba al bajar. */
+html { overflow-x: hidden; overscroll-behavior-y: contain; }
+body { min-height: 100vh; min-height: 100dvh; overflow-x: clip; }
 body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 
 /* ═══════════════════════════════════════
@@ -1182,3 +1189,55 @@ body.dark .radio-card.error .radio-card-badge { color: #690005; }
 .float-back-btn.show { opacity: 1; transform: none; pointer-events: auto; }
 .float-back-btn .material-symbols-outlined { font-size: 22px; }
 body.dark .float-back-btn { background: rgba(26,35,34,0.88); }
+
+/* ═══════════════════════════════════════
+   v76 — MODO NAVIDAD (se activa desde Admin)
+═══════════════════════════════════════ */
+.brand-name { position: relative; }
+.xmas-hat { display: none; }
+body.xmas .brand-name { font-size: 22px; }
+body.xmas .xmas-hat {
+  display: block; position: absolute; left: -9px; top: -15px;
+  transform: rotate(-22deg); transform-origin: 30% 90%;
+  pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
+}
+@media (max-width: 400px) {
+  body.xmas .brand-name { font-size: 19px; }
+  body.xmas .xmas-hat svg { width: 26px; height: 21px; }
+  body.xmas .xmas-hat { left: -8px; top: -13px; }
+}
+/* Nevada: por encima del contenido pero por debajo de las barras y ventanas,
+   y sin recibir toques */
+#snowCanvas { position: fixed; inset: 0; z-index: 95; pointer-events: none; }
+
+/* Interruptor en Admin */
+.xmas-toggle {
+  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--outline-light); border-radius: 16px;
+  padding: 10px 14px; margin-bottom: 14px; font-family: 'Nunito', sans-serif; color: var(--text);
+}
+.xmas-toggle.on { border-color: #D62828; background: linear-gradient(90deg, rgba(214,40,40,0.08), rgba(20,120,60,0.08)); }
+.xmas-toggle-emoji { font-size: 24px; }
+.xmas-toggle-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.xmas-toggle-text b { font-size: 14.5px; }
+.xmas-toggle-text small { font-size: 11.5px; color: var(--text2); }
+.xmas-switch { width: 42px; height: 24px; border-radius: 12px; background: var(--outline-light); position: relative; flex-shrink: 0; transition: background .2s; }
+.xmas-switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.xmas-toggle.on .xmas-switch { background: #D62828; }
+.xmas-toggle.on .xmas-switch span { transform: translateX(18px); }
+/* Cabecera en móviles estrechos: con sesión de admin y avisos, el botón Admin
+   se salía por la derecha (≤375 px). Ahora el botón queda solo con el icono. */
+.app-brand { min-width: 0; }
+.brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) {
+  #adminBtn .btn-label { display: none; }
+  #adminBtn { padding: 7px 10px; }
+  .topbar-row > div:last-child { gap: 6px; }
+}
+/* Gorro algo más grande y bien asentado sobre la "R" */
+body.xmas .xmas-hat svg { width: 34px; height: 27px; }
+body.xmas .xmas-hat { left: -12px; top: -17px; }
+@media (max-width: 400px) {
+  body.xmas .xmas-hat svg { width: 30px; height: 24px; }
+  body.xmas .xmas-hat { left: -10px; top: -15px; }
+}
