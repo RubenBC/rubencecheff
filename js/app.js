@@ -2,6 +2,8 @@
 //   SUPABASE
 // ═══════════════════════════════════════
 const { createClient } = supabase;
+// Título original de la pestaña, para poder añadirle el emoji de temporada sin perderlo
+const RC_ORIGINAL_TITLE = document.title;
 const sb = createClient(
   'https://rswzirygkeyainerfzjx.supabase.co',
   'sb_publishable_Uno7xmeQJLmvtcyZvtZfQw_IkpEth_y'
@@ -10,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v81';
+const APP_VERSION = 'v82';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -2019,6 +2021,18 @@ function applyChristmasMode(on) {
   try { localStorage.setItem('rubencechef-xmas', christmasMode ? 'on' : 'off'); } catch (e) {}
   if (christmasMode) snowStart(); else snowStop();
   renderChristmasToggle();
+  updateSeasonalTitle();
+}
+
+// Pestaña del navegador: añade 🎄 y/o 🎃 delante del título mientras esos
+// modos estén activos, sin perder el título original ni el aviso "¡Tiempo!"
+// del timer cuando suena (se lo pasamos a timer.js, que es quien lo controla).
+function updateSeasonalTitle() {
+  const emoji = (typeof christmasMode !== 'undefined' && christmasMode ? '🎄 ' : '') +
+                (typeof halloweenMode !== 'undefined' && halloweenMode ? '🎃 ' : '');
+  const t = emoji + RC_ORIGINAL_TITLE;
+  if (typeof window.setBaseTitle === 'function') window.setBaseTitle(t);
+  else document.title = t; // timer.js aún no ha cargado; se corrige en cuanto lo haga
 }
 
 function renderChristmasToggle() {
@@ -2130,11 +2144,12 @@ try { if (localStorage.getItem('rubencechef-xmas') === 'on') setTimeout(() => ap
 let halloweenMode = false;
 function applyHalloweenMode(on) {
   halloweenMode = !!on;
-window.RC_HALLOWEEN = halloweenMode;
+  window.RC_HALLOWEEN = halloweenMode;
   document.body.classList.toggle('halloween', halloweenMode);
   try { localStorage.setItem('rubencechef-halloween', halloweenMode ? 'on' : 'off'); } catch (e) {}
   if (halloweenMode) batsStart(); else batsStop();
   renderHalloweenToggle();
+  updateSeasonalTitle();
 }
 
 function renderHalloweenToggle() {

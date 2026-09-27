@@ -24,6 +24,7 @@
   let tickId = null, worker = null, vibId = null, lastPre = 0;
   let audioCtx = null, master = null, sched = null, wakeLock = null;
   let baseTitle = document.title;
+  window.setBaseTitle = (t) => { baseTitle = t; updateTitle(); }; // usado por el modo Navidad/Halloween
 
   /* ───────── utilidades ───────── */
   function pad(n) { return String(n).padStart(2, '0'); }
