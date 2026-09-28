@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v82';
+const APP_VERSION = 'v84';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -21,6 +21,9 @@ function versionMismatch() {
   return !!m && ('v' + m[1]) !== APP_VERSION;
 }
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
+// Cuenta compartida del equipo de cocina (se crea en Supabase → Authentication → Users).
+// La app pide su contraseña al abrir; sin sesión no se carga ningún dato.
+const KITCHEN_EMAIL = 'cocina@rubencechef.app';
 
 const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
 
@@ -82,13 +85,19 @@ function handleAuthError(error) {
     msg.includes('row-level security') || msg.includes('jwt') ||
     msg.includes('not authenticated') || msg.includes('refresh token');
   if (!isAuth) return false;
+  if (!isAdmin) {
+    // Sesión de cocina: o se ha caducado/revocado, o se intentó algo que solo puede el admin.
+    showToast('No tienes permiso para hacer eso, o la sesión ha caducado.');
+    sb.auth.getSession().then(r => { if (!r.data.session) showAuthGate('La sesión ha caducado. Introduce la contraseña.'); }).catch(() => {});
+    return true;
+  }
   isAdmin = false;
-  try { sb.auth.signOut(); } catch(e) {}
+  dropAdminSession(); // cierra la de admin y vuelve a la de cocina
   document.getElementById('adminBtn').innerHTML =
     `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
   document.getElementById('adminBtn').classList.remove('admin-on');
   updateBadges();
-  showToast('Tu sesión ha caducado. Inicia sesión de nuevo.');
+  showToast('Tu sesión de administrador ha caducado. Inicia sesión de nuevo.');
   // Se reabre el login sin mover de pantalla (para no perder lo que estabas haciendo)
   setTimeout(() => { toggleAdmin(); _openAdminAfterLogin = (currentPage === 'admin'); }, 600);
   return true;
@@ -316,7 +325,7 @@ async function loadData() {
         <span class="material-symbols-outlined">${isDb ? 'wifi_off' : 'error'}</span>
         ${escapeHtml(title)}
         ${msg ? `<div style="font-size:11.5px; color:var(--text2); margin-top:8px; max-width:320px; word-break:break-word;">Detalle: ${escapeHtml(msg.slice(0, 200))}</div>` : ''}
-        <button class="btn-pill filled" style="margin-top:14px;" onclick="loadData()">
+        <button class="btn-pill filled" style="margin-top:14px;" onclick="startApp()">
           <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> Reintentar
         </button>
       </div>`;
@@ -1608,7 +1617,7 @@ async function adminLogout() {
     confirmText: 'Cerrar sesión', icon: 'logout',
   });
   if (!ok) return;
-  try { await sb.auth.signOut(); } catch(e) {}
+  await dropAdminSession(); // cierra la de admin y vuelve a la de cocina (o pide la contraseña si no se puede)
   isAdmin = false;
   document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
   document.getElementById('adminBtn').classList.remove('admin-on');
@@ -1674,7 +1683,12 @@ async function doLogin() {
   if (!password) { if (err) { err.textContent = 'Introduce la contraseña'; err.style.display = ''; } return; }
   if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
   try {
-    const { error } = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password });
+    // Se guarda la sesión de cocina para volver a ella al cerrar la de admin
+    try { saveKitchenBackup((await sb.auth.getSession()).data.session); } catch (e2) {}
+    _authBusy = true;
+    let error;
+    try { ({ error } = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password })); }
+    finally { _authBusy = false; }
     if (error) throw error;
     isAdmin = true;
     closeLoginModal();
@@ -1700,10 +1714,131 @@ function activateAdminUI() {
   if (currentPage === 'fichas') renderFichas();
 }
 
+// ─── Acceso de la cocina ─────────
+// La app no carga ningún dato hasta que hay sesión iniciada. El equipo de cocina
+// entra con una contraseña común (cuenta KITCHEN_EMAIL); la sesión se queda
+// guardada en ese dispositivo, así que en el monitor fijo se escribe una vez.
+// El admin tiene su propia cuenta; al cerrar la de admin se vuelve a la de cocina.
+let _authBusy = false; // true mientras se cambia de usuario, para no confundirlo con una sesión caducada
+const KITCHEN_BACKUP_KEY = 'rubencechef-kitchen-session';
+
+function saveKitchenBackup(session) {
+  try {
+    if (session && session.user && session.user.email === KITCHEN_EMAIL) {
+      localStorage.setItem(KITCHEN_BACKUP_KEY, JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
+    }
+  } catch (e) {}
+}
+
+async function restoreKitchenSession() {
+  try {
+    const raw = localStorage.getItem(KITCHEN_BACKUP_KEY);
+    if (!raw) return false;
+    const { access_token, refresh_token } = JSON.parse(raw);
+    const { data, error } = await sb.auth.setSession({ access_token, refresh_token });
+    if (error || !data || !data.session) { localStorage.removeItem(KITCHEN_BACKUP_KEY); return false; }
+    saveKitchenBackup(data.session); // los tokens se han renovado
+    return true;
+  } catch (e) { return false; }
+}
+
+// Cierra la sesión de admin y vuelve a la de cocina; si no se puede, pide la contraseña.
+async function dropAdminSession() {
+  _authBusy = true;
+  try {
+    try { await sb.auth.signOut(); } catch (e) {}
+    const ok = await restoreKitchenSession();
+    if (!ok) showAuthGate();
+  } finally { _authBusy = false; }
+}
+
+function initAuthListener() {
+  // Si la sesión se pierde (contraseña cambiada, cuenta borrada, sesión revocada): pantalla de acceso
+  try {
+    sb.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' && !_authBusy) showAuthGate('La sesión ha caducado. Introduce la contraseña.');
+    });
+  } catch (e) {}
+}
+
+function showAuthGate(msg) {
+  const g = document.getElementById('authGate');
+  if (!g) return;
+  g.style.display = 'flex';
+  document.body.classList.add('gated');
+  const u = document.getElementById('gateUser'); if (u) u.value = KITCHEN_EMAIL;
+  const err = document.getElementById('gateError');
+  if (err) { err.textContent = msg || ''; err.style.display = msg ? '' : 'none'; }
+  const btn = document.getElementById('gateBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+  // Sin datos de la sesión anterior detrás de la pantalla
+  recipes = []; productions = []; recipeProductions = []; comments = []; weights = []; brines = [];
+  productionCategories = []; importantDates = []; orderItems = []; customStations = []; isAdmin = false;
+  const ab = document.getElementById('adminBtn');
+  if (ab) { ab.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`; ab.classList.remove('admin-on'); }
+  ['adminAddRecipeRow', 'adminAddProductionRow', 'addWeightBtn', 'addBrineBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  setTimeout(() => { const i = document.getElementById('gateInput'); if (i) { i.value = ''; i.focus(); } }, 120);
+}
+
+function hideAuthGate() {
+  const g = document.getElementById('authGate');
+  if (g) g.style.display = 'none';
+  document.body.classList.remove('gated');
+}
+
+function toggleGatePw() {
+  const i = document.getElementById('gateInput'), ic = document.getElementById('gateEyeIcon');
+  if (!i) return;
+  const show = i.type === 'password';
+  i.type = show ? 'text' : 'password';
+  if (ic) ic.textContent = show ? 'visibility_off' : 'visibility';
+}
+
+async function gateLogin() {
+  const input = document.getElementById('gateInput'), err = document.getElementById('gateError'), btn = document.getElementById('gateBtn');
+  const password = input ? input.value : '';
+  const fail = (t) => { if (err) { err.textContent = t; err.style.display = ''; } if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; } if (input) { input.select(); } };
+  if (!password) { fail('Introduce la contraseña'); return; }
+  if (err) err.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
+  try {
+    _authBusy = true;
+    // Primero la cuenta de cocina; si la contraseña no es esa, se prueba como admin
+    // (así el admin también puede entrar directamente desde esta pantalla)
+    let { data, error } = await sb.auth.signInWithPassword({ email: KITCHEN_EMAIL, password });
+    if (error && /invalid login credentials/i.test(error.message || '')) {
+      ({ data, error } = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password }));
+    }
+    if (error) {
+      if (error.status === 429 || /rate limit|too many/i.test(error.message || '')) fail('Demasiados intentos. Espera un minuto.');
+      else if (/invalid login credentials/i.test(error.message || '')) fail('Contraseña incorrecta');
+      else fail('No se pudo conectar. Comprueba la conexión.');
+      return;
+    }
+    saveKitchenBackup(data && data.session);
+    hideAuthGate();
+    if (currentPage === 'admin') showPage('recipes', document.getElementById('nav-recipes'));
+    loadData();
+  } catch (e) {
+    fail('No se pudo conectar. Comprueba la conexión.');
+  } finally { _authBusy = false; }
+}
+
+// Arranque: sin sesión no se carga nada; con sesión (o sin red pero con sesión guardada), se cargan los datos
+async function startApp() {
+  let session = null, err = null;
+  try { const r = await sb.auth.getSession(); session = r.data && r.data.session; err = r.error; } catch (e) { err = e; }
+  if (session) { hideAuthGate(); loadData(); return; }
+  let hasStored = false;
+  try { hasStored = Object.keys(localStorage).some(k => /^sb-.+-auth-token$/.test(k)); } catch (e) {}
+  if (err && hasStored && navigator.onLine === false) { hideAuthGate(); loadData(); return; } // sin conexión: saldrá el aviso con "Reintentar"
+  showAuthGate();
+}
+
 async function restoreAdminSession() {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (session) {
+    // Ahora también existe la sesión de cocina: solo es admin quien entró con la cuenta de admin
+    if (session && session.user && session.user.email === ADMIN_EMAIL) {
       isAdmin = true;
       activateAdminUI();
     }
@@ -3184,9 +3319,13 @@ async function openEventsModal() {
     importantDates = importantDates.map(d => unseenIds.includes(d.id) ? { ...d, seen: true } : d);
     renderEventsButton();
     try {
-      const { data, error } = await sb.from('important_dates').update({ seen: true }).in('id', unseenIds).select();
-      if (error) console.warn('No se pudo marcar como visto:', error.message);
-      else if (!data || data.length === 0) console.warn('No se pudo marcar como visto: revisa la sesión (row-level security)');
+      // El personal no puede editar la tabla: lo marca una función de la base de datos.
+      // Si esa función aún no existe (no se ha ejecutado el SQL de seguridad), se usa el método anterior.
+      let { error } = await sb.rpc('mark_events_seen', { ids: unseenIds.map(String) });
+      if (error) {
+        const r2 = await sb.from('important_dates').update({ seen: true }).in('id', unseenIds).select();
+        if (r2.error) console.warn('No se pudo marcar como visto:', r2.error.message);
+      }
     } catch (e) { console.warn('No se pudo marcar como visto:', e); }
   }
 }
@@ -4296,7 +4435,8 @@ const _vEl = document.getElementById('appVersion');
 if (_vEl) _vEl.textContent = APP_VERSION;
 if (versionMismatch()) setTimeout(() => showToast('Aviso: index.html y js/app.js son de versiones distintas. Súbelos los dos.'), 1500);
 renderRecipeSkeletons();
-loadData();
+initAuthListener();
+startApp();
 
 // Service Worker desactivado temporalmente
 // if ('serviceWorker' in navigator) {
@@ -4319,7 +4459,10 @@ async function refreshDataSilently() {
   if (document.querySelector('.modal-overlay[style*="flex"], #lightbox[style*="flex"], #groupPickerModal')) return;
   const ae = document.activeElement;
   if (ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return;
+  if (document.getElementById('authGate').style.display !== 'none') return; // pantalla de acceso abierta
   try {
+    const { data: { session: cur } } = await sb.auth.getSession();
+    if (!cur) { showAuthGate('La sesión ha caducado. Introduce la contraseña.'); return; }
     const res = await Promise.all([
       sb.from('recipes').select('*').order('name'),
       sb.from('productions').select('*').order('name'),
@@ -4337,6 +4480,9 @@ async function refreshDataSilently() {
     ]);
     // Si algo falla (sin cobertura, tabla inexistente...), no se toca nada.
     if (res.slice(0, 7).some(r => r.error)) return;
+    // Con permisos denegados la base de datos no da error: devuelve listas vacías. Si de golpe
+    // no hay ni platos ni producciones teniéndolos, es un bloqueo, no un borrado: no se toca nada.
+    if ((recipes.length || productions.length) && !(res[0].data || []).length && !(res[1].data || []).length) return;
     // Por si mientras tanto has empezado a editar algo
     if (document.getElementById('editorPage').classList.contains('active') ||
         document.getElementById('productionEditorPage').classList.contains('active')) return;
