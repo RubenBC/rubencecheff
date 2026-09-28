@@ -4,6 +4,22 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v84
+
+### Añadido
+- **Pantalla de acceso para el equipo de cocina.** Al abrir la app sin sesión se pide una contraseña común y no se carga ningún dato hasta entrar. La sesión queda guardada en ese dispositivo, así que en el monitor fijo se escribe una sola vez. Cuenta compartida: `cocina@rubencechef.app` (se crea en Supabase → Authentication → Users).
+- **El admin puede entrar de dos formas**: con el botón Admin de arriba (como siempre) o escribiendo su contraseña directamente en la pantalla de acceso. Al cerrar la sesión de admin la app vuelve sola a la sesión de cocina, sin pedir la contraseña otra vez.
+- Si la sesión se pierde mientras se usa la app (contraseña cambiada, cuenta borrada, sesión revocada), vuelve a aparecer la pantalla de acceso y no se queda ningún dato a la vista detrás.
+- **"Avisos vistos" con una función de la base de datos** (`mark_events_seen`): el personal ya no necesita permiso para editar la tabla de avisos. Si la función aún no existe, se usa el método anterior, así no se rompe durante la transición.
+- Carpeta `sql/` con los scripts de seguridad y sus salvavidas.
+
+### Corregido
+- Una sesión iniciada ya no se toma automáticamente por administrador: ahora solo lo es la de la cuenta de admin.
+- El refresco en segundo plano ya no borra los datos de pantalla si la base de datos deniega los permisos (devuelve listas vacías sin error), y pide la contraseña si no hay sesión.
+- Un error de permisos con la sesión de cocina avisa, pero ya no cierra su sesión.
+
+---
+
 ## v82
 
 ### Cambiado
