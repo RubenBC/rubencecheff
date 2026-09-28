@@ -1304,3 +1304,32 @@ body.halloween .halloween-skull {
 }
 .halloween-skull-l { left: 10px; transform: rotate(-8deg); }
 .halloween-skull-r { right: 10px; transform: rotate(8deg); }
+
+/* ═══════════════════════════════════════
+   v84 — Pantalla de acceso del equipo de cocina
+═══════════════════════════════════════ */
+.auth-gate {
+  position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center;
+  padding: 24px; overflow-y: auto;
+  background: linear-gradient(160deg, var(--primary-container) 0%, var(--surface) 55%, var(--surface2) 100%);
+}
+body.gated { overflow: hidden; }
+.auth-card {
+  width: 100%; max-width: 380px; background: var(--surface); border: 1.5px solid var(--outline-light);
+  border-radius: 28px; padding: 30px 24px 26px; text-align: center;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.14);
+}
+.auth-logo { width: 68px; height: 68px; margin: 0 auto 14px; border-radius: 22px; background: var(--primary-container); display: flex; align-items: center; justify-content: center; }
+.auth-logo .material-symbols-outlined { font-size: 38px; color: var(--primary); }
+.auth-title { font-size: 26px; font-weight: 800; color: var(--text); margin: 0 0 2px; display: block; }
+.auth-sub { font-size: 13.5px; color: var(--text2); margin: 0 0 22px; }
+.auth-user { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.auth-field { position: relative; margin-bottom: 12px; }
+.auth-field input {
+  width: 100%; padding: 14px 46px 14px 16px; font-size: 16px; font-family: 'Nunito', sans-serif;
+  border: 1.5px solid var(--outline-light); border-radius: 16px; background: var(--surface2); color: var(--text); outline: none;
+}
+.auth-field input:focus { border-color: var(--primary); background: var(--surface); }
+.auth-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border: none; background: none; color: var(--text2); cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.auth-error { color: var(--danger); font-size: 13px; font-weight: 700; margin: 0 0 12px; }
+.auth-btn { width: 100%; }
