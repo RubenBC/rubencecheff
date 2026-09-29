@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v87
+
+### Corregido
+- **La melodía de Halloween no llegaba a los dispositivos que ya estaban abiertos.** Si se guardaba o cambiaba desde otro móvil, un monitor que llevaba un rato abierto seguía sonando con la melodía anterior hasta que alguien recargaba la página. El aviso de "Modo Halloween activado o no" sí se actualizaba solo, pero la melodía en sí no. Ahora se comprueba junto con lo demás, sin recargar nada.
+
+---
+
 ## v86
 
 ### Cambiado
