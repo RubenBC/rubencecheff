@@ -153,7 +153,9 @@
   // Tono con el que suena un timer: si los dos modos están activos a la vez
   // manda la Navidad; si no, el que corresponda, o el suyo propio si ninguno
   // está activado.
-  const ringToneOf = r => (window.RC_XMAS ? 'xmas' : window.RC_HALLOWEEN ? 'halloween' : ((r && r.tone) || 1));
+  // En Halloween, si el admin ha guardado una melodía propia (recortada de un MIDI suyo), suena esa;
+  // si no la hay, o no se ha podido cargar, el Dies Irae de siempre.
+  const ringToneOf = r => (window.RC_XMAS ? 'xmas' : window.RC_HALLOWEEN ? (TONES.midi ? 'midi' : 'halloween') : ((r && r.tone) || 1));
   // Un timer guardado cuando existía el "Tono 2" (v50-v51) podría traer tone: 2.
   // Ese tono ya no existe: cualquier valor desconocido usa el tono 1 (antes rompía la melodía).
   const toneOf = n => (TONES[n] ? n : 1);
@@ -237,6 +239,31 @@
     if (vibId) { clearInterval(vibId); vibId = null; }
     if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
   }
+
+  // Melodía propia (MIDI recortado por el admin): la carga app.js. null = usar el Dies Irae.
+  window.setMidiTone = function (notes) {
+    if (Array.isArray(notes) && notes.length) TONES.midi = notes; else delete TONES.midi;
+    if (!anyRinging()) refreshSched(); // si ya había una melodía programada de antemano, se reprograma con la nueva
+  };
+
+  // Escuchar una melodía de prueba (pestaña Melodía del panel de admin). Devuelve su duración en segundos.
+  let previewNodes = null;
+  window.timerStopPreview = function () {
+    if (!previewNodes) return;
+    try { previewNodes.bus.disconnect(); } catch (e) {}
+    previewNodes.oscs.forEach(x => { try { x.o.stop(); } catch (e) {} });
+    previewNodes = null;
+  };
+  window.timerPlayNotes = function (notes) {
+    const ctx = ensureAudio();
+    window.timerStopPreview();
+    if (!ctx || !notes || !notes.length) return 0;
+    const bus = audioCtx.createGain(); bus.connect(master);
+    const oscs = [], t0 = audioCtx.currentTime + 0.1;
+    notes.forEach(([f, off, dur]) => beep(f, t0 + off, dur, bus, oscs));
+    previewNodes = { bus, oscs };
+    return Math.max.apply(null, notes.map(n => n[1] + n[2]));
+  };
 
   /* ───────── pantalla encendida mientras corre ───────── */
   async function acquireWakeLock() {
