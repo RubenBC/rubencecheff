@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v86';
+const APP_VERSION = 'v87';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -4653,6 +4653,7 @@ async function refreshDataSilently() {
       sb.from('radio_hidden_builtin').select('*'),
       sb.from('app_settings').select('*').eq('key', 'christmas_mode').maybeSingle(),
       sb.from('app_settings').select('*').eq('key', 'halloween_mode').maybeSingle(),
+      sb.from('app_settings').select('*').eq('key', 'timer_midi').maybeSingle(),
     ]);
     // Si algo falla (sin cobertura, tabla inexistente...), no se toca nada.
     if (res.slice(0, 7).some(r => r.error)) return;
@@ -4682,7 +4683,12 @@ async function refreshDataSilently() {
     if (!res[9].error)  customStations        = res[9].data || [];
     if (!res[10].error) hiddenBuiltinStations = (res[10].data || []).map(r => r.id);
     if (!res[11].error) applyChristmasMode(!!(res[11].data && res[11].data.value === 'on'));
+    // La melodía en sí (cuál MIDI y qué trozo) no cambia con el interruptor de arriba: si el admin
+    // la ha guardado o cambiado desde otro dispositivo, esto la actualiza aquí antes de aplicar el
+    // modo, para que un monitor que llevaba rato abierto también la recoja sin recargar la página.
+    if (!res[13].error) { try { midiCfg = (res[13].data && res[13].data.value) ? JSON.parse(res[13].data.value) : null; } catch (e) { midiCfg = null; } }
     if (!res[12].error) applyHalloweenMode(!!(res[12].data && res[12].data.value === 'on'));
+    else if (halloweenMode) loadMidiTone(); // el interruptor no ha podido leerse, pero la melodía sí puede haber cambiado
     _lastDataRefresh = Date.now();
 
     // Repintar lo que se esté viendo
