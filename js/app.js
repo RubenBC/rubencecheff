@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v84';
+const APP_VERSION = 'v86';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -257,7 +257,7 @@ async function loadData() {
       try { const r = await q; if (r.error) throw r.error; return r; }
       catch (e) { console.warn(label + ' no disponible (¿falta crear la tabla?):', e?.message || e); return null; }
     };
-    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes, styleRes, xmasRes, hallRes] = await Promise.all([
+    const [idRes, rsRes, hbRes, setRes, oRes, colsRes, thumbRes, styleRes, xmasRes, hallRes, midiRes] = await Promise.all([
       optional('important_dates',      sb.from('important_dates').select('*').order('event_date')),
       optional('radio_stations',       sb.from('radio_stations').select('*').order('sort_order')),
       optional('radio_hidden_builtin', sb.from('radio_hidden_builtin').select('*')),
@@ -269,6 +269,7 @@ async function loadData() {
       optional('radio_stations.style/comment', sb.from('radio_stations').select('style,comment').limit(1)),
       optional('app_settings (navidad)', sb.from('app_settings').select('*').eq('key', 'christmas_mode').maybeSingle()),
       optional('app_settings (halloween)', sb.from('app_settings').select('*').eq('key', 'halloween_mode').maybeSingle()),
+      optional('app_settings (melodía)', sb.from('app_settings').select('*').eq('key', 'timer_midi').maybeSingle()),
     ]);
     importantDates        = idRes ? (idRes.data || []) : [];
     customStations        = rsRes ? (rsRes.data || []) : [];
@@ -278,6 +279,7 @@ async function loadData() {
     orderEditCols         = !!colsRes;
     recipeThumbCol        = !!thumbRes;
     radioStyleCols        = !!styleRes;
+    try { midiCfg = (midiRes && midiRes.data && midiRes.data.value) ? JSON.parse(midiRes.data.value) : null; } catch (e) { midiCfg = null; }
     if (xmasRes) applyChristmasMode(!!(xmasRes.data && xmasRes.data.value === 'on'));
     if (hallRes) applyHalloweenMode(!!(hallRes.data && hallRes.data.value === 'on'));
     rebuildOrderState();
@@ -345,6 +347,7 @@ function showPage(page, btn, skipPush) {
   // Si la ventana de Radio está abierta, minimizarla a burbuja al cambiar de pestaña
   if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
   if (typeof radioPreviewStop === 'function') radioPreviewStop(); // no dejar sonando una prueba de emisora al salir de Admin
+  if (typeof midiStopPreview === 'function') midiStopPreview();   // ni la de la melodía
   if (typeof timerCloseForNav === 'function') timerCloseForNav(); // el panel del timer se cierra al cambiar de pestaña
   exitInnerView();
   hideSearchDropdown();
@@ -1773,6 +1776,7 @@ function showAuthGate(msg) {
   // Sin datos de la sesión anterior detrás de la pantalla
   recipes = []; productions = []; recipeProductions = []; comments = []; weights = []; brines = [];
   productionCategories = []; importantDates = []; orderItems = []; customStations = []; isAdmin = false;
+  midiCfg = null; midiEdit = null; _midiLoadedKey = ''; midiStopPreview(); if (typeof setMidiTone === 'function') setMidiTone(null);
   const ab = document.getElementById('adminBtn');
   if (ab) { ab.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`; ab.classList.remove('admin-on'); }
   ['adminAddRecipeRow', 'adminAddProductionRow', 'addWeightBtn', 'addBrineBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -2285,6 +2289,7 @@ function applyHalloweenMode(on) {
   if (halloweenMode) batsStart(); else batsStop();
   renderHalloweenToggle();
   updateSeasonalTitle();
+  if (halloweenMode) loadMidiTone();  // melodía propia, si el admin ha guardado una
 }
 
 function renderHalloweenToggle() {
@@ -2392,6 +2397,174 @@ function batsStop() { if (_bats) { _bats.stop(); _bats = null; } }
 
 try { if (localStorage.getItem('rubencechef-halloween') === 'on') setTimeout(() => applyHalloweenMode(true), 0); } catch (e) {}
 
+// ─── Melodía propia para el timer en Halloween (MIDI recortado por el admin) ─────────
+// El admin elige un archivo .mid suyo, marca las pistas, recorta un trozo y lo guarda.
+// El archivo va a un almacén PRIVADO de Supabase (bucket "timer-sounds": solo se lee con sesión)
+// y los ajustes del recorte a app_settings (clave timer_midi). En Halloween, el timer suena con
+// ese trozo; si no hay nada guardado o no se puede cargar, suena el Dies Irae de siempre.
+const MIDI_BUCKET = 'timer-sounds', MIDI_FILE = 'halloween.mid';
+let midiCfg = null;         // ajustes guardados: { file, tracks:[…], start, end }
+let midiEdit = null;        // lo que se está editando: { name, buffer, parsed, sel:Set, start, end }
+let midiNotes = null;       // notas de la melodía guardada (para escucharla)
+let _midiLoadedKey = '';
+let _midiPlayToken = 0;
+const NOTE_NAMES = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+const noteName = m => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1);
+const fmtSec = x => (Math.round(x * 10) / 10).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' s';
+
+async function loadMidiTone(force) {
+  if (typeof setMidiTone !== 'function' || typeof RCMidi === 'undefined') return;
+  if (!halloweenMode && !force) return;            // solo se descarga cuando se va a usar
+  if (!midiCfg) { _midiLoadedKey = ''; midiNotes = null; setMidiTone(null); return; }
+  const key = JSON.stringify(midiCfg);
+  if (key === _midiLoadedKey && !force) return;
+  try {
+    const { data: blob, error } = await sb.storage.from(MIDI_BUCKET).download(midiCfg.file || MIDI_FILE);
+    if (error || !blob) throw error || new Error('sin archivo');
+    const parsed = RCMidi.parse(await blob.arrayBuffer());
+    const notes = RCMidi.toTone(parsed, midiCfg.tracks || [], midiCfg.start || 0, midiCfg.end || 0).notes;
+    if (!notes.length) throw new Error('el trozo guardado no tiene notas');
+    midiNotes = notes; setMidiTone(notes); _midiLoadedKey = key;
+  } catch (e) {
+    console.warn('Melodía propia de Halloween no disponible (suena el Dies Irae):', e && e.message || e);
+    midiNotes = null; setMidiTone(null); _midiLoadedKey = '';
+  }
+}
+
+function midiCurrentTone() {
+  return midiEdit ? RCMidi.toTone(midiEdit.parsed, [...midiEdit.sel], midiEdit.start, midiEdit.end) : { notes: [], dropped: 0 };
+}
+
+function renderMelodyAdmin() {
+  const box = document.getElementById('adminTabMelody');
+  if (!box) return;
+  const e = midiEdit;
+  const savedHtml = midiCfg
+    ? `<div class="midi-saved"><span class="material-symbols-outlined">check_circle</span>
+         <div><b>Melodía guardada</b><br><small>Suena en el timer con el Modo Halloween activado${midiNotes ? '' : ' (aún no cargada en este dispositivo)'}.</small></div></div>
+       <div class="midi-actions">
+         <button class="btn-pill" onclick="midiPlayNotes(midiNotes, this)" ${midiNotes ? '' : 'disabled'}><span class="material-symbols-outlined" style="font-size:16px;">play_arrow</span> Escuchar la guardada</button>
+         <button class="btn-pill danger" onclick="midiRemove()"><span class="material-symbols-outlined" style="font-size:16px;">delete</span> Quitar</button>
+       </div>`
+    : `<div class="midi-none">Ahora mismo suena el <b>Dies Irae</b> de siempre. Sube un archivo MIDI ya recortado para poner otra.</div>`;
+
+  const editHtml = e ? `
+      <div class="section-title" style="margin-top:14px;"><span class="material-symbols-outlined">audio_file</span> ${escapeHtml(e.name)}</div>
+      <div class="midi-summary" id="midiSummary"></div>
+      <div class="midi-actions">
+        <button class="btn-pill" id="midiPlayBtn" onclick="midiPlayNotes(midiCurrentTone().notes, this)"><span class="material-symbols-outlined" style="font-size:16px;">play_arrow</span> Escuchar</button>
+        <button class="btn-pill filled" id="midiSaveBtn" onclick="midiSave()"><span class="material-symbols-outlined" style="font-size:16px;">save</span> Guardar como melodía de Halloween</button>
+      </div>` : '';
+
+  box.innerHTML = `
+    <div class="section-title"><span class="material-symbols-outlined">music_note</span> Melodía del timer en Halloween</div>
+    <div class="card">
+      ${savedHtml}
+      <div style="margin-top:12px;">
+        <label class="btn-pill filled midi-pick" for="midiFile"><span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> ${e ? 'Elegir otro archivo' : 'Elegir archivo MIDI'}</label>
+        <input type="file" id="midiFile" accept=".mid,.midi,audio/midi,audio/x-midi" onchange="midiPickFile(this)" style="display:none;">
+      </div>
+      ${editHtml}
+      <div class="midi-note">Máximo ${RCMidi.MAX_LOOP_S} segundos. Para recortar un MIDI más largo o elegir pistas, usa la herramienta aparte <b>recortar-midi.html</b> y sube aquí el archivo que te da.<br><br>
+      El archivo se guarda en un almacén <b>privado</b> (solo lo ve quien haya iniciado sesión). Usa únicamente música que tengas derecho a usar. Suena con un sintetizador sencillo, sin instrumentos reales ni batería.</div>
+    </div>`;
+  if (e) midiUpdateSummary();
+}
+
+function midiUpdateSummary() {
+  const e = midiEdit; if (!e) return;
+  const el = document.getElementById('midiSummary'), sv = document.getElementById('midiSaveBtn'), pl = document.getElementById('midiPlayBtn');
+  const tone = midiCurrentTone();
+  let warn = '';
+  if (!tone.notes.length) warn = 'Este archivo no tiene notas que puedan sonar.';
+  else if (tone.dropped > 0) warn = `Se quitan ${tone.dropped} notas para que suene limpio (demasiadas a la vez). Recórtalo con menos pistas en la herramienta de recorte.`;
+  if (el) el.innerHTML = `${fmtSec(e.end - e.start)} de melodía · ${tone.notes.length} notas${warn ? `<div class="midi-warn">${warn}</div>` : ''}`;
+  const bad = !tone.notes.length;
+  if (sv) sv.disabled = bad; if (pl) pl.disabled = bad;
+}
+
+async function midiPickFile(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  midiStopPreview();
+  try {
+    if (f.size > 2 * 1024 * 1024) throw new Error('El archivo es demasiado grande para ser un MIDI');
+    const buffer = await f.arrayBuffer();
+    const parsed = RCMidi.parse(buffer);
+    const playable = parsed.tracks.filter(t => !t.drums);
+    if (!playable.length) throw new Error('El MIDI solo tiene percusión: no hay notas que puedan sonar');
+    // duración de lo que sonaría (la percusión no cuenta)
+    const dur = Math.max.apply(null, playable.map(t => Math.max.apply(null, t.notes.map(n => n.t + n.d))));
+    if (dur > RCMidi.MAX_LOOP_S + 0.05) throw new Error(`Este MIDI dura ${Math.round(dur)} s y el máximo son ${RCMidi.MAX_LOOP_S} s. Recórtalo antes con la herramienta de recorte.`);
+    midiEdit = { name: f.name, buffer, parsed, sel: new Set(playable.map(t => t.index)), start: 0, end: dur + 0.05 };
+    renderMelodyAdmin();
+  } catch (err) {
+    showToast(err && err.message ? err.message : 'No se pudo leer el archivo');
+  } finally { input.value = ''; }
+}
+
+function midiStopPreview() {
+  _midiPlayToken++;
+  if (typeof timerStopPreview === 'function') timerStopPreview();
+  document.querySelectorAll('[data-midi-playing]').forEach(b => {
+    b.removeAttribute('data-midi-playing');
+    b.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">play_arrow</span> ${b.id === 'midiPlayBtn' ? 'Escuchar' : 'Escuchar la guardada'}`;
+  });
+}
+
+function midiPlayNotes(notes, btn) {
+  if (btn && btn.hasAttribute('data-midi-playing')) { midiStopPreview(); return; }
+  if (!notes || !notes.length || typeof timerPlayNotes !== 'function') return;
+  midiStopPreview();
+  const secs = timerPlayNotes(notes);
+  const token = ++_midiPlayToken;
+  if (btn) { btn.setAttribute('data-midi-playing', '1'); btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">stop</span> Parar`; }
+  setTimeout(() => { if (token === _midiPlayToken) midiStopPreview(); }, (secs + 0.4) * 1000);
+}
+
+async function midiSave() {
+  const e = midiEdit; if (!e) return;
+  const tone = midiCurrentTone();
+  if (!tone.notes.length) { showToast('En ese trozo no hay notas'); return; }
+  midiStopPreview();
+  const btn = document.getElementById('midiSaveBtn');
+  const ok = await runWithLoading(btn, 'Guardando…', async () => {
+    const up = await sb.storage.from(MIDI_BUCKET).upload(MIDI_FILE, new Blob([e.buffer], { type: 'audio/midi' }), { upsert: true, contentType: 'audio/midi' });
+    if (up.error) throw up.error;
+    const cfg = { file: MIDI_FILE, tracks: [...e.sel].sort((a, b) => a - b), start: 0, end: Math.round(e.end * 10) / 10 + 0.1 };
+    const r = await sb.from('app_settings').upsert({ key: 'timer_midi', value: JSON.stringify(cfg) });
+    if (r.error) throw r.error;
+    midiCfg = cfg;
+    return true;
+  }).catch(err => {
+    console.error('Error guardando la melodía:', err);
+    if (!handleAuthError(err)) showToast(/bucket|not found/i.test(String(err && err.message)) ? 'Falta crear el almacén "timer-sounds" en Supabase' : 'No se pudo guardar la melodía');
+    return false;
+  });
+  if (!ok) return;
+  midiEdit = null;
+  await loadMidiTone(true);
+  showToast('Melodía guardada ✓');
+  renderMelodyAdmin();
+}
+
+async function midiRemove() {
+  const ok = await showConfirm({
+    title: 'Quitar la melodía', message: 'El timer volverá a sonar con el Dies Irae en Halloween. El archivo se borra del almacén.',
+    confirmText: 'Quitar', danger: true, icon: 'delete',
+    onConfirm: async () => {
+      const r = await sb.from('app_settings').delete().eq('key', 'timer_midi');
+      if (r.error) throw r.error;
+      try { await sb.storage.from(MIDI_BUCKET).remove([midiCfg && midiCfg.file || MIDI_FILE]); } catch (e) {}
+    },
+  });
+  if (!ok) return;
+  midiCfg = null; midiNotes = null; _midiLoadedKey = '';
+  if (typeof setMidiTone === 'function') setMidiTone(null);
+  showToast('Melodía quitada');
+  renderMelodyAdmin();
+}
+
 // ─── Panel de administración: pestañas ─────────
 const ADMIN_TABS = [
   { key: 'comments', label: 'Comentarios', icon: 'forum' },
@@ -2399,11 +2572,13 @@ const ADMIN_TABS = [
   { key: 'prod',     label: 'Producción',  icon: 'label' },
   { key: 'radio',    label: 'Radio',       icon: 'radio' },
   { key: 'photos',   label: 'Fotos',       icon: 'photo_library' },
+  { key: 'melody',   label: 'Melodía',     icon: 'music_note' },
 ];
-const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', prod: 'adminTabProd', radio: 'adminTabRadio', photos: 'adminTabPhotos' };
+const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', prod: 'adminTabProd', radio: 'adminTabRadio', photos: 'adminTabPhotos', melody: 'adminTabMelody' };
 
 function setAdminTab(tab) {
   if (tab !== 'radio') radioPreviewStop();
+  if (tab !== 'melody') midiStopPreview();
   adminTab = tab;
   renderAdmin();
   window.scrollTo(0, 0);
@@ -2462,6 +2637,7 @@ function renderAdmin() {
   if (adminTab === 'prod')   { renderProdCategoriesAdmin(); return; }
   if (adminTab === 'radio')  { renderRadioAdmin(); return; }
   if (adminTab === 'photos') { renderPhotoAdmin(); return; }
+  if (adminTab === 'melody') { renderMelodyAdmin(); return; }
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
