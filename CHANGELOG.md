@@ -4,6 +4,19 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v86
+
+### Cambiado
+- **La melodía de Halloween se prepara fuera de la app.** El recorte ya no se hace dentro de la app de cocina: se usa la herramienta aparte `recortar-midi.html` (no forma parte de la app, no usa internet y no lleva ninguna canción), que descarga el trozo como un `.mid` nuevo. En Admin → Melodía solo se sube ese archivo ya recortado, se escucha y se guarda. La app queda más sencilla: sin lista de pistas ni deslizadores.
+- Si el archivo dura más de 20 segundos o solo tiene percusión, se rechaza con un aviso claro que remite a la herramienta.
+
+### Añadido
+- **Melodía propia para el timer en Halloween a partir de un MIDI del admin** (nueva pestaña **Melodía** en Admin). Con el Modo Halloween activado, el timer suena con ese trozo; si no hay nada guardado o no se puede cargar, suena el Dies Irae de siempre. Con el Modo Navidad a la vez sigue mandando Jingle Bells.
+- El archivo se guarda en un almacén **privado** de Supabase (`timer-sounds`, sin enlace público: solo lo lee quien haya iniciado sesión y solo lo cambia el admin). Se crea con `sql/melodia-timer.sql`.
+- Lector de archivos MIDI propio (`js/midi.js`), sin librerías externas. Suena con el mismo sintetizador sencillo de las otras melodías: sin instrumentos reales ni batería; los graves se suben de octava para que se oigan en el móvil, y se limita a 6 notas a la vez y 200 por vuelta.
+
+---
+
 ## v84
 
 ### Añadido
