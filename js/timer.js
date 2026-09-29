@@ -165,6 +165,40 @@
     TONES[toneOf(sched.tone)].forEach(([f, off, dur]) => beep(f, t0 + off, dur, sched.bus, sched.oscs));
   }
 
+  // La melodía MIDI del admin (a diferencia de las demás, fijas) se reproduce
+  // aparte, con el mismo mecanismo sencillo y ya probado del botón "Escuchar"
+  // de Admin → Melodía (tocar las notas ya mismo y volver a empezar al
+  // terminar), en vez del sistema de programar-con-antelación que usan las
+  // melodías fijas. Ese sistema depende del reloj interno del audio y de
+  // tenerlo todo listo con minutos de margen; para un archivo que el admin
+  // puede cambiar en cualquier momento, tocarla al momento es más fiable.
+  let midiLoopTimer = null, midiLoopBus = null, midiLoopOscs = [];
+  function stopMidiLoop() {
+    if (midiLoopTimer) { clearTimeout(midiLoopTimer); midiLoopTimer = null; }
+    if (midiLoopBus) { try { midiLoopBus.disconnect(); } catch (e) {} midiLoopBus = null; }
+    midiLoopOscs.forEach(o => { try { o.stop(); } catch (e) {} });
+    midiLoopOscs = [];
+  }
+  function startMidiLoop() {
+    const ctx = ensureAudio();
+    if (!ctx || audioCtx.state !== 'running' || !TONES.midi || !TONES.midi.length) return false;
+    stopMidiLoop();
+    const playOnce = () => {
+      if (!anyRinging() || ringToneOf(firstRinging()) !== 'midi') { stopMidiLoop(); return; }
+      const bus = audioCtx.createGain(); bus.connect(master);
+      midiLoopBus = bus; midiLoopOscs = [];
+      const t0 = audioCtx.currentTime + 0.05;
+      let maxEnd = 0.3;
+      TONES.midi.forEach(([f, off, dur]) => { beep(f, t0 + off, dur, bus, midiLoopOscs); maxEnd = Math.max(maxEnd, off + dur); });
+      midiLoopTimer = setTimeout(playOnce, (maxEnd + PAUSE_S) * 1000);
+    };
+    playOnce();
+    return true;
+  }
+  // Tono que está sonando AHORA MISMO de verdad (para saber si hay que cambiar de melodía
+  // cuando dejan de sonar varios timers/alarmas a la vez con tonos distintos)
+  function currentPlayingTone() { return midiLoopTimer ? 'midi' : (sched ? sched.tone : null); }
+
   function scheduleFrom(base, minLoops, forEnd, tone) {
     cancelScheduled();
     const bus = audioCtx.createGain();
@@ -197,6 +231,7 @@
     if (anyRinging()) return;                       // ya hay melodía sonando
     const n = nextRun();
     if (!n) { cancelScheduled(); return; }
+    if (ringToneOf(n) === 'midi') { cancelScheduled(); return; } // esta se decide y arranca justo al sonar, no antes
     if (sched && sched.forEnd === n.endAt && sched.tone === ringToneOf(n)) return;  // ya está programada para este
     cancelScheduled();
     const ctx = ensureAudio();
@@ -218,16 +253,18 @@
   function startMelody() {
     vibrate();
     if (!vibId) vibId = setInterval(vibrate, LOOP_MS);
+    const isMidi = ringToneOf(firstRinging()) === 'midi';
+    if (isMidi) cancelScheduled(); else stopMidiLoop(); // solo una de las dos formas de sonar a la vez
     const ctx = ensureAudio();
     const go = () => {
       if (!anyRinging() || !audioCtx || audioCtx.state !== 'running') return false;
-      if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0, ringToneOf(firstRinging()));
-      topUp();
+      if (isMidi) { if (!midiLoopTimer && !startMidiLoop()) return false; }
+      else { if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0, ringToneOf(firstRinging())); topUp(); }
       return true;
     };
     if (go()) return;
     // El navegador bloquea el audio (no hubo toque previo): descarta lo programado y arranca en el primer toque
-    cancelScheduled();
+    cancelScheduled(); stopMidiLoop();
     const unlock = () => { ensureAudio(); setTimeout(go, 60); };
     ['pointerdown', 'touchstart', 'keydown'].forEach(ev =>
       document.addEventListener(ev, unlock, { once: true, passive: true }));
@@ -236,6 +273,7 @@
 
   function stopMelody() {
     cancelScheduled();
+    stopMidiLoop();
     if (vibId) { clearInterval(vibId); vibId = null; }
     if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
   }
@@ -345,7 +383,7 @@
       stopMelody();
       if (wasRinging && typeof radioAlarmEnd === 'function') radioAlarmEnd(); // reanudar la radio si la pausó la alarma
     }
-    else if (sched && sched.tone !== ringToneOf(firstRinging())) { cancelScheduled(); startMelody(); } // sigue sonando otro con distinto tono
+    else if (currentPlayingTone() !== ringToneOf(firstRinging())) { cancelScheduled(); stopMidiLoop(); startMelody(); } // sigue sonando otro con distinto tono
     if (wasRinging && !anyRinging()) tab = runs.length ? 'list' : 'timer';
     updateTitle();
     save();
