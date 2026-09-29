@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v88
+
+### Corregido
+- **La melodía MIDI del timer podía quedarse en silencio total** en un timer con una duración normal (probado con uno de 20 segundos), aunque "Escuchar la guardada" en Admin sonara bien. La causa: se preparaba con el mismo sistema "por adelantado" que usan las melodías fijas (pensado para sonar exactamente a la hora, incluso con la pestaña dormida), pero ese sistema depende de tener el archivo listo con minutos de margen. Para un archivo que puede cambiar en cualquier momento, eso podía dejarla sin programar a tiempo. Ahora la melodía MIDI se toca en el momento, con el mismo método que ya usa "Escuchar" (probado y fiable), en vez de prepararse por adelantado. Las demás melodías (tono normal, Jingle Bells, Dies Irae) no cambian: siguen sonando exactas incluso con la pantalla apagada.
+
+---
+
 ## v87
 
 ### Corregido
