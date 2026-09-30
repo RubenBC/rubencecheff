@@ -4,6 +4,33 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v90 — Biblioteca de melodías
+
+### Cambiado
+- **Se acabó la melodía atada al Modo Navidad y al Modo Halloween.** Ahora, en el propio panel del timer/alarma, arriba a la derecha, hay un desplegable para elegir qué melodía suena. De serie hay 3: Tono clásico, Villancico (Jingle Bells) y Dies Irae, disponibles todo el año, sin depender de ningún modo.
+- **Admin → Melodía es ahora una biblioteca**, no una sola melodía: se pueden subir varias (archivos MIDI ya recortados, igual que antes), cada una con su nombre. Se marca con ⭐ cuál es la predeterminada; los timers nuevos empiezan con esa, pero se puede elegir otra distinta cada vez. Se puede escuchar cada una y borrar las que ya no se quieran.
+- Si dos timers con melodías distintas suenan a la vez, manda el más antiguo; al pararlo, pasa a sonar el del siguiente con su propia melodía (no se mezclan dos sonando a la vez).
+- Si ya tenías guardada la melodía de Halloween de antes, **se traslada sola** a la lista nueva la primera vez que se ejecuta el SQL, quedando como predeterminada; no hace falta volver a subirla.
+
+### Corregido (encontrado al construir esto)
+- Al arrancar la app, si `js/timer.js` tardaba un pelín más en cargar que `js/app.js`, el desplegable de melodías podía quedarse vacío para siempre. Ahora arranca ya con las 3 de serie, y si la app tarda en avisar de cuál es la predeterminada, se reintenta solo.
+
+---
+
+## v89 — Auditoría tras la pantalla de acceso
+
+### Corregido
+- Si se perdía la sesión estando en el detalle de un plato o producción y habías bajado la página, la flecha "Volver" flotante se quedaba flotando por encima de la pantalla de acceso. Ahora se oculta al perder la sesión y reaparece sola si sigues bajado en ese mismo sitio al volver a entrar.
+
+### Comprobado sin fallos
+- Los 4 scripts de seguridad (`cerrar-escritura`, `cerrar-fotos`, `seguridad`, `melodia-timer`), aplicados en el orden real, dos veces cada uno: 65 comprobaciones sobre quién puede leer y escribir cada cosa.
+- La pantalla de acceso junto con el modo Navidad, el modo Halloween, la radio, el timer y la flecha flotante a la vez, incluida la pérdida de sesión en mitad de cada uno.
+- Que una sesión de cocina (no admin) no pueda entrar en Admin por ningún camino, ni ver los botones de añadir/editar.
+- Las 20 pantallas de la app, en claro y oscuro, con sesión de cocina y de admin: sin desbordes ni errores.
+- El lector de MIDI incrustado en la herramienta aparte `recortar-midi.html` sigue siendo idéntico al de la app.
+
+---
+
 ## v88
 
 ### Corregido
