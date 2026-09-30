@@ -1346,3 +1346,22 @@ body.gated { overflow: hidden; }
 .midi-summary { font-size: 12.5px; color: var(--text2); margin-top: 6px; }
 .midi-warn { color: var(--danger); font-weight: 700; margin-top: 4px; }
 .midi-note { font-size: 11.5px; color: var(--text2); line-height: 1.45; margin-top: 14px; }
+
+/* v90 — Desplegable de melodía en el timer, y biblioteca de melodías en Admin */
+.timer-melody-select {
+  max-width: 108px; border: 1.5px solid var(--outline-light); background: var(--surface);
+  color: var(--text2); font-family: 'Nunito', sans-serif; font-size: 11.5px; font-weight: 800;
+  padding: 5px 8px; border-radius: var(--shape-full); cursor: pointer;
+}
+@media (min-width: 420px) { .timer-melody-select { max-width: 160px; font-size: 12.5px; } }
+
+.mel-list { display: flex; flex-direction: column; gap: 6px; }
+.mel-row { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1.5px solid var(--outline-light); border-radius: 14px; }
+.mel-row.default { border-color: var(--primary); background: var(--primary-container); }
+.mel-star { flex-shrink: 0; border: none; background: none; padding: 2px; color: var(--text2); cursor: pointer; display: flex; }
+.mel-row.default .mel-star { color: #F5B301; }
+.mel-star .material-symbols-outlined { font-size: 21px; }
+.mel-name { flex: 1; min-width: 0; font-weight: 800; font-size: 13.5px; overflow-wrap: anywhere; }
+.mel-icon-btn { flex-shrink: 0; border: none; background: none; color: var(--text2); cursor: pointer; padding: 4px; display: flex; border-radius: 50%; }
+.mel-icon-btn.danger { color: var(--danger); }
+.mel-icon-btn .material-symbols-outlined { font-size: 19px; }
