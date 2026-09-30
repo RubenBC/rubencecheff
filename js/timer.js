@@ -111,8 +111,9 @@
   // Tono de la alarma. Cada nota: [frecuencia Hz, inicio (s), duración (s)].
   // Tras cada ciclo hay una pausa de 3 s antes de repetir.
   const PAUSE_S = 3;
-  // Melodía navideña: estribillo de "Jingle Bells" (James Lord Pierpont, 1857,
-  // dominio público), una octava arriba para que se oiga bien en la cocina.
+  // Estribillo de "Jingle Bells" (James Lord Pierpont, 1857, dominio público),
+  // una octava arriba para que se oiga bien en la cocina. Ya no está atado al
+  // Modo Navidad: es una melodía más, seleccionable todo el año.
   // Notas: [frecuencia, duración en tiempos]. Se convierte al formato de TONES.
   const JB = (() => {
     const E = 659.25, G = 783.99, C = 523.25, D = 587.33, F = 698.46;
@@ -129,11 +130,10 @@
     return notes.map(([f, b]) => { const n = [f, t, Math.max(0.1, b * beat * 0.85)]; t += b * beat; return n; });
   })();
 
-  // Melodía de Halloween: inicio del "Dies Irae" (canto gregoriano, siglo XIII,
-  // autor desconocido, de dominio público). Es la frase que el cine lleva un
-  // siglo citando como "la melodía del mal" (El resplandor, El rey león,
-  // Star Wars...), así que se reconoce aunque no se sepa su nombre. Más grave
-  // y más despacio que las demás melodías, para que suene siniestra.
+  // Inicio del "Dies Irae" (canto gregoriano, siglo XIII, autor desconocido,
+  // de dominio público): la frase que el cine lleva un siglo citando como "la
+  // melodía del mal" (El resplandor, El rey león, Star Wars...). Ya no está
+  // atada al Modo Halloween: es una melodía más, seleccionable todo el año.
   const DI = (() => {
     const A = 220.00, B = 246.94, C = 261.63, D = 293.66;
     const beat = 0.26;
@@ -145,19 +145,52 @@
     return notes.map(([f, b]) => { const n = [f, t, Math.max(0.12, b * beat * 0.9)]; t += b * beat; return n; });
   })();
 
-  const TONES = {
-    1: [[880, 0, 0.15], [1108.7, 0.16, 0.15], [1318.5, 0.32, 0.15], [1760, 0.48, 0.5]],  // 4 tonos seguidos
-    xmas: JB,                                                                            // Modo Navidad
-    halloween: DI,                                                                       // Modo Halloween
+  // De serie hay siempre 3 melodías fijas (nunca dependen de red, nunca fallan);
+  // el admin puede añadir más subiendo un MIDI, que se guardan aparte (ids largos).
+  const BUILTIN_MELODIES = [
+    { id: '1', name: 'Tono clásico' },
+    { id: 'jingle', name: 'Villancico (Jingle Bells)' },
+    { id: 'diesirae', name: 'Dies Irae' },
+  ];
+  const TONES = { 1: [[880, 0, 0.15], [1108.7, 0.16, 0.15], [1318.5, 0.32, 0.15], [1760, 0.48, 0.5]], jingle: JB, diesirae: DI };
+  // Ids de las melodías que ha subido el admin (no las de serie): son las únicas que
+  // dependen de una descarga y usan el "reproducir ya mismo" en vez de "preparar con
+  // antelación" (ver más abajo), porque una melodía subida puede tardar en llegar o
+  // fallar, mientras que las de serie están siempre listas al instante.
+  let customMelodyIds = new Set();
+  let defaultMelodyId = '1';
+  // El desplegable arranca ya con las 3 de serie (sin esperar a app.js), para que nunca se
+  // quede vacío aunque la llamada de más abajo llegue antes de que este archivo esté listo.
+  { const sel0 = document.getElementById('timerMelodySelect'); if (sel0 && !sel0.innerHTML) sel0.innerHTML = BUILTIN_MELODIES.map(m => `<option value="${m.id}">${m.id === '1' ? '★ ' : ''}${m.name}</option>`).join(''); }
+
+  // Lista de melodías para el desplegable del timer (la rellena app.js con las que
+  // haya guardadas) y cuál es la predeterminada para un timer/alarma nuevos.
+  let _melodyOptionsReady = false; // false = lo que hay en el <select> es solo el arranque de emergencia, no una elección real
+  window.setMelodyOptions = function (customList, defaultId) {
+    customMelodyIds = new Set((customList || []).map(m => m.id));
+    defaultMelodyId = (defaultId && (TONES[defaultId] || customMelodyIds.has(defaultId))) ? defaultId : '1';
+    const sel = $('timerMelodySelect');
+    if (sel) {
+      // Solo se respeta lo que hubiera elegido si ya hubo antes una lista de verdad
+      // (si no, lo que hay es el "1" del arranque de emergencia, no una elección)
+      const keep = _melodyOptionsReady ? sel.value : null;
+      sel.innerHTML = BUILTIN_MELODIES.concat(customList || [])
+        .map(m => `<option value="${m.id}">${m.id === defaultMelodyId ? '★ ' : ''}${String(m.name).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))}</option>`).join('');
+      sel.value = (keep && [...sel.options].some(o => o.value === keep)) ? keep : defaultMelodyId;
+      _melodyOptionsReady = true;
+    }
   };
-  // Tono con el que suena un timer: si los dos modos están activos a la vez
-  // manda la Navidad; si no, el que corresponda, o el suyo propio si ninguno
-  // está activado.
-  // En Halloween, si el admin ha guardado una melodía propia (recortada de un MIDI suyo), suena esa;
-  // si no la hay, o no se ha podido cargar, el Dies Irae de siempre.
-  const ringToneOf = r => (window.RC_XMAS ? 'xmas' : window.RC_HALLOWEEN ? (TONES.midi ? 'midi' : 'halloween') : ((r && r.tone) || 1));
-  // Un timer guardado cuando existía el "Tono 2" (v50-v51) podría traer tone: 2.
-  // Ese tono ya no existe: cualquier valor desconocido usa el tono 1 (antes rompía la melodía).
+  // La melodía subida por el admin (a diferencia de las de serie) llega en un
+  // segundo paso, cuando termina de descargarse: aquí se le añaden sus notas.
+  window.setMelodyTone = function (id, notes) {
+    if (Array.isArray(notes) && notes.length) TONES[id] = notes; else delete TONES[id];
+  };
+
+  // Tono con el que suena un timer/alarma: el que se eligió al crearlo, o la
+  // melodía predeterminada si no se guardó ninguno (timers de antes de este cambio).
+  const ringToneOf = r => (r && r.tone && (TONES[r.tone] || customMelodyIds.has(r.tone))) ? r.tone : defaultMelodyId;
+  // Cualquier id desconocido (una melodía subida que se ha borrado, o un "Tono 2"
+  // de versiones muy antiguas) usa el tono clásico en vez de romper la melodía.
   const toneOf = n => (TONES[n] ? n : 1);
   const toneLoopS = n => Math.max.apply(null, TONES[toneOf(n)].map(x => x[1] + x[2])) + PAUSE_S;
 
@@ -165,39 +198,42 @@
     TONES[toneOf(sched.tone)].forEach(([f, off, dur]) => beep(f, t0 + off, dur, sched.bus, sched.oscs));
   }
 
-  // La melodía MIDI del admin (a diferencia de las demás, fijas) se reproduce
-  // aparte, con el mismo mecanismo sencillo y ya probado del botón "Escuchar"
-  // de Admin → Melodía (tocar las notas ya mismo y volver a empezar al
-  // terminar), en vez del sistema de programar-con-antelación que usan las
-  // melodías fijas. Ese sistema depende del reloj interno del audio y de
-  // tenerlo todo listo con minutos de margen; para un archivo que el admin
-  // puede cambiar en cualquier momento, tocarla al momento es más fiable.
-  let midiLoopTimer = null, midiLoopBus = null, midiLoopOscs = [];
-  function stopMidiLoop() {
-    if (midiLoopTimer) { clearTimeout(midiLoopTimer); midiLoopTimer = null; }
-    if (midiLoopBus) { try { midiLoopBus.disconnect(); } catch (e) {} midiLoopBus = null; }
-    midiLoopOscs.forEach(o => { try { o.stop(); } catch (e) {} });
-    midiLoopOscs = [];
+  // Una melodía subida por el admin (a diferencia de las 3 de serie) se
+  // reproduce aparte, con el mismo mecanismo sencillo y ya probado del botón
+  // "Escuchar" de Admin → Melodía (tocar las notas ya mismo y volver a
+  // empezar al terminar), en vez del sistema de programar-con-antelación que
+  // usan las melodías de serie. Ese sistema depende del reloj interno del
+  // audio y de tenerlo todo listo con minutos de margen; para un archivo que
+  // puede tardar en descargarse o cambiar en cualquier momento, tocarlo al
+  // momento es más fiable.
+  let melodyLoopTimer = null, melodyLoopBus = null, melodyLoopOscs = [], melodyLoopId = null;
+  function stopMelodyLoop() {
+    if (melodyLoopTimer) { clearTimeout(melodyLoopTimer); melodyLoopTimer = null; }
+    if (melodyLoopBus) { try { melodyLoopBus.disconnect(); } catch (e) {} melodyLoopBus = null; }
+    melodyLoopOscs.forEach(o => { try { o.stop(); } catch (e) {} });
+    melodyLoopOscs = []; melodyLoopId = null;
   }
-  function startMidiLoop() {
+  function startMelodyLoop(id) {
     const ctx = ensureAudio();
-    if (!ctx || audioCtx.state !== 'running' || !TONES.midi || !TONES.midi.length) return false;
-    stopMidiLoop();
+    if (!ctx || audioCtx.state !== 'running' || !TONES[id] || !TONES[id].length) return false;
+    stopMelodyLoop();
+    melodyLoopId = id;
     const playOnce = () => {
-      if (!anyRinging() || ringToneOf(firstRinging()) !== 'midi') { stopMidiLoop(); return; }
+      if (!anyRinging() || ringToneOf(firstRinging()) !== id) { stopMelodyLoop(); return; }
+      const notes = TONES[id]; if (!notes || !notes.length) { stopMelodyLoop(); return; }
       const bus = audioCtx.createGain(); bus.connect(master);
-      midiLoopBus = bus; midiLoopOscs = [];
+      melodyLoopBus = bus; melodyLoopOscs = [];
       const t0 = audioCtx.currentTime + 0.05;
       let maxEnd = 0.3;
-      TONES.midi.forEach(([f, off, dur]) => { beep(f, t0 + off, dur, bus, midiLoopOscs); maxEnd = Math.max(maxEnd, off + dur); });
-      midiLoopTimer = setTimeout(playOnce, (maxEnd + PAUSE_S) * 1000);
+      notes.forEach(([f, off, dur]) => { beep(f, t0 + off, dur, bus, melodyLoopOscs); maxEnd = Math.max(maxEnd, off + dur); });
+      melodyLoopTimer = setTimeout(playOnce, (maxEnd + PAUSE_S) * 1000);
     };
     playOnce();
     return true;
   }
   // Tono que está sonando AHORA MISMO de verdad (para saber si hay que cambiar de melodía
   // cuando dejan de sonar varios timers/alarmas a la vez con tonos distintos)
-  function currentPlayingTone() { return midiLoopTimer ? 'midi' : (sched ? sched.tone : null); }
+  function currentPlayingTone() { return melodyLoopTimer ? melodyLoopId : (sched ? sched.tone : null); }
 
   function scheduleFrom(base, minLoops, forEnd, tone) {
     cancelScheduled();
@@ -231,7 +267,7 @@
     if (anyRinging()) return;                       // ya hay melodía sonando
     const n = nextRun();
     if (!n) { cancelScheduled(); return; }
-    if (ringToneOf(n) === 'midi') { cancelScheduled(); return; } // esta se decide y arranca justo al sonar, no antes
+    if (customMelodyIds.has(ringToneOf(n))) { cancelScheduled(); return; } // esta se decide y arranca justo al sonar, no antes
     if (sched && sched.forEnd === n.endAt && sched.tone === ringToneOf(n)) return;  // ya está programada para este
     cancelScheduled();
     const ctx = ensureAudio();
@@ -253,18 +289,19 @@
   function startMelody() {
     vibrate();
     if (!vibId) vibId = setInterval(vibrate, LOOP_MS);
-    const isMidi = ringToneOf(firstRinging()) === 'midi';
-    if (isMidi) cancelScheduled(); else stopMidiLoop(); // solo una de las dos formas de sonar a la vez
+    const tone = ringToneOf(firstRinging());
+    const isCustom = customMelodyIds.has(tone);
+    if (isCustom) cancelScheduled(); else stopMelodyLoop(); // solo una de las dos formas de sonar a la vez
     const ctx = ensureAudio();
     const go = () => {
       if (!anyRinging() || !audioCtx || audioCtx.state !== 'running') return false;
-      if (isMidi) { if (!midiLoopTimer && !startMidiLoop()) return false; }
-      else { if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0, ringToneOf(firstRinging())); topUp(); }
+      if (isCustom) { if (!melodyLoopTimer && !startMelodyLoop(tone)) return false; }
+      else { if (!sched) scheduleFrom(audioCtx.currentTime + 0.05, 1, 0, tone); topUp(); }
       return true;
     };
     if (go()) return;
     // El navegador bloquea el audio (no hubo toque previo): descarta lo programado y arranca en el primer toque
-    cancelScheduled(); stopMidiLoop();
+    cancelScheduled(); stopMelodyLoop();
     const unlock = () => { ensureAudio(); setTimeout(go, 60); };
     ['pointerdown', 'touchstart', 'keydown'].forEach(ev =>
       document.addEventListener(ev, unlock, { once: true, passive: true }));
@@ -273,16 +310,10 @@
 
   function stopMelody() {
     cancelScheduled();
-    stopMidiLoop();
+    stopMelodyLoop();
     if (vibId) { clearInterval(vibId); vibId = null; }
     if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
   }
-
-  // Melodía propia (MIDI recortado por el admin): la carga app.js. null = usar el Dies Irae.
-  window.setMidiTone = function (notes) {
-    if (Array.isArray(notes) && notes.length) TONES.midi = notes; else delete TONES.midi;
-    if (!anyRinging()) refreshSched(); // si ya había una melodía programada de antemano, se reprograma con la nueva
-  };
 
   // Escuchar una melodía de prueba (pestaña Melodía del panel de admin). Devuelve su duración en segundos.
   let previewNodes = null;
@@ -301,6 +332,15 @@
     notes.forEach(([f, off, dur]) => beep(f, t0 + off, dur, bus, oscs));
     previewNodes = { bus, oscs };
     return Math.max.apply(null, notes.map(n => n[1] + n[2]));
+  };
+  // Igual, pero para una melodía YA guardada (de serie o subida), por su id
+  window.timerPreviewSaved = function (id, btn) {
+    const notes = TONES[id];
+    if (!notes || !notes.length) return 0;
+    const secs = window.timerPlayNotes(notes);
+    if (btn) { btn.setAttribute('data-mel-playing', '1'); btn.innerHTML = '<span class="material-symbols-outlined">stop</span>'; }
+    setTimeout(() => { if (btn) { btn.removeAttribute('data-mel-playing'); btn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>'; } }, (secs + 0.4) * 1000);
+    return secs;
   };
 
   /* ───────── pantalla encendida mientras corre ───────── */
@@ -383,7 +423,7 @@
       stopMelody();
       if (wasRinging && typeof radioAlarmEnd === 'function') radioAlarmEnd(); // reanudar la radio si la pausó la alarma
     }
-    else if (currentPlayingTone() !== ringToneOf(firstRinging())) { cancelScheduled(); stopMidiLoop(); startMelody(); } // sigue sonando otro con distinto tono
+    else if (currentPlayingTone() !== ringToneOf(firstRinging())) { cancelScheduled(); stopMelodyLoop(); startMelody(); } // sigue sonando otro con distinto tono
     if (wasRinging && !anyRinging()) tab = runs.length ? 'list' : 'timer';
     updateTitle();
     save();
@@ -428,6 +468,8 @@
     r.ringing = false;
     if (nm && !r.name) r.name = nm;   // el nombre del atajo (p. ej. Patatas) manda; sin nombre no se guarda nada
     if (nameEl) nameEl.value = '';
+    const melSel = $('timerMelodySelect');
+    r.tone = (melSel && melSel.value) || defaultMelodyId;
     if (clockEnabled()) r.clock = true;
     runs.push(r);
     tab = 'list';
@@ -682,6 +724,7 @@
     show('timerDisplay', mode === 'ring' || mode === 'timer');
     show('alarmInput', mode === 'alarm');
     show('timerNameRow', mode === 'timer' || mode === 'alarm');
+    show('timerMelodySelect', mode === 'timer' || mode === 'alarm');
     show('timerSub', mode === 'ring' || mode === 'alarm');
     show('timerPresets', mode === 'timer');
     show('timerManual', mode === 'timer');
