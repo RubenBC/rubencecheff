@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v90';
+const APP_VERSION = 'v92';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -2048,7 +2048,7 @@ function openImportCsvModal() {
   openModalNav('importCsvModal');
 }
 
-// Pega el CSV separado por ";" que ha dado Gemini (fecha;hora;titulo;categoria;nota),
+// Pega el CSV separado por ";" (fecha;hora;titulo;categoria;nota), venga de donde venga,
 // filtra las filas que no cumplan el formato mínimo, descarta las que ya
 // existan en la base de datos (en cualquier estado: pendiente/aprobado/
 // descartado) comparando fecha + categoría + título sin acentos ni
@@ -2111,7 +2111,7 @@ async function importCsvEvents(btn) {
   // Compara títulos de forma resistente a variaciones de redacción: separa
   // por guion/"vs"/"v." y ordena los trozos alfabéticamente, así "Real
   // Madrid - Barcelona" y "Barcelona vs Real Madrid" se reconocen como el
-  // mismo evento aunque Gemini los redacte distinto entre una consulta y otra.
+  // mismo evento aunque se redacten distinto entre una importación y otra.
   const canonicalTitle = title => applyVenueAliases(normalizeText(title))
     .split(/\s*(?:-|vs\.?|v\.)\s*/)
     .map(p => p.trim())
@@ -2193,7 +2193,7 @@ function renderChristmasToggle() {
   holder.innerHTML = `
     <button class="xmas-toggle${christmasMode ? ' on' : ''}" id="xmasToggleBtn" onclick="toggleChristmasMode()" role="switch" aria-checked="${christmasMode}">
       <span class="xmas-toggle-emoji">🎄</span>
-      <span class="xmas-toggle-text"><b>Modo Navidad</b><small>${christmasMode ? 'Activado en todos los dispositivos' : 'Nevada, gorro navideño y timer con villancico'}</small></span>
+      <span class="xmas-toggle-text"><b>Modo Navidad</b><small>${christmasMode ? 'Activado en todos los dispositivos' : 'Nevada y gorro navideño en la cabecera'}</small></span>
       <span class="xmas-switch"><span></span></span>
     </button>`;
 }
