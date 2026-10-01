@@ -4,6 +4,23 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v92 — Revisión de usabilidad (continuación)
+
+### Corregido
+- El cuadro de **"Importar eventos" (CSV) seguía mencionando a Gemini** por su nombre, de cuando había un robot automático que ya quitaste. Ahora el texto no asume ninguna herramienta en concreto: solo explica el formato (fecha;hora;titulo;categoria;nota), venga de donde venga.
+- En **Pesos de ración y Salmueras**, el botón para avisar de un error se leía solo "Error", como si algo estuviera roto en ese momento, en vez de invitar a avisar de algo. Ahora dice "Avisar".
+
+---
+
+## v91 — Revisión de usabilidad
+
+### Corregido
+- **El desplegable de melodía del timer cortaba el texto** en móviles estrechos (se veía "Tono clási" en vez de "Tono clásico"). Ahora aprovecha todo el espacio libre de esa fila y, si el nombre es muy largo, corta con "…" en vez de a lo bruto.
+- **El interruptor "Modo Navidad" seguía diciendo "y timer con villancico"**, un texto que quedó desfasado al separar la melodía de los modos festivos en la versión anterior.
+- **La fila de pestañas de Admin no avisaba de que se podía deslizar.** Con 6 pestañas ya no caben todas en un móvil estrecho (la de Melodía quedaba fuera de la vista, sin pista de que existía). Ahora el borde derecho se difumina para indicar que hay más hacia ese lado.
+
+---
+
 ## v90 — Biblioteca de melodías
 
 ### Cambiado
