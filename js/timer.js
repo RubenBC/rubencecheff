@@ -566,6 +566,35 @@
     const d = new Date(); d.setHours(h, m, 0, 0);
     if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1); // ya pasó hoy → mañana
     startRun({ type: 'alarm', endAt: d.getTime(), totalMs: d.getTime() - Date.now(), pausedLeft: null, label: v });
+    $('alarmHH').value = ''; $('alarmMM').value = ''; $('alarmInput').value = '';
+  };
+
+  // Selector de hora propio (siempre 24 h): dos campos HH y MM que se combinan
+  // en #alarmInput con el mismo formato "HH:MM" de siempre, para no tocar el resto.
+  function alarmSync() {
+    const hh = $('alarmHH').value, mm = $('alarmMM').value;
+    $('alarmInput').value = (hh !== '' && mm !== '') ? `${hh.padStart(2, '0')}:${mm.padStart(2, '0')}` : '';
+    timerAlarmPreview();
+  }
+  window.timerAlarmPartInput = function (part) {
+    const el = $('alarm' + part);
+    let v = el.value.replace(/[^0-9]/g, '').slice(0, 2);
+    const max = part === 'HH' ? 23 : 59;
+    if (v !== '' && parseInt(v, 10) > max) v = String(max);
+    el.value = v;
+    if (v.length === 2) { // 2 cifras ya puestas: salta al siguiente campo, o cierra el teclado en el último
+      if (part === 'HH') $('alarmMM').focus(); else el.blur();
+    }
+    alarmSync();
+  };
+  window.timerAlarmPartBlur = function (part) {
+    const el = $('alarm' + part);
+    if (el.value !== '') el.value = el.value.padStart(2, '0');
+    alarmSync();
+  };
+  window.timerAlarmPartKey = function (ev, part) {
+    if (ev.key === 'Enter') { ev.target.blur(); timerStartAlarm(); return; }
+    if (ev.key === 'Backspace' && part === 'MM' && ev.target.value === '') $('alarmHH').focus();
   };
 
   window.timerPause = function (id) {
@@ -722,7 +751,7 @@
     // qué se ve en cada modo
     const mode = ring ? 'ring' : tab;
     show('timerDisplay', mode === 'ring' || mode === 'timer');
-    show('alarmInput', mode === 'alarm');
+    show('alarmPicker', mode === 'alarm');
     show('timerNameRow', mode === 'timer' || mode === 'alarm');
     show('timerMelodySelect', mode === 'timer' || mode === 'alarm');
     show('timerSub', mode === 'ring' || mode === 'alarm');
