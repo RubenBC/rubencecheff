@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v93
+
+### Cambiado
+- **La hora de la alarma ya siempre se ve en formato 24 horas**, sin depender de si el teléfono está puesto en AM/PM. Antes se usaba el selector de hora del propio sistema, que sigue el idioma/región del teléfono y no se puede controlar desde la web; ahora es un selector propio (horas y minutos), con una etiqueta "24 h" para que quede claro. Se escribe igual: dos cifras de hora y salta solo a los minutos.
+
+---
+
 ## v92 — Revisión de usabilidad (continuación)
 
 ### Corregido

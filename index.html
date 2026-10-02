@@ -16,7 +16,7 @@
   <title>RubenceChef</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=92">
+  <link rel="stylesheet" href="css/styles.css?v=93">
 </head>
 <body>
 <!-- ACCESO DEL EQUIPO: sin sesión iniciada no se carga ningún dato -->
@@ -372,7 +372,17 @@
     </div>
 
     <div class="timer-display" id="timerDisplay">00:00</div>
-    <input type="time" class="timer-alarm-input" id="alarmInput" style="display:none;" oninput="timerAlarmPreview()" aria-label="Hora de la alarma">
+    <!-- Selector de hora propio, siempre en formato 24 h (el <input type="time"> nativo
+         se muestra en AM/PM o 24 h según el idioma/región del teléfono, fuera de nuestro control). -->
+    <div class="timer-alarm-picker" id="alarmPicker" style="display:none;">
+      <input type="number" class="alarm-part" id="alarmHH" min="0" max="23" placeholder="00" inputmode="numeric" aria-label="Hora (0-23)"
+             oninput="timerAlarmPartInput('HH')" onblur="timerAlarmPartBlur('HH')" onkeydown="timerAlarmPartKey(event,'HH')">
+      <span class="alarm-colon">:</span>
+      <input type="number" class="alarm-part" id="alarmMM" min="0" max="59" placeholder="00" inputmode="numeric" aria-label="Minutos (0-59)"
+             oninput="timerAlarmPartInput('MM')" onblur="timerAlarmPartBlur('MM')" onkeydown="timerAlarmPartKey(event,'MM')">
+      <span class="alarm-24h">24 h</span>
+    </div>
+    <input type="hidden" id="alarmInput">
     <div class="timer-name-row" id="timerNameRow">
       <input type="text" class="timer-name-input" id="timerNameInput" maxlength="40" placeholder="Nombre (opcional)" autocomplete="off"
              onkeydown="if(event.key==='Enter')this.blur()">
@@ -522,9 +532,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
-<script src="js/app.js?v=92"></script>
-<script src="js/timer.js?v=92"></script>
-<script src="js/radio.js?v=92"></script>
-<script src="js/midi.js?v=92"></script>
+<script src="js/app.js?v=93"></script>
+<script src="js/timer.js?v=93"></script>
+<script src="js/radio.js?v=93"></script>
+<script src="js/midi.js?v=93"></script>
 </body>
 </html>
