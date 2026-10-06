@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v94';
+const APP_VERSION = 'v95';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -394,11 +394,15 @@ function showPage(page, btn, skipPush) {
   // ahí se respeta tal cual lo que marca ese punto del historial, sin este atajo.)
   if (!skipPush) {
     if (page === 'recipes' && recipesSubView && recipes.some(r => r.id === recipesSubView.id)) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      (btn || document.getElementById('nav-recipes')).classList.add('active');
       showRecipeDetail(recipesSubView.id);
       return;
     }
     if (page === 'productions' && productionsSubView && productions.some(p => p.id === productionsSubView.id)) {
       const id = productionsSubView.id;
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      (btn || document.getElementById('nav-productions')).classList.add('active');
       currentPage = 'productions'; // para que "Volver" en ese detalle apunte a Producción, no a la pestaña de la que se viene
       showProdDetail(id);
       return;
@@ -671,7 +675,8 @@ function showRecipeDetail(id) {
   document.getElementById('detailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
-  document.getElementById('mainNav').style.display = 'none';
+  // El menú de abajo se queda visible también en el detalle, para poder saltar a otra
+  // pestaña (p. ej. Radio) sin tener que pulsar antes "Volver".
   window.scrollTo(0, 0);
   renderRecipeDetail();
 }
@@ -794,7 +799,6 @@ function restoreRecipeDetail(id) {
   document.getElementById('detailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
-  document.getElementById('mainNav').style.display = 'none';
   renderRecipeDetail();
 }
 
@@ -807,7 +811,6 @@ function restoreProdDetail(id, fromPage) {
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddProductionRow').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
-  document.getElementById('mainNav').style.display = 'none';
   renderProdDetail(fromPage);
 }
 
@@ -1345,7 +1348,6 @@ function showProdDetail(id) {
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddProductionRow').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
-  document.getElementById('mainNav').style.display = 'none';
   window.scrollTo(0, 0);
   renderProdDetail(fromPage);
 }
@@ -1457,12 +1459,12 @@ function goToRecipeFromProd(recipeId) {
   savedScroll[currentPage] = window.scrollY;
   currentRecipeId = recipeId;
   currentMultiplier = 1;
+  recipesSubView = { id: recipeId };
   history.pushState({ view: 'recipeDetail', id: recipeId, fromPage: 'productions' }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('detailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
-  document.getElementById('mainNav').style.display = 'none';
   window.scrollTo(0, 0);
   renderRecipeDetail();
 }
