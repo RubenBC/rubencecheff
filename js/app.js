@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v93';
+const APP_VERSION = 'v94';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -20,6 +20,35 @@ function versionMismatch() {
   const m = src.match(/[?&]v=(\d+)/);
   return !!m && ('v' + m[1]) !== APP_VERSION;
 }
+// Recarga forzando que se descargue todo de nuevo (no una copia guardada del navegador).
+// Con la app instalada, abrirla no siempre coge la versión nueva aunque ya esté subida
+// a GitHub; antes había que cerrarla del todo para que se notara. Con esto no hace falta.
+function forceReload() {
+  location.href = location.pathname + '?r=' + Date.now();
+}
+
+// Comprueba si hay una versión nueva publicada, sin recargar nada todavía; si la hay,
+// muestra un aviso para que el que esté delante decida cuándo actualizar.
+async function checkForUpdate() {
+  try {
+    const res = await fetch(location.pathname + '?chk=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const html = await res.text();
+    const m = html.match(/js\/app\.js\?v=(\d+)/);
+    if (m && ('v' + m[1]) !== APP_VERSION && !document.getElementById('updateBanner')) {
+      const b = document.createElement('div');
+      b.id = 'updateBanner';
+      b.className = 'update-banner';
+      b.innerHTML = `<span class="material-symbols-outlined update-banner-icon">new_releases</span>
+        <span class="update-banner-text">Hay una versión nueva de la app.</span>
+        <button onclick="forceReload()">Actualizar</button>`;
+      document.body.appendChild(b);
+    }
+  } catch (e) {}
+}
+setInterval(checkForUpdate, 20 * 60 * 1000); // cada 20 min, por si la pantalla se queda abierta horas sin tocar
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 // Cuenta compartida del equipo de cocina (se crea en Supabase → Authentication → Users).
 // La app pide su contraseña al abrir; sin sesión no se carga ningún dato.
@@ -179,6 +208,12 @@ let recipeEditorUploads = []; // fotos subidas en esta sesión del editor (para 
 let isAdmin     = false;
 let currentPage = 'recipes';
 let savedScroll = {};
+// Si hay un plato o una producción abiertos y se va a otra pestaña (p. ej. Radio, para
+// cambiar de emisora), se guarda aquí para volver a ese mismo detalle al tocar de nuevo
+// "Platos"/"Producción" en el menú de abajo, en vez de caer en la lista general.
+// Solo se olvida al pulsar "Volver" (backTo), que es el "vista general" explícito.
+let recipesSubView = null;      // { id } | null
+let productionsSubView = null;  // { id, fromPage } | null
 
 // Recetas
 let currentRecipeId     = null;
@@ -353,6 +388,25 @@ function showPage(page, btn, skipPush) {
   if (typeof radioPreviewStop === 'function') radioPreviewStop(); // no dejar sonando una prueba de emisora al salir de Admin
   if (typeof midiStopPreview === 'function') midiStopPreview();   // ni la de la melodía
   if (typeof timerCloseForNav === 'function') timerCloseForNav(); // el panel del timer se cierra al cambiar de pestaña
+  // Si había un plato o una producción abiertos cuando se salió hacia otra pestaña
+  // (p. ej. Radio), tocar de nuevo su pestaña vuelve a ese mismo detalle, no a la lista.
+  // (skipPush=true es un "atrás" del navegador aterrizando en una pestaña concreta:
+  // ahí se respeta tal cual lo que marca ese punto del historial, sin este atajo.)
+  if (!skipPush) {
+    if (page === 'recipes' && recipesSubView && recipes.some(r => r.id === recipesSubView.id)) {
+      showRecipeDetail(recipesSubView.id);
+      return;
+    }
+    if (page === 'productions' && productionsSubView && productions.some(p => p.id === productionsSubView.id)) {
+      const id = productionsSubView.id;
+      currentPage = 'productions'; // para que "Volver" en ese detalle apunte a Producción, no a la pestaña de la que se viene
+      showProdDetail(id);
+      return;
+    }
+    // La referencia ya no existe (se borró mientras tanto): se olvida y sigue a la lista normal.
+    if (page === 'recipes') recipesSubView = null;
+    if (page === 'productions') productionsSubView = null;
+  }
   exitInnerView();
   hideSearchDropdown();
   const switchingPage = page !== currentPage;
@@ -611,6 +665,7 @@ function renderRecipes() {
 function showRecipeDetail(id) {
   savedScroll[currentPage] = window.scrollY;
   currentRecipeId = id;
+  recipesSubView = { id };
   history.pushState({ view: 'recipeDetail', id, fromPage: currentPage }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('detailPage').classList.add('active');
@@ -733,6 +788,7 @@ function renderRecipeDetail() {
 // receta vinculada que se abrió encima de ese detalle).
 function restoreRecipeDetail(id) {
   currentRecipeId = id;
+  recipesSubView = { id };
   currentMultiplier = 1;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('detailPage').classList.add('active');
@@ -744,6 +800,7 @@ function restoreRecipeDetail(id) {
 
 function restoreProdDetail(id, fromPage) {
   currentProdId = id;
+  productionsSubView = { id, fromPage };
   currentMultiplier = 1;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('productionDetailPage').classList.add('active');
@@ -755,6 +812,10 @@ function restoreProdDetail(id, fromPage) {
 }
 
 function backTo(page) {
+  // "Volver" es el único sitio que de verdad pide la vista general: aquí se olvida
+  // el detalle, para que cambiar a otra pestaña y volver no lo recupere ya sin querer.
+  if (page === 'recipes') recipesSubView = null;
+  if (page === 'productions') productionsSubView = null;
   exitInnerView();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -1277,6 +1338,7 @@ function showProdDetail(id) {
   currentProdId = id;
   currentMultiplier = 1;
   const fromPage = currentPage;
+  productionsSubView = { id, fromPage };
   history.pushState({ view: 'prodDetail', id, fromPage }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('productionDetailPage').classList.add('active');
