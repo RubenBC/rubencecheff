@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v95
+
+### Cambiado
+- **El menú de abajo (Platos, Producción, Utilidades, Timer, Radio) ya no se oculta al abrir un plato o una producción.** Se queda visible también dentro del detalle, para poder saltar directamente a otra pestaña sin tener que pulsar antes "Volver". El icono resaltado sigue mostrando la sección en la que estás (Platos o Producción), y "Volver" sigue funcionando igual para ir a la lista general. El editor (al pulsar "Editar") sigue ocultándolo, para evitar perder cambios sin guardar sin querer.
+
+### Corregido
+- De paso, un fallo que había quedado de la versión anterior: al volver a un plato o producción tras pasar por otra pestaña, el icono resaltado del menú se quedaba en el de esa otra pestaña en vez de pasar al que corresponde. No se notaba porque el menú estaba oculto en el detalle; ahora que se ve, ya marca el icono correcto.
+
+---
+
 ## v94
 
 ### Añadido
