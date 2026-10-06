@@ -1254,13 +1254,17 @@ body.xmas .xmas-deco-flake2 { right: -6px; bottom: -6px; font-size: 10px; opacit
 .xmas-toggle.on .xmas-switch { background: #D62828; }
 .xmas-toggle.on .xmas-switch span { transform: translateX(18px); }
 /* Cabecera en móviles estrechos: con sesión de admin y avisos, el botón Admin
-   se salía por la derecha (≤375 px). Ahora el botón queda solo con el icono. */
+   se salía por la derecha (≤375 px). Ahora el botón queda solo con el icono.
+   El propio grupo de botones (comentarios, eventos, actualizar, tema, admin) puede
+   llegar a tener hasta 5 elementos a la vez: si aun así no caben todos en una fila,
+   pasan a una segunda línea en vez de salirse de la pantalla. */
 .app-brand { min-width: 0; }
 .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
 @media (max-width: 420px) {
   #adminBtn .btn-label { display: none; }
-  #adminBtn { padding: 7px 10px; }
-  .topbar-row > div:last-child { gap: 6px; }
+  #adminBtn, #refreshBtn, #themeBtn { padding: 7px 10px; }
+  .topbar-actions { gap: 6px; }
 }
 
 /* Franja de color detrás de la barra de arriba: se nota nada más abrir la
@@ -1382,3 +1386,17 @@ body.gated { overflow: hidden; }
 .mel-icon-btn { flex-shrink: 0; border: none; background: none; color: var(--text2); cursor: pointer; padding: 4px; display: flex; border-radius: 50%; }
 .mel-icon-btn.danger { color: var(--danger); }
 .mel-icon-btn .material-symbols-outlined { font-size: 19px; }
+
+/* Aviso de versión nueva disponible */
+.update-banner {
+  position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px);
+  background: var(--primary); color: #fff; border-radius: 999px; padding: 10px 10px 10px 16px;
+  font-size: 13px; font-weight: 700; z-index: 1200; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  animation: toastIn 0.25s ease;
+}
+@media (prefers-color-scheme: dark) { .update-banner { color: #002020; } }
+body.dark .update-banner { color: #002020; }
+.update-banner button { flex-shrink: 0; border: none; background: rgba(255,255,255,0.25); color: inherit; font: inherit; font-weight: 800; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.update-banner-icon { flex-shrink: 0; font-size: 18px; }
+.update-banner-text { flex: 1; min-width: 0; }
