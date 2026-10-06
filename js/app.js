@@ -12,7 +12,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v95';
+const APP_VERSION = 'v96';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -2363,7 +2363,7 @@ function applyHalloweenMode(on) {
   window.RC_HALLOWEEN = halloweenMode;
   document.body.classList.toggle('halloween', halloweenMode);
   try { localStorage.setItem('rubencechef-halloween', halloweenMode ? 'on' : 'off'); } catch (e) {}
-  if (halloweenMode) batsStart(); else batsStop();
+  if (halloweenMode) { batsStart(); ghostsStart(); } else { batsStop(); ghostsStop(); }
   renderHalloweenToggle();
   updateSeasonalTitle();
 }
@@ -2407,9 +2407,9 @@ function batsStart() {
   const newBat = (anywhere) => {
     const dir = Math.random() < 0.5 ? 1 : -1;
     return {
-      x: anywhere ? Math.random() * W : (dir === 1 ? -30 : W + 30),
+      x: anywhere ? Math.random() * W : (dir === 1 ? -46 : W + 46),
       y: 40 + Math.random() * Math.min(H * 0.85, 640),
-      s: 8 + Math.random() * 10, dir, speed: 0.26 + Math.random() * 0.38,
+      s: 16 + Math.random() * 20, dir, speed: 0.26 + Math.random() * 0.38,
       bob: Math.random() * Math.PI * 2, flapT: Math.random() * Math.PI * 2,
       a: 0.5 + Math.random() * 0.35,
     };
@@ -2419,7 +2419,7 @@ function batsStart() {
     W = window.innerWidth; H = window.innerHeight;
     cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = reduce ? 4 : Math.round(Math.min(14, Math.max(7, W / 110)));
+    const n = reduce ? 6 : Math.round(Math.min(24, Math.max(14, W / 70)));
     bats = Array.from({ length: n }, () => newBat(true));
   };
   function drawBat(s, flap) {
@@ -2448,7 +2448,7 @@ function batsStart() {
     ctx.fillStyle = dark ? 'rgba(210,210,225,0.55)' : 'rgba(35,30,40,0.55)';
     for (const b of bats) {
       if (!reduce) { b.x += b.dir * b.speed * dt; b.bob += 0.03 * dt; b.flapT += 0.22 * dt; }
-      if (b.x < -40 || b.x > W + 40) Object.assign(b, newBat(false));
+      if (b.x < -60 || b.x > W + 60) Object.assign(b, newBat(false));
       const flap = 0.55 + 0.45 * Math.sin(b.flapT);
       const y = b.y + Math.sin(b.bob) * 10;
       ctx.save();
@@ -2470,6 +2470,48 @@ function batsStart() {
   _bats = { cv, stop: () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', onVis); cv.remove(); } };
 }
 function batsStop() { if (_bats) { _bats.stop(); _bats = null; } }
+
+// Fantasmas sueltos: aparecen de cuando en cuando en un sitio al azar, se
+// quedan flotando un momento y se desvanecen, en vez de estar siempre ahí.
+let _ghosts = null;
+function ghostsStart() {
+  if (_ghosts) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let timer = null, stopped = false;
+  const GHOST_SVG = '<svg viewBox="0 0 60 64" width="100%" height="100%"><path d="M30 2C14 2 4 14 4 30v26l7-7 7 7 7-7 5 5 5-5 7 7 7-7 7 7V30C56 14 46 2 30 2Z" fill="currentColor"/><ellipse cx="21" cy="27" rx="4" ry="5" fill="var(--bg,#fff)"/><ellipse cx="39" cy="27" rx="4" ry="5" fill="var(--bg,#fff)"/></svg>';
+  function spawnOne() {
+    if (stopped || document.hidden) return;
+    const el = document.createElement('div');
+    el.className = 'halloween-ghost';
+    el.innerHTML = GHOST_SVG;
+    const margin = 60;
+    const x = margin + Math.random() * Math.max(10, window.innerWidth - margin * 2);
+    const topMax = Math.max(120, window.innerHeight * 0.65);
+    const y = 90 + Math.random() * (topMax - 90);
+    const size = 46 + Math.random() * 38;
+    el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = size + 'px'; el.style.height = (size * 64 / 60) + 'px';
+    el.style.animationDuration = (reduce ? 1 : (5 + Math.random() * 3)) + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), (reduce ? 1200 : 8200));
+  }
+  function loop() {
+    if (stopped) return;
+    if (!document.hidden) spawnOne();
+    timer = setTimeout(loop, reduce ? 9000 : (5000 + Math.random() * 6000));
+  }
+  const onVis = () => { if (!document.hidden && !stopped && !timer) loop(); };
+  document.addEventListener('visibilitychange', onVis);
+  timer = setTimeout(loop, 1800); // el primero tarda un poco en aparecer, no sale de golpe al activar el modo
+  _ghosts = {
+    stop: () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVis);
+      document.querySelectorAll('.halloween-ghost').forEach(g => g.remove());
+    },
+  };
+}
+function ghostsStop() { if (_ghosts) { _ghosts.stop(); _ghosts = null; } }
 
 try { if (localStorage.getItem('rubencechef-halloween') === 'on') setTimeout(() => applyHalloweenMode(true), 0); } catch (e) {}
 
