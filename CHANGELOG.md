@@ -4,6 +4,19 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v96 — Modo Halloween a fondo
+
+### Cambiado
+- **Colores de verdad.** El degradado de la cabecera era un pastel muy discreto (casi no se notaba); ahora son naranjas cálidos, cohesionados entre sí, tanto en claro como en oscuro.
+- **La cabecera crece un poco** para dejar sitio a una escena nueva en su borde de abajo: luna, un árbol pelado, un par de murciélagos y **tres calabazas** con cara, en vez de la única calabaza suelta de antes.
+- **Murciélagos más grandes y más numerosos** (el doble, aproximadamente), volando por toda la pantalla.
+- **Dos telarañas más**, en las esquinas de abajo, además de las dos que ya había arriba.
+
+### Añadido
+- **Fantasmas sueltos**: aparecen de cuando en cuando en un sitio al azar de la pantalla, flotan un momento y se desvanecen solos, en vez de estar siempre ahí.
+
+---
+
 ## v95
 
 ### Cambiado
