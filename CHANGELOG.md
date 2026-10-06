@@ -4,6 +4,18 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v94
+
+### Añadido
+- **Botón "Actualizar"** en la cabecera (icono ↻): recarga la app forzando que se descargue todo de nuevo, sin tener que cerrarla.
+- **Aviso automático de versión nueva**: la app comprueba cada 20 minutos, y también cada vez que vuelves a ella, si hay una versión distinta publicada. Si la hay, aparece un mensaje con su propio botón para actualizar, sin que haga falta acordarse de nada.
+
+### Corregido
+- **Si tenías abierto un plato o una producción y cambiabas a Radio** (por ejemplo para cambiar de emisora o el volumen), al volver a Platos o Producción la app mostraba la lista general en vez de seguir en el mismo sitio. Ahora el detalle se queda ahí, pase lo que pase por Radio, Timer o cualquier otra pestaña de por medio; solo se olvida al pulsar "Volver" (eso sí cuenta como pedir la vista general).
+- De paso, encontrado al añadir el botón de actualizar: en un móvil estrecho, con avisos de comentarios pendientes y de próximos eventos a la vez, el botón Admin de la cabecera podía quedar parcialmente fuera de la pantalla. Ahora esos botones pasan a una segunda línea si hace falta, en vez de salirse.
+
+---
+
 ## v93
 
 ### Cambiado
