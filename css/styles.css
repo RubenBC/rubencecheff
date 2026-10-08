@@ -133,6 +133,13 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .tag-coulis    { background: #FCE4EC; color: #880E4F; }
 .tag-vinagreta { background: #FFFDE7; color: #F57F17; }
 .tag-vegetariano { background: #F1F8E9; color: #33691E; }
+/* Etiquetas (platos y producciones, pueden llevar varias a la vez): un estilo
+   neutro, igual para todas, ya que la lista la crea el admin y no se puede
+   saber de antemano qué nombres va a tener para darle un color propio. */
+.tag-etiqueta { background: var(--surface2); color: var(--text2); border: 1px solid var(--outline-light); }
+.tag-sin-etiquetas { background: none; color: var(--text2); border: 1px dashed var(--outline-light); }
+body.dark .tag-etiqueta { background: var(--surface2); color: var(--text2); border-color: var(--outline); }
+body.dark .tag-sin-etiquetas { border-color: var(--outline); }
 
 /* ═══════════════════════════════════════
    DETALLE
@@ -1206,175 +1213,6 @@ body.dark .radio-card.error .radio-card-badge { color: #690005; }
 .float-back-btn .material-symbols-outlined { font-size: 22px; }
 body.dark .float-back-btn { background: rgba(26,35,34,0.88); }
 
-/* ═══════════════════════════════════════
-   v76 — MODO NAVIDAD (se activa desde Admin)
-═══════════════════════════════════════ */
-.brand-name { position: relative; }
-.xmas-hat { display: none; }
-body.xmas .brand-name { font-size: 23px; }
-body.xmas .xmas-hat {
-  display: block; position: absolute; left: -13px; top: -19px;
-  transform: rotate(-22deg); transform-origin: 30% 90%;
-  pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
-}
-body.xmas .xmas-hat svg { width: 36px; height: 29px; }
-@media (max-width: 400px) {
-  body.xmas .brand-name { font-size: 19px; }
-  body.xmas .xmas-hat svg { width: 28px; height: 23px; }
-  body.xmas .xmas-hat { left: -10px; top: -15px; }
-}
-/* Un par de copos más, sueltos junto al nombre: dan la sensación de "varios",
-   no de un solo adorno suelto */
-.xmas-deco { display: none; }
-body.xmas .xmas-deco { display: inline-block; position: absolute; pointer-events: none; font-size: 13px; }
-body.xmas .xmas-deco-flake1 { right: -16px; top: -4px; }
-body.xmas .xmas-deco-flake2 { right: -6px; bottom: -6px; font-size: 10px; opacity: .85; }
-@media (max-width: 400px) {
-  body.xmas .xmas-deco { font-size: 11px; }
-  body.xmas .xmas-deco-flake1 { right: -13px; }
-  body.xmas .xmas-deco-flake2 { right: -4px; }
-}
-/* Nevada: por encima del contenido pero por debajo de las barras y ventanas,
-   y sin recibir toques */
-#snowCanvas { position: fixed; inset: 0; z-index: 95; pointer-events: none; }
-
-/* Interruptor en Admin */
-.xmas-toggle {
-  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
-  background: var(--surface); border: 1.5px solid var(--outline-light); border-radius: 16px;
-  padding: 10px 14px; margin-bottom: 14px; font-family: 'Nunito', sans-serif; color: var(--text);
-}
-.xmas-toggle.on { border-color: #D62828; background: linear-gradient(90deg, rgba(214,40,40,0.08), rgba(20,120,60,0.08)); }
-.xmas-toggle-emoji { font-size: 24px; }
-.xmas-toggle-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.xmas-toggle-text b { font-size: 14.5px; }
-.xmas-toggle-text small { font-size: 11.5px; color: var(--text2); }
-.xmas-switch { width: 42px; height: 24px; border-radius: 12px; background: var(--outline-light); position: relative; flex-shrink: 0; transition: background .2s; }
-.xmas-switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
-.xmas-toggle.on .xmas-switch { background: #D62828; }
-.xmas-toggle.on .xmas-switch span { transform: translateX(18px); }
-/* Cabecera en móviles estrechos: con sesión de admin y avisos, el botón Admin
-   se salía por la derecha (≤375 px). Ahora el botón queda solo con el icono.
-   El propio grupo de botones (comentarios, eventos, actualizar, tema, admin) puede
-   llegar a tener hasta 5 elementos a la vez: si aun así no caben todos en una fila,
-   pasan a una segunda línea en vez de salirse de la pantalla. */
-.app-brand { min-width: 0; }
-.brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
-@media (max-width: 420px) {
-  #adminBtn .btn-label { display: none; }
-  #adminBtn, #refreshBtn, #themeBtn { padding: 7px 10px; }
-  .topbar-actions { gap: 6px; }
-}
-
-/* Franja de color detrás de la barra de arriba: se nota nada más abrir la
-   app, sin tocar los colores de los botones ni del resto de la interfaz. */
-body.xmas .topbar { background: linear-gradient(120deg, rgba(213,243,240,0.94), rgba(224,247,232,0.94)); }
-body.dark.xmas .topbar { background: linear-gradient(120deg, rgba(9,46,42,0.92), rgba(10,40,24,0.92)); }
-
-/* ═══════════════════════════════════════
-   v79 — MODO HALLOWEEN (se activa desde Admin, independiente del de Navidad)
-   v96 — a fondo: más grande, más cargado, naranjas de verdad, para que se
-   note claramente que está activado (antes era casi imperceptible).
-═══════════════════════════════════════ */
-body.halloween {
-  --hw-1: #FF8A00;   /* naranja calabaza, el color "de marca" del modo */
-  --hw-2: #C2410C;   /* naranja quemado, para los degradados y contrastes */
-  --hw-3: #FFB74D;   /* ámbar claro */
-  --hw-dark: #2B1206; /* marrón casi negro, para siluetas y el fondo oscuro */
-}
-/* La barra de arriba crece un poco para dejar sitio a la escena de abajo,
-   y el degradado pasa a naranjas de verdad en vez del pastel de antes. */
-body.halloween .topbar { padding-bottom: 30px; background: linear-gradient(120deg, rgba(255,183,77,0.97), rgba(255,122,0,0.88)); }
-body.dark.halloween .topbar { background: linear-gradient(120deg, rgba(43,18,6,0.96), rgba(100,40,6,0.92)); }
-body.halloween.xmas .topbar { background: linear-gradient(120deg, rgba(213,243,240,0.94), rgba(255,138,0,0.82)); padding-bottom: 30px; }
-body.dark.halloween.xmas .topbar { background: linear-gradient(120deg, rgba(9,46,42,0.92), rgba(80,32,6,0.9)); }
-
-/* Escena del fondo de la cabecera: luna, árbol, murciélagos y varias
-   calabazas, como una ilustración de una sola pieza en vez de iconos
-   sueltos. Las siluetas van en --hw-dark y las calabazas en los naranjas,
-   para que destaquen como el color cálido sobre el resto oscuro. */
-.halloween-skyline { display: none; }
-body.halloween .halloween-skyline {
-  display: block; position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 30px;
-  pointer-events: none;
-}
-.halloween-skyline .hw-sky-tree, .halloween-skyline .hw-sky-moon, .halloween-skyline .hw-sky-bat, .halloween-skyline .hw-sky-ground { fill: var(--hw-dark); opacity: 0.55; }
-.halloween-skyline .hw-sky-pumpkin { fill: var(--hw-1); }
-.halloween-skyline .hw-sky-pumpkin2 { fill: #FF6F00; }
-.halloween-skyline .hw-sky-pumpkin3 { fill: var(--hw-2); }
-.halloween-skyline .hw-sky-stem { fill: none; stroke: #4C7A2E; stroke-width: 1.4; opacity: 0.8; }
-.halloween-skyline .hw-sky-face { fill: var(--hw-dark); }
-body.dark .halloween-skyline .hw-sky-tree, body.dark .halloween-skyline .hw-sky-moon,
-body.dark .halloween-skyline .hw-sky-bat, body.dark .halloween-skyline .hw-sky-ground { opacity: 0.7; }
-@media (max-width: 400px) { body.halloween .topbar { padding-bottom: 26px; } .halloween-skyline { height: 26px; } }
-
-.halloween-pumpkin { display: none; }
-body.halloween .halloween-pumpkin {
-  display: inline-flex; position: absolute; left: -34px; top: -4px;
-  pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
-}
-body.halloween .halloween-pumpkin svg { width: 30px; height: 26px; }
-/* Un par de murciélagos sueltos junto al nombre, además de la calabaza */
-.halloween-deco { display: none; }
-body.halloween .halloween-deco { display: inline-block; position: absolute; pointer-events: none; font-size: 13px; }
-body.halloween .halloween-deco-bat1 { right: -14px; top: -10px; transform: rotate(-12deg); }
-body.halloween .halloween-deco-bat2 { right: 10px; bottom: -7px; font-size: 10px; opacity: .85; transform: rotate(10deg) scaleX(-1); }
-/* Si los dos modos están activos a la vez, calabaza y gorro se reparten
-   arriba en vez de superponerse */
-body.halloween.xmas .halloween-pumpkin { left: -54px; top: -16px; }
-body.halloween.xmas .xmas-hat { left: 8px; }
-@media (max-width: 400px) {
-  body.halloween .halloween-pumpkin svg { width: 25px; height: 22px; }
-  body.halloween .halloween-pumpkin { left: -28px; }
-  body.halloween .halloween-deco { font-size: 11px; }
-  body.halloween .halloween-deco-bat2 { right: 6px; }
-}
-
-#batsCanvas { position: fixed; inset: 0; z-index: 94; pointer-events: none; }
-
-/* Fantasmas sueltos: uno de cada vez, aparece, flota un momento y se
-   desvanece (lo crea y lo quita js/app.js, esto es solo cómo se ve). */
-.halloween-ghost {
-  position: fixed; z-index: 93; pointer-events: none; color: rgba(255,247,235,0.85);
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.18));
-  animation-name: hwGhostFloat; animation-timing-function: ease-in-out; animation-fill-mode: both;
-}
-body.dark .halloween-ghost { color: rgba(255,255,255,0.8); filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
-@keyframes hwGhostFloat {
-  0%   { opacity: 0;    transform: translateY(14px) scale(0.9); }
-  12%  { opacity: 0.9;  transform: translateY(0)     scale(1);  }
-  50%  { opacity: 0.85; transform: translateY(-10px)  scale(1); }
-  88%  { opacity: 0.9;  transform: translateY(0)     scale(1);  }
-  100% { opacity: 0;    transform: translateY(-14px)  scale(0.92); }
-}
-@media (prefers-reduced-motion: reduce) { .halloween-ghost { animation-name: hwGhostFadeOnly; } }
-@keyframes hwGhostFadeOnly { 0% { opacity: 0; } 20% { opacity: 0.85; } 80% { opacity: 0.85; } 100% { opacity: 0; } }
-
-.cobweb { display: none; }
-body.halloween .cobweb {
-  /* Por encima de la barra superior (como una telaraña real en la esquina del
-     marco): pequeña y muy tenue para no tapar los botones de esa esquina. */
-  display: block; position: fixed; top: 0; width: 46px; height: 46px; z-index: 101;
-  color: var(--text2); opacity: 0.38; pointer-events: none;
-}
-.cobweb-left { left: 0; }
-.cobweb-right { right: 0; }
-body.dark .cobweb { color: #9aa5a4; opacity: 0.3; }
-/* Dos telarañas más, en las esquinas de abajo, justo encima del menú */
-body.halloween .cobweb-bottom-left, body.halloween .cobweb-bottom-right {
-  top: auto; bottom: calc(68px + env(safe-area-inset-bottom)); z-index: 40;
-}
-.cobweb-bottom-left { left: 0; transform: scaleY(-1); }
-.cobweb-bottom-right { right: 0; transform: scaleY(-1); }
-
-.halloween-skull { display: none; }
-body.halloween .halloween-skull {
-  display: block; position: fixed; bottom: calc(70px + env(safe-area-inset-bottom)); z-index: 40;
-  font-size: 18px; opacity: 0.22; pointer-events: none; filter: grayscale(1);
-}
-.halloween-skull-l { left: 10px; transform: rotate(-8deg); }
-.halloween-skull-r { right: 10px; transform: rotate(8deg); }
 
 /* ═══════════════════════════════════════
    v84 — Pantalla de acceso del equipo de cocina
@@ -1406,7 +1244,7 @@ body.gated { overflow: hidden; }
 .auth-btn { width: 100%; }
 
 /* ═══════════════════════════════════════
-   v85 — Pestaña "Melodía" del panel de admin (MIDI recortado para el timer de Halloween)
+   v85 — Pestaña "Melodía" del panel de admin (MIDI recortado para el timer)
 ═══════════════════════════════════════ */
 .midi-saved { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text); }
 .midi-saved .material-symbols-outlined { color: var(--primary); font-size: 22px; flex-shrink: 0; }
