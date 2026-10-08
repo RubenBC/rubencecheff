@@ -4,6 +4,23 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v98 — Sistema de etiquetas (sustituye a las categorías de producción)
+
+### Añadido
+- **Etiquetas**: las creas tú desde **Admin → Etiquetas** (antes era "Producción"), y tanto un plato como una producción pueden llevar varias a la vez.
+- Se asignan desde el propio editor de cada plato o producción, tocando las que quieras (como la selección de alérgenos).
+- Aparecen en las tarjetas de las listas, en el detalle, en el buscador y en la exportación a PDF.
+- **Filtro por etiqueta** en las listas de Platos y Producción: tócala para ver solo lo que la lleva, tócala otra vez para quitar el filtro.
+- Borrar una etiqueta avisa de a cuántos platos y producciones afecta, y se la quita a todos a la vez.
+
+### Quitado
+- **Las categorías de producción han desaparecido**: ya no hay un único valor por producción, sino varias etiquetas. Los platos mantienen su categoría de siempre (Carnes, Ensaladas...), sin cambios ahí.
+
+### Nota sobre la base de datos
+Al ejecutar `etiquetas.sql`, tus categorías de producción actuales se convierten automáticamente en etiquetas con el mismo nombre, y cada producción que tuviera puesta una categoría se queda con esa etiqueta ya asignada — no se pierde la organización que ya tenías. La tabla antigua de categorías se deja tal cual, sin usar.
+
+---
+
 ## v97 — Quitados los modos Navidad y Halloween
 
 ### Quitado
