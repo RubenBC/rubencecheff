@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v97';
+const APP_VERSION = 'v98';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -190,7 +190,8 @@ let eventsWindowDays     = 5; // se sobreescribe con el ajuste guardado en Supab
 let importantDatesExpanded = false; // el panel de Admin arranca plegado para no ocupar toda la pantalla
 let weights              = [];
 let brines               = [];
-let productionCategories = [];
+let tags = []; // etiquetas: pueden llevarlas varias a la vez tanto platos como producciones
+let tagFilter = { recipes: null, productions: null }; // id de la etiqueta por la que se está filtrando cada lista, o null
 let customStations       = []; // emisoras de radio añadidas desde Admin (tabla radio_stations)
 let hiddenBuiltinStations = []; // ids de emisoras de serie que el admin ha borrado (tabla radio_hidden_builtin)
 let orderItems = [];        // filas de la tabla order_items (estado guardado)
@@ -250,7 +251,7 @@ async function loadData() {
       sb.from('comments').select('*').order('created_at', { ascending: false }),
       sb.from('weights').select('*').order('name'),
       sb.from('brines').select('*').order('category'),
-      sb.from('production_categories').select('*').order('sort_order'),
+      sb.from('tags').select('*').order('sort_order'),
     ]);
     // Supabase no lanza excepción si falla la conexión: devuelve { error }.
     // Antes eso dejaba las listas vacías ("Aún no hay platos creados"),
@@ -259,7 +260,7 @@ async function loadData() {
     if (mainErr) throw mainErr.error;
     const [
       { data: rData }, { data: pData }, { data: rpData }, { data: cData },
-      { data: wData }, { data: bData }, { data: pcData },
+      { data: wData }, { data: bData }, { data: tgData },
     ] = mainResults;
 
     recipes              = rData  || [];
@@ -268,7 +269,7 @@ async function loadData() {
     comments             = cData  || [];
     weights              = wData  || [];
     brines               = bData  || [];
-    productionCategories = pcData || [];
+    tags                 = tgData || [];
 
     // Blindaje: si algún registro llegó de Supabase con ingredients/steps/
     // allergens en null (p. ej. insertado por SQL sin esos campos), lo
@@ -277,6 +278,7 @@ async function loadData() {
       it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
       it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
       it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
+      it.tags        = Array.isArray(it.tags)        ? it.tags        : [];
       if (it.name == null) it.name = '';
       if (it.description == null) it.description = '';
       return it;
@@ -496,7 +498,7 @@ function renderSearchDropdown(q, raw) {
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">blender</span>
         <div class="search-dropdown-info">
           <div class="search-dropdown-name">${escapeHtml(p.name)}</div>
-          <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">${tagChipsHtml(p, 10)}</div>
         </div>
       </div>`).join('');
   }
@@ -624,21 +626,23 @@ function renderRecipes() {
   const raw = (si ? (si.innerText || '') : '').trim();
   const q = normalizeText(raw); // sin tildes: "cesar" encuentra "César"
   const filtered = recipes.filter(r =>
-    !q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q)
+    (!q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q)) &&
+    (!tagFilter.recipes || (r.tags || []).includes(tagFilter.recipes))
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
 
   const list = document.getElementById('recipeList');
   if (!list) return;
 
+  const filterRow = renderTagFilterRow('recipes');
   if (filtered.length === 0) {
     const msg = recipes.length === 0
       ? 'Aún no hay platos creados'
       : `Ningún plato coincide con "${escapeHtml(raw)}"`;
-    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">restaurant</span>${msg}</div>`;
+    list.innerHTML = filterRow + `<div class="empty-state"><span class="material-symbols-outlined">restaurant</span>${msg}</div>`;
     return;
   }
 
-  list.innerHTML = filtered.map(r => {
+  list.innerHTML = filterRow + filtered.map(r => {
     const numProds = recipeProductions.filter(rp => rp.recipe_id === r.id && productions.some(p => p.id === rp.production_id)).length;
     return `
     <div class="recipe-card" onclick="showRecipeDetail('${r.id}')">
@@ -697,7 +701,7 @@ function renderRecipeDetail() {
             </div>` : ''}
             <div>
               <div class="prod-link-name">${escapeHtml(p.name)}</div>
-              <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">${tagChipsHtml(p, 10)}</div>
             </div>
           </div>
           <span class="material-symbols-outlined" style="color:var(--outline);" onclick="showProdDetail('${p.id}')">chevron_right</span>
@@ -835,7 +839,7 @@ function backTo(page) {
 // ═══════════════════════════════════════
 function openAddRecipe() {
   recipeEditorMode = 'add';
-  recipeEditorData = { id: Date.now().toString(), name: '', category: 'Carnes', servings: 4, description: '', photo: '', plating: '', ingredients: [], steps: [] };
+  recipeEditorData = { id: Date.now().toString(), name: '', category: 'Carnes', servings: 4, description: '', photo: '', plating: '', tags: [], ingredients: [], steps: [] };
   recipeEditorBaseline = JSON.stringify(recipeEditorData);
   renderRecipeEditor();
   enterEditor('editorPage');
@@ -844,6 +848,7 @@ function openAddRecipe() {
 function openEditRecipe() {
   recipeEditorMode = 'edit';
   recipeEditorData = JSON.parse(JSON.stringify(recipes.find(r => r.id === currentRecipeId)));
+  if (!recipeEditorData.tags) recipeEditorData.tags = []; // blindaje: recetas antiguas sin la columna aún cargada
   recipeEditorBaseline = JSON.stringify(recipeEditorData);
   renderRecipeEditor();
   enterEditor('editorPage');
@@ -923,6 +928,10 @@ function renderRecipeEditor() {
           ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
             `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
         </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Etiquetas</div>
+        ${renderTagPicker(r.tags, 'toggleRecipeEditorTag')}
       </div>
       <div class="form-group">
         <div class="form-label">Descripción</div>
@@ -1142,7 +1151,7 @@ function openLinkModal(recipeId) {
         <div class="link-prod-row" onclick="toggleProdLink('${p.id}', this)">
           <div>
             <div style="font-size:14px; font-weight:600;">${escapeHtml(p.name)}</div>
-            <span class="tag ${CAT_TAG[p.category] || ''}" style="font-size:10px;">${escapeHtml(p.category)}</span>
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">${tagChipsHtml(p, 10)}</div>
           </div>
           <span class="material-symbols-outlined check-icon" style="color:${selectedProdIds.includes(p.id) ? 'var(--primary)' : 'var(--outline-light)'};">
             ${selectedProdIds.includes(p.id) ? 'check_circle' : 'radio_button_unchecked'}
@@ -1301,25 +1310,27 @@ function renderProductions() {
   const raw = (si ? (si.innerText || '') : '').trim();
   const q = normalizeText(raw);
   const filtered = productions.filter(p =>
-    !q || normalizeText(p.name).includes(q) || normalizeText(p.category).includes(q)
+    (!q || normalizeText(p.name).includes(q) || (p.tags || []).some(id => normalizeText(tags.find(t => t.id === id)?.name || '').includes(q))) &&
+    (!tagFilter.productions || (p.tags || []).includes(tagFilter.productions))
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
 
   const list = document.getElementById('productionList');
   if (!list) return;
 
+  const filterRow = renderTagFilterRow('productions');
   if (filtered.length === 0) {
     const msg = productions.length === 0
       ? 'Aún no hay producciones creadas'
       : `Ninguna producción coincide con "${escapeHtml(raw)}"`;
-    list.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">blender</span>${msg}</div>`;
+    list.innerHTML = filterRow + `<div class="empty-state"><span class="material-symbols-outlined">blender</span>${msg}</div>`;
     return;
   }
 
-  list.innerHTML = filtered.map(p => `
+  list.innerHTML = filterRow + filtered.map(p => `
     <div class="recipe-card" onclick="showProdDetail('${p.id}')">
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
-          <span class="tag ${CAT_TAG[p.category] || ''}">${escapeHtml(p.category)}</span>
+          ${tagChipsHtml(p) || '<span class="tag tag-sin-etiquetas">Sin etiquetas</span>'}
         </div>
         <h3>${escapeHtml(p.name)}</h3>
         <p>${escapeHtml(p.description || '')}</p>
@@ -1396,7 +1407,7 @@ function renderProdDetail(fromPage) {
     </div>
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="tag ${CAT_TAG[p.category] || ''}">${escapeHtml(p.category)}</span>
+        ${tagChipsHtml(p) || '<span class="tag tag-sin-etiquetas">Sin etiquetas</span>'}
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(p.name)}</h2>
       ${p.description ? `<p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(p.description)}</p>` : ''}
@@ -1468,8 +1479,7 @@ function goToRecipeFromProd(recipeId) {
 // ═══════════════════════════════════════
 function openAddProduction() {
   prodEditorMode = 'add';
-  const defaultCat = productionCategories.length > 0 ? productionCategories[0].name : '';
-  prodEditorData = { id: Date.now().toString(), name: '', category: defaultCat, description: '', ingredients: [], steps: [] };
+  prodEditorData = { id: Date.now().toString(), name: '', description: '', tags: [], ingredients: [], steps: [] };
   prodEditorBaseline = JSON.stringify(prodEditorData);
   renderProdEditor();
   enterEditor('productionEditorPage');
@@ -1478,9 +1488,60 @@ function openAddProduction() {
 function openEditProduction() {
   prodEditorMode = 'edit';
   prodEditorData = JSON.parse(JSON.stringify(productions.find(p => p.id === currentProdId)));
+  if (!prodEditorData.tags) prodEditorData.tags = []; // blindaje: producciones antiguas sin la columna aún cargada
   prodEditorBaseline = JSON.stringify(prodEditorData);
   renderProdEditor();
   enterEditor('productionEditorPage');
+}
+
+// Fila de chips para filtrar una lista (Platos o Producción) por una sola
+// etiqueta a la vez; tocar la que ya está activa la quita. Si no hay
+// ninguna etiqueta creada todavía, no pinta nada.
+function renderTagFilterRow(page) {
+  if (tags.length === 0) return '';
+  const active = tagFilter[page];
+  return `<div class="chips-row" style="margin-bottom:12px;">
+    ${tags.map(t => `<button type="button" class="chip ${active === t.id ? 'active' : ''}" onclick="setTagFilter('${page}','${t.id}')">${escapeHtml(t.name)}</button>`).join('')}
+  </div>`;
+}
+function setTagFilter(page, id) {
+  tagFilter[page] = tagFilter[page] === id ? null : id;
+  if (page === 'recipes') renderRecipes(); else renderProductions();
+}
+
+// Chips de solo lectura para mostrar las etiquetas de un plato o una
+// producción (las producciones ya no tienen categoría: esto la sustituye
+// en todos los sitios donde se mostraba). Si no tiene ninguna, no pinta nada.
+function tagChipsHtml(item, size) {
+  const ids = item.tags || [];
+  if (!ids.length) return '';
+  const style = size ? ` style="font-size:${size}px;"` : '';
+  return ids.map(id => {
+    const t = tags.find(x => x.id === id);
+    return t ? `<span class="tag tag-etiqueta"${style}>${escapeHtml(t.name)}</span>` : '';
+  }).join('');
+}
+
+// Selector de etiquetas, compartido entre el editor de recetas y el de
+// producciones: una fila de chips, tocar una la marca o la desmarca.
+function renderTagPicker(selectedIds, toggleFnName) {
+  if (tags.length === 0) {
+    return `<p style="font-size:13px; color:var(--text2);">Aún no has creado ninguna etiqueta. Se crean desde <b>Admin → Etiquetas</b>.</p>`;
+  }
+  const sel = selectedIds || [];
+  return `<div style="display:flex; flex-wrap:wrap; gap:8px;">
+    ${tags.map(t => `<button type="button" class="chip ${sel.includes(t.id) ? 'active' : ''}" onclick="${toggleFnName}('${t.id}')">${escapeHtml(t.name)}</button>`).join('')}
+  </div>`;
+}
+function toggleProdEditorTag(id) {
+  const i = prodEditorData.tags.indexOf(id);
+  if (i === -1) prodEditorData.tags.push(id); else prodEditorData.tags.splice(i, 1);
+  renderProdEditor();
+}
+function toggleRecipeEditorTag(id) {
+  const i = recipeEditorData.tags.indexOf(id);
+  if (i === -1) recipeEditorData.tags.push(id); else recipeEditorData.tags.splice(i, 1);
+  renderRecipeEditor();
 }
 
 function renderProdEditor() {
@@ -1522,15 +1583,12 @@ function renderProdEditor() {
         <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la producción..." oninput="prodEditorData.name=this.innerText.trim()">${escapeHtml(p.name)}</div>
       </div>
       <div class="form-group">
-        <div class="form-label">Categoría</div>
-        <select class="form-select" onchange="prodEditorData.category=this.value">
-          ${productionCategories.map(c =>
-            `<option ${p.category === c.name ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
         <div class="form-label">Descripción (opcional)</div>
         <textarea class="form-textarea" rows="2" oninput="prodEditorData.description=this.value">${escapeHtml(p.description || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Etiquetas</div>
+        ${renderTagPicker(p.tags, 'toggleProdEditorTag')}
       </div>
     </div>
     <div class="card">
@@ -1844,7 +1902,7 @@ function showAuthGate(msg) {
   const btn = document.getElementById('gateBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
   // Sin datos de la sesión anterior detrás de la pantalla
   recipes = []; productions = []; recipeProductions = []; comments = []; weights = []; brines = [];
-  productionCategories = []; importantDates = []; orderItems = []; customStations = []; isAdmin = false;
+  tags = []; tagFilter = { recipes: null, productions: null }; importantDates = []; orderItems = []; customStations = []; isAdmin = false;
   melodies = []; melodyDefaultId = '1'; melodyTonesLoaded = new Set(); midiEdit = null; midiStopPreview(); applyMelodyOptions();
   const ab = document.getElementById('adminBtn');
   if (ab) { ab.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`; ab.classList.remove('admin-on'); }
@@ -2446,12 +2504,12 @@ async function melodyDelete(id) {
 const ADMIN_TABS = [
   { key: 'comments', label: 'Comentarios', icon: 'forum' },
   { key: 'events',   label: 'Avisos',      icon: 'stadium' },
-  { key: 'prod',     label: 'Producción',  icon: 'label' },
+  { key: 'tags',     label: 'Etiquetas',   icon: 'label' },
   { key: 'radio',    label: 'Radio',       icon: 'radio' },
   { key: 'photos',   label: 'Fotos',       icon: 'photo_library' },
   { key: 'melody',   label: 'Melodía',     icon: 'music_note' },
 ];
-const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', prod: 'adminTabProd', radio: 'adminTabRadio', photos: 'adminTabPhotos', melody: 'adminTabMelody' };
+const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', tags: 'adminTabTags', radio: 'adminTabRadio', photos: 'adminTabPhotos', melody: 'adminTabMelody' };
 
 function setAdminTab(tab) {
   if (tab !== 'radio') radioPreviewStop();
@@ -2509,7 +2567,7 @@ function renderAdmin() {
 
   renderAdminTabs();
   if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
-  if (adminTab === 'prod')   { renderProdCategoriesAdmin(); return; }
+  if (adminTab === 'tags')   { renderTagsAdmin(); return; }
   if (adminTab === 'radio')  { renderRadioAdmin(); return; }
   if (adminTab === 'photos') { renderPhotoAdmin(); return; }
   if (adminTab === 'melody') { renderMelodyAdmin(); return; }
@@ -2552,17 +2610,17 @@ function renderAdmin() {
 
 }
 
-function renderProdCategoriesAdmin() {
-  const box = document.getElementById('adminTabProd');
+function renderTagsAdmin() {
+  const box = document.getElementById('adminTabTags');
   if (!box) return;
-  const catHtml = productionCategories.map(c => `
+  const tagHtml = tags.map(t => `
     <div class="ficha-row">
-      <div class="ficha-name">${escapeHtml(c.name)}</div>
+      <div class="ficha-name">${escapeHtml(t.name)}</div>
       <div style="display:flex; gap:6px;">
-        <button class="btn-icon" onclick="renameProdCategory('${c.id}')">
+        <button class="btn-icon" onclick="renameTag('${t.id}')">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
         </button>
-        <button class="btn-icon" onclick="deleteProdCategory('${c.id}')">
+        <button class="btn-icon" onclick="deleteTag('${t.id}')">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
         </button>
       </div>
@@ -2570,13 +2628,16 @@ function renderProdCategoriesAdmin() {
 
   box.innerHTML = `
     <div class="section-title">
-      <span class="material-symbols-outlined">label</span> Categorías de producción
+      <span class="material-symbols-outlined">label</span> Etiquetas
+    </div>
+    <div class="note" style="font-size:12.5px; color:var(--text2); margin:-6px 0 10px;">
+      Las usan tanto los platos como las producciones; cada uno puede llevar varias a la vez. Se añaden o se quitan desde su propio editor.
     </div>
     <div class="card">
-      ${catHtml}
+      ${tagHtml}
       <div style="margin-top:12px; display:flex; gap:8px;">
-        <div class="form-input ce-input" id="newCatInput" contenteditable="true" data-placeholder="Nueva categoría..." style="flex:1;"></div>
-        <button class="btn-pill filled" id="addCatBtn" onclick="addProdCategory()">
+        <div class="form-input ce-input" id="newTagInput" contenteditable="true" data-placeholder="Nueva etiqueta..." style="flex:1;"></div>
+        <button class="btn-pill filled" id="addTagBtn" onclick="addTag()">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span>
         </button>
       </div>
@@ -2721,9 +2782,12 @@ async function exportRecetarioPDF() {
       newPage();
       toc.push({ title: it.name || '(sin nombre)', kind, page: doc.getNumberOfPages() });
 
-      // Cabecera
+      // Cabecera: los platos siguen mostrando su categoría; las producciones ya no
+      // tienen (ahora son etiquetas, pueden ser varias), se muestran igual si tiene.
+      const itTagNames = (it.tags || []).map(id => tags.find(t => t.id === id)?.name).filter(Boolean);
+      const headerSuffix = kind === 'recipe' ? it.category : itTagNames.join(' · ');
       doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...TEAL);
-      doc.text(`${kind === 'recipe' ? 'PLATO' : 'PRODUCCIÓN'}${it.category ? ' · ' + String(it.category).toUpperCase() : ''}`, M, y); y += 7;
+      doc.text(`${kind === 'recipe' ? 'PLATO' : 'PRODUCCIÓN'}${headerSuffix ? ' · ' + String(headerSuffix).toUpperCase() : ''}`, M, y); y += 7;
       para(it.name || '(sin nombre)', 20, 'bold', TEXT, 2);
       if (it.description) para(it.description, 10.5, 'normal', GREY, 3);
 
@@ -3210,75 +3274,82 @@ async function deleteComment(id) {
 }
 
 // ─── Categorías de producción ─────────
-async function addProdCategory() {
-  const input = document.getElementById('newCatInput');
+async function addTag() {
+  const input = document.getElementById('newTagInput');
   const name = (input?.innerText || '').trim();
   if (!name) return;
-  const newCat = { id: Date.now().toString(), name, sort_order: productionCategories.length + 1 };
-  const btn = document.getElementById('addCatBtn');
+  const newTag = { id: Date.now().toString(), name, sort_order: tags.length + 1 };
+  const btn = document.getElementById('addTagBtn');
   const ok = await runWithLoading(btn, '', async () => {
-    const { error } = await sb.from('production_categories').insert(newCat);
+    const { error } = await sb.from('tags').insert(newTag);
     if (error) { showToast('Error al añadir'); return false; }
     return true;
   });
   if (!ok) return;
-  productionCategories.push(newCat);
-  showToast('Categoría añadida ✓');
+  tags.push(newTag);
+  showToast('Etiqueta añadida ✓');
   renderAdmin();
 }
 
-async function renameProdCategory(id) {
-  const cat = productionCategories.find(c => c.id === id);
-  if (!cat) return;
-  const currentName = cat.name;
+async function renameTag(id) {
+  const tag = tags.find(t => t.id === id);
+  if (!tag) return;
+  const currentName = tag.name;
   const newName = await showPrompt({
-    title:       'Renombrar categoría',
+    title:       'Renombrar etiqueta',
     label:       'Nuevo nombre',
     value:       currentName,
-    placeholder: 'Nombre de la categoría',
+    placeholder: 'Nombre de la etiqueta',
     confirmText: 'Guardar',
     onConfirm:   async (name) => {
       if (name === currentName) return;
-      const { data, error } = await sb.from('production_categories').update({ name }).eq('id', id).select();
+      const { data, error } = await sb.from('tags').update({ name }).eq('id', id).select();
       if (error) throw error;
       if (!data || data.length === 0) throw new Error('No se ha guardado nada: revisa tu sesión de admin (row-level security).');
-      // Las producciones guardan el NOMBRE de la categoría: hay que cambiarlo también
-      // en la base de datos (antes solo se cambiaba en pantalla y al recargar volvían
-      // a la categoría antigua, que ya no existía).
-      if (productions.some(p => p.category === currentName)) {
-        const { error: pErr } = await sb.from('productions').update({ category: name }).eq('category', currentName);
-        if (pErr) throw pErr;
-      }
-      productionCategories = productionCategories.map(c => c.id === id ? { ...c, name } : c);
-      productions = productions.map(p => p.category === currentName ? { ...p, category: name } : p);
+      // Los platos y las producciones guardan el ID de la etiqueta, no el nombre,
+      // así que renombrarla aquí ya vale para todos los sitios donde se use.
+      tags = tags.map(t => t.id === id ? { ...t, name } : t);
     },
   });
   if (!newName || newName === currentName) return;
-  showToast('Categoría renombrada ✓');
+  showToast('Etiqueta renombrada ✓');
   renderAdmin();
 }
 
-async function deleteProdCategory(id) {
-  const cat = productionCategories.find(c => c.id === id);
-  if (!cat) return;
+async function deleteTag(id) {
+  const tag = tags.find(t => t.id === id);
+  if (!tag) return;
+  const usedByRecipes     = recipes.filter(r => (r.tags || []).includes(id));
+  const usedByProductions = productions.filter(p => (p.tags || []).includes(id));
+  const n = usedByRecipes.length + usedByProductions.length;
   const ok = await showConfirm({
-    title:       'Eliminar categoría',
-    message:     `¿Seguro que quieres eliminar la categoría "${cat.name}"?` + (() => {
-      const n = productions.filter(p => p.category === cat.name).length;
-      return n ? ` ${n} producción${n === 1 ? '' : 'es'} la usa${n === 1 ? '' : 'n'} y se quedará${n === 1 ? '' : 'n'} sin categoría hasta que la${n === 1 ? '' : 's'} edites.` : '';
-    })(),
+    title:       'Eliminar etiqueta',
+    message:     `¿Seguro que quieres eliminar la etiqueta "${tag.name}"?` + (n ? ` La llevan puesta ${n} elemento${n === 1 ? '' : 's'}, y se les quitará.` : ''),
     confirmText: 'Eliminar',
     danger:      true,
     icon:        'delete',
     onConfirm:   async () => {
-      const { data, error } = await sb.from('production_categories').delete().eq('id', id).select();
+      const { data, error } = await sb.from('tags').delete().eq('id', id).select();
       if (error) throw error;
       if (!data || data.length === 0) throw new Error('No se ha borrado nada: revisa tu sesión de admin (row-level security).');
-      productionCategories = productionCategories.filter(c => c.id !== id);
+      // Quitarla también de cada plato/producción que la llevara puesta.
+      for (const r of usedByRecipes) {
+        const newTags = r.tags.filter(t => t !== id);
+        const { error: rErr } = await sb.from('recipes').update({ tags: newTags }).eq('id', r.id);
+        if (rErr) throw rErr;
+        r.tags = newTags;
+      }
+      for (const p of usedByProductions) {
+        const newTags = p.tags.filter(t => t !== id);
+        const { error: pErr } = await sb.from('productions').update({ tags: newTags }).eq('id', p.id);
+        if (pErr) throw pErr;
+        p.tags = newTags;
+      }
+      tags = tags.filter(t => t.id !== id);
     },
   });
   if (!ok) return;
-  showToast('Categoría eliminada');
+  showToast('Etiqueta eliminada');
   renderAdmin();
 }
 
@@ -4521,7 +4592,7 @@ async function refreshDataSilently() {
       sb.from('comments').select('*').order('created_at', { ascending: false }),
       sb.from('weights').select('*').order('name'),
       sb.from('brines').select('*').order('category'),
-      sb.from('production_categories').select('*').order('sort_order'),
+      sb.from('tags').select('*').order('sort_order'),
       sb.from('important_dates').select('*').order('event_date'),
       sb.from('order_items').select('*'),
       sb.from('radio_stations').select('*').order('sort_order'),
@@ -4541,6 +4612,7 @@ async function refreshDataSilently() {
       it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
       it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
       it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
+      it.tags        = Array.isArray(it.tags)        ? it.tags        : [];
       if (it.name == null) it.name = '';
       if (it.description == null) it.description = '';
       return it;
@@ -4548,10 +4620,10 @@ async function refreshDataSilently() {
     recipes               = (res[0].data || []).map(norm);
     productions           = (res[1].data || []).map(norm);
     recipeProductions     = res[2].data || [];
-    comments              = res[3].data || [];
+    comments               = res[3].data || [];
     weights               = res[4].data || [];
     brines                = res[5].data || [];
-    productionCategories  = res[6].data || [];
+    tags                  = res[6].data || [];
     if (!res[7].error)  importantDates        = res[7].data || [];
     if (!res[8].error)  { orderItems = res[8].data || []; rebuildOrderState(); }
     if (!res[9].error)  customStations        = res[9].data || [];
