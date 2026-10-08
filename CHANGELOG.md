@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v97 — Quitados los modos Navidad y Halloween
+
+### Quitado
+- **Los modos Navidad y Halloween, por completo**: los dos interruptores de Admin, la nevada, los murciélagos, los fantasmas, las telarañas, las calabazas, el gorro navideño, los copos de nieve, la ilustración de la cabecera y el cambio de color de la barra de arriba. También las dos columnas de `app_settings` que ya no se usan (`christmas_mode` y `halloween_mode`): puedes borrarlas a mano desde Supabase si quieres, pero no hace falta, no molestan si se quedan ahí sin usarse.
+- La **biblioteca de melodías del timer y la alarma se queda exactamente igual que estaba**: no dependía de estos modos (lo separamos en una versión anterior) y no se ha tocado nada de eso.
+
+---
+
 ## v96 — Modo Halloween a fondo
 
 ### Cambiado
