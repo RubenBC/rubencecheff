@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v98';
+const APP_VERSION = 'v99';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -390,17 +390,13 @@ function showPage(page, btn, skipPush) {
   // ahí se respeta tal cual lo que marca ese punto del historial, sin este atajo.)
   if (!skipPush) {
     if (page === 'recipes' && recipesSubView && recipes.some(r => r.id === recipesSubView.id)) {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      (btn || document.getElementById('nav-recipes')).classList.add('active');
-      showRecipeDetail(recipesSubView.id);
+      showRecipeDetail(recipesSubView.id); // ya marca "Platos" en el menú por su cuenta
       return;
     }
     if (page === 'productions' && productionsSubView && productions.some(p => p.id === productionsSubView.id)) {
       const id = productionsSubView.id;
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      (btn || document.getElementById('nav-productions')).classList.add('active');
       currentPage = 'productions'; // para que "Volver" en ese detalle apunte a Producción, no a la pestaña de la que se viene
-      showProdDetail(id);
+      showProdDetail(id); // ya marca "Producción" en el menú por su cuenta
       return;
     }
     // La referencia ya no existe (se borró mientras tanto): se olvida y sigue a la lista normal.
@@ -626,7 +622,7 @@ function renderRecipes() {
   const raw = (si ? (si.innerText || '') : '').trim();
   const q = normalizeText(raw); // sin tildes: "cesar" encuentra "César"
   const filtered = recipes.filter(r =>
-    (!q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q)) &&
+    (!q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q) || (r.tags || []).some(id => normalizeText(tags.find(t => t.id === id)?.name || '').includes(q))) &&
     (!tagFilter.recipes || (r.tags || []).includes(tagFilter.recipes))
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
 
@@ -652,6 +648,7 @@ function renderRecipes() {
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
           <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
+          ${tagChipsHtml(r)}
         </div>
         <h3>${escapeHtml(r.name)}</h3>
         <p>${escapeHtml(r.description)}</p>
@@ -664,6 +661,16 @@ function renderRecipes() {
 // ═══════════════════════════════════════
 //   RECETAS — DETALLE
 // ═══════════════════════════════════════
+// El menú de abajo se queda visible también dentro de un detalle (desde la
+// v95), así que tiene que marcar el icono que corresponde (Platos o
+// Producción) sin importar desde qué pestaña se haya llegado hasta aquí
+// (p. ej. buscando una receta estando en Utilidades).
+function setActiveNavBtn(page) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('nav-' + page);
+  if (btn) btn.classList.add('active');
+}
+
 function showRecipeDetail(id) {
   savedScroll[currentPage] = window.scrollY;
   currentRecipeId = id;
@@ -675,6 +682,7 @@ function showRecipeDetail(id) {
   document.getElementById('adminAddRecipeRow').style.display = 'none';
   // El menú de abajo se queda visible también en el detalle, para poder saltar a otra
   // pestaña (p. ej. Radio) sin tener que pulsar antes "Volver".
+  setActiveNavBtn('recipes');
   window.scrollTo(0, 0);
   renderRecipeDetail();
 }
@@ -751,6 +759,7 @@ function renderRecipeDetail() {
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
+        ${tagChipsHtml(r)}
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(r.name)}</h2>
       <p style="font-size:14px; color:var(--text2); line-height:1.5;">${escapeHtml(r.description)}</p>
@@ -797,6 +806,7 @@ function restoreRecipeDetail(id) {
   document.getElementById('detailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
+  setActiveNavBtn('recipes');
   renderRecipeDetail();
 }
 
@@ -809,6 +819,7 @@ function restoreProdDetail(id, fromPage) {
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddProductionRow').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
+  setActiveNavBtn('productions');
   renderProdDetail(fromPage);
 }
 
@@ -1353,6 +1364,7 @@ function showProdDetail(id) {
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddProductionRow').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
+  setActiveNavBtn('productions');
   window.scrollTo(0, 0);
   renderProdDetail(fromPage);
 }
@@ -1470,6 +1482,7 @@ function goToRecipeFromProd(recipeId) {
   document.getElementById('detailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
   document.getElementById('adminAddRecipeRow').style.display = 'none';
+  setActiveNavBtn('recipes');
   window.scrollTo(0, 0);
   renderRecipeDetail();
 }
