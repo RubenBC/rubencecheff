@@ -704,6 +704,7 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   }
   #recipeList .recipe-card, #productionList .recipe-card { margin-bottom: 0; }
   #recipeList .empty-state, #productionList .empty-state { grid-column: 1 / -1; }
+  #recipeList .chips-row, #productionList .chips-row { grid-column: 1 / -1; width: 100%; }
 
   /* Fichas de detalle, editores y pantallas de formulario/listas: mejor
      una columna centrada y legible que estirarse a lo ancho, como al leer
