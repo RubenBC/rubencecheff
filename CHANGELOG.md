@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v100 — Arreglo visual del filtro de etiquetas
+
+### Corregido
+- **La fila de etiquetas para filtrar (en Platos y Producción) se metía dentro de la rejilla de tarjetas en pantallas anchas** (tablet/PC), quedando como si fuera una tarjeta más y dejando un hueco vacío a su lado. Ahora ocupa siempre todo el ancho, por encima de las tarjetas, tal cual se ve en el móvil.
+
+---
+
 ## v99 — Auditoría completa
 
 Revisión de toda la app tras los cambios recientes (etiquetas, retirada de Navidad/Halloween, menú siempre visible, botón de actualizar). Sin cambios de diseño; solo dos fallos reales encontrados y corregidos.
