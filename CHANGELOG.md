@@ -4,6 +4,19 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v99 — Auditoría completa
+
+Revisión de toda la app tras los cambios recientes (etiquetas, retirada de Navidad/Halloween, menú siempre visible, botón de actualizar). Sin cambios de diseño; solo dos fallos reales encontrados y corregidos.
+
+### Corregido
+- **Las etiquetas de un plato no se veían en ningún sitio** salvo volviendo a abrir "Editar": ya se ven en la ficha del plato, en su tarjeta de la lista, y el buscador también encuentra por etiqueta (antes solo buscaba por nombre y categoría).
+- **El icono resaltado del menú de abajo se quedaba mal** al entrar a un plato o producción desde una pestaña distinta a la suya (por ejemplo, buscando un plato estando en Utilidades o en el Timer): se quedaba marcado el icono de donde venías. Ahora siempre marca el que corresponde a lo que se está viendo. Este fallo venía de cuando se hizo el menú siempre visible; antes no se notaba porque el menú estaba oculto dentro de un detalle.
+
+### Comprobado, sin cambios necesarios
+Sintaxis de los 4 archivos JS, funciones y botones sin referencias rotas, restos de las dos retiradas (Navidad/Halloween y categorías de producción) — ninguno encontrado —, y revisión visual completa de todas las pantallas principales en claro/cocina y oscuro/admin.
+
+---
+
 ## v98 — Sistema de etiquetas (sustituye a las categorías de producción)
 
 ### Añadido
