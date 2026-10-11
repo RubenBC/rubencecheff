@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v101';
+const APP_VERSION = 'v102';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -933,16 +933,18 @@ function renderRecipeEditor() {
         <div class="form-label">Nombre</div>
         <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.innerText.trim()">${escapeHtml(r.name)}</div>
       </div>
-      <div class="form-group">
-        <div class="form-label">Categoría</div>
-        <select class="form-select" onchange="recipeEditorData.category=this.value">
-          ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
-            `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <div class="form-label">Etiquetas</div>
-        ${renderTagPicker(r.tags, 'toggleRecipeEditorTag')}
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Categoría</div>
+          <select class="form-select" onchange="recipeEditorData.category=this.value">
+            ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
+              `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Etiquetas</div>
+          ${renderTagPicker(r.tags, 'toggleRecipeEditorTag')}
+        </div>
       </div>
       <div class="form-group">
         <div class="form-label">Descripción</div>
