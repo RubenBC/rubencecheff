@@ -4,6 +4,33 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v104 — Cabecera amontonada en móvil
+
+### Corregido
+- **Los botones de la cabecera (campana, actualizar, tema, admin) se amontonaban en móvil.** El contenedor de esos botones no tenía ni distribución en fila ni separación entre ellos; si no cabían todos en una línea, se apilaban unos pegados a otros al saltar de línea. Ahora tienen espacio fijo entre sí (en horizontal y en vertical si saltan de línea), y en pantallas muy estrechas (menos de 400px) el botón de Admin se queda solo con el candado, sin el texto, para que todo quepa mejor.
+
+---
+
+## Seguridad — pedidos solo admin (solo Supabase, sin cambios en la app)
+
+No cambia ningún archivo de la app (por eso no lleva número de versión ni
+hace falta volver a subir nada a GitHub); solo hay que ejecutar un script
+en el Editor SQL de Supabase.
+
+### Corregido
+- **Auditoría de seguridad general.** Los scripts de seguridad de la v84
+  (`cerrar-escritura.sql` y `seguridad.sql`) dejaban los pedidos en
+  "solo admin puede marcarlos". El primer ajuste (`afinar-seguridad.sql`)
+  lo abrió también a cocina a nivel de base de datos — pero la pestaña de
+  Pedidos ya estaba oculta para cocina en la propia app (solo la ve el
+  admin), así que ese permiso de más no se llegaba a usar nunca y era
+  superficie de ataque innecesaria. Script final `sql/afinar-seguridad-2.sql`:
+  cierra pedidos a solo admin, para que la base de datos coincida
+  exactamente con lo que ya hace la app. Se puede ejecutar las veces que
+  haga falta.
+
+---
+
 ## v103 — Modo oscuro menos verde
 
 ### Corregido
