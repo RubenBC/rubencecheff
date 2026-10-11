@@ -54,7 +54,14 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 ═══════════════════════════════════════ */
 .topbar { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--outline-light); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; }
 .topbar-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.app-brand { display: flex; align-items: center; gap: 10px; }
+.app-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* v104 — sin esta regla, los botones de la derecha (campana, refrescar,
+   tema, admin) no tenían ni flex ni separación entre sí: si no cabían en
+   una fila se amontonaban unos sobre otros al saltar de línea. */
+.topbar-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px 6px; }
+@media (max-width: 400px) {
+  #adminBtn .btn-label { display: none; } /* solo el candado: deja sitio para que quepa todo en una fila */
+}
 .brand-icon { background: var(--primary-container); border-radius: 12px; padding: 8px; display: flex; }
 .brand-icon .material-symbols-outlined { color: var(--primary); font-size: 20px; }
 .brand-name { font-size: 18px; font-weight: 800; line-height: 1.1; }
