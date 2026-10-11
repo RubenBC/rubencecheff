@@ -707,16 +707,29 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   #recipeList .empty-state, #productionList .empty-state { grid-column: 1 / -1; }
   #recipeList .chips-row, #productionList .chips-row { grid-column: 1 / -1; width: 100%; }
 
-  /* Fichas de detalle, editores y pantallas de formulario/listas: mejor
-     una columna centrada y legible que estirarse a lo ancho, como al leer
-     un documento en un monitor grande. */
+  /* Fichas de detalle y editores: mejor una columna centrada y legible que
+     estirarse a lo ancho, como al leer un documento en un monitor grande. */
   #detailPage, #productionDetailPage,
-  #editorPage, #productionEditorPage,
-  #fichasPage, #adminPage {
+  #editorPage, #productionEditorPage {
     max-width: 720px;
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* Utilidades y Admin: son listados y tablas de trabajo, no texto para
+     leer, así que aquí sí aprovechan el ancho del monitor en vez de
+     quedarse en el mismo ancho que una ficha de receta. */
+  #fichasPage, #adminPage {
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Campos cortos y relacionados (p. ej. categoría + etiquetas) uno junto
+     al otro en vez de apilados, para que el formulario no se vea más largo
+     de lo necesario. En móvil se quedan apilados como siempre. */
+  .form-row { display: flex; gap: 14px; align-items: flex-start; }
+  .form-row > .form-group { flex: 1; min-width: 0; margin-bottom: 0; }
 
   /* El menú inferior sigue siendo táctil igual que en el móvil, pero
      centrado, compacto y con menos alto para dejar más sitio a las
