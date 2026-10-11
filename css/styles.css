@@ -20,14 +20,14 @@
 
 body.dark {
   --primary:           #7FC2AC;
-  --primary-container: #1F3D37;
-  --bg:                #11201B;
-  --surface:           #182A24;
-  --surface2:          #223832;
-  --text:              #E7ECE9;
-  --text2:             #A7B4AE;
-  --outline:           #5E6D67;
-  --outline-light:     #314841;
+  --primary-container: #1E332D;
+  --bg:                #15181A;
+  --surface:           #1C2124;
+  --surface2:          #262C2F;
+  --text:              #E9ECEB;
+  --text2:             #9BA3A1;
+  --outline:           #5C6563;
+  --outline-light:     #30383A;
   --danger:            #FFB4A8;
   --danger-light:      #4A211B;
   --alert:             #E8B773;
