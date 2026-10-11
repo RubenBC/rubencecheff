@@ -4,6 +4,21 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v101 — Nueva identidad visual (verde)
+
+Rediseño visual de toda la app: solo cambia la hoja de estilos (`css/styles.css`), ninguna función se ha tocado. Probado antes en una vista aparte sin tocar la app real.
+
+### Cambiado
+- **Paleta de color**: verde de marca (`#174C43`) en vez del turquesa anterior, a juego con el icono real de la app. Nueva paleta también en modo oscuro.
+- **Esquinas más sobrias**: se reduce el uso de píldora y esquinas muy redondeadas (chips, botones, tarjetas, modales...) a un radio moderado, más propio de un software profesional.
+- **Tipografía**: Nunito → Inter.
+- Color de la barra del navegador (`theme-color`) actualizado a juego.
+
+### Pendiente, si se quiere seguir en esta línea
+No se ha tocado la distribución de pantallas (aprovechar mejor el ancho en escritorio, formularios a dos columnas, navegación lateral...) ni pantallas como el timer, la radio o pedidos — solo paleta, radios y tipografía en toda la app.
+
+---
+
 ## v100 — Arreglo visual del filtro de etiquetas
 
 ### Corregido
