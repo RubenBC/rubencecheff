@@ -59,9 +59,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
    tema, admin) no tenían ni flex ni separación entre sí: si no cabían en
    una fila se amontonaban unos sobre otros al saltar de línea. */
 .topbar-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px 6px; }
-@media (max-width: 400px) {
-  #adminBtn .btn-label { display: none; } /* solo el candado: deja sitio para que quepa todo en una fila */
-}
+/* v105 — en vertical (móvil/tablet) el botón Admin es solo el candado, sin
+   la palabra "Admin"; el texto vuelve a partir de 900px (ver más abajo). */
+#adminBtn .btn-label { display: none; }
 .brand-icon { background: var(--primary-container); border-radius: 12px; padding: 8px; display: flex; }
 .brand-icon .material-symbols-outlined { color: var(--primary); font-size: 20px; }
 .brand-name { font-size: 18px; font-weight: 800; line-height: 1.1; }
@@ -703,6 +703,7 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   .brand-name { font-size: 16px; }
   .app-brand > div:last-child { display: flex; align-items: baseline; gap: 8px; }
   .events-btn-label { display: inline; }
+  #adminBtn .btn-label { display: inline; }
 
   #recipeList, #productionList {
     display: grid;
