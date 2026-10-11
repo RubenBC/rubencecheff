@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v103 — Modo oscuro menos verde
+
+### Corregido
+- **El modo oscuro se veía demasiado verde**: el fondo, las tarjetas y el texto secundario llevaban un tinte verde que en claro apenas se notaba (por ser casi blanco) pero en oscuro se veía con fuerza. Ahora el fondo y las superficies son gris neutro, y el verde se queda solo donde debe llamar la atención: botones, iconos activos y etiquetas seleccionadas. El modo claro no se ha tocado.
+
+---
+
 ## v102 — Mejor aprovechamiento del ancho en PC/tablet
 
 Continuación del rediseño visual (v101): cómo se distribuyen las pantallas de trabajo en monitores anchos.
