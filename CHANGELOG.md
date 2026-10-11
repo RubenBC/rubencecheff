@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v105 — Admin solo con el candado en vertical
+
+### Cambiado
+- **El botón Admin de la cabecera ya no lleva la palabra "Admin" en móvil ni en tablet vertical** (hasta 900px de ancho), solo el icono del candado — dejando más aire a los demás botones de la cabecera. En escritorio (900px o más) sigue mostrando el texto, ahí no hace falta ahorrar sitio.
+
+---
+
 ## v104 — Cabecera amontonada en móvil
 
 ### Corregido
