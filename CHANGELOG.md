@@ -4,6 +4,19 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v102 — Mejor aprovechamiento del ancho en PC/tablet
+
+Continuación del rediseño visual (v101): cómo se distribuyen las pantallas de trabajo en monitores anchos.
+
+### Cambiado
+- **Admin y Utilidades usan más ancho** en tablet/PC (antes se quedaban limitados al mismo ancho que la ficha de una receta, de sobra para leer un plato pero corto para paneles con listas y pestañas). Las fichas de receta/producción y los editores siguen en columna centrada: ahí sí interesa que no se estire, como al leer un documento.
+- **Categoría y Etiquetas** del editor de recetas van ahora en la misma fila en vez de una debajo de otra, para que el formulario no se vea más largo de lo necesario. En el móvil se quedan apiladas igual que siempre.
+
+### Sin cambios
+No se ha tocado la navegación (sigue el menú inferior flotante; una barra lateral era opcional en el brief y el menú actual ya funciona bien) ni las pantallas de timer, radio o pedidos.
+
+---
+
 ## v101 — Nueva identidad visual (verde)
 
 Rediseño visual de toda la app: solo cambia la hoja de estilos (`css/styles.css`), ninguna función se ha tocado. Probado antes en una vista aparte sin tocar la app real.
