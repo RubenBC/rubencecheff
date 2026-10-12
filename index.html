@@ -16,7 +16,7 @@
   <title>RubenceChef</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=107">
+  <link rel="stylesheet" href="css/styles.css?v=110">
 </head>
 <body>
 <!-- ACCESO DEL EQUIPO: sin sesión iniciada no se carga ningún dato -->
@@ -44,8 +44,8 @@
 <!-- TOPBAR -->
 <div class="topbar" id="mainTopbar">
   <div class="topbar-row">
-    <div class="app-brand">
-      <div class="brand-icon"><span class="material-symbols-outlined">restaurant_menu</span></div>
+    <div class="app-brand" role="button" tabindex="0" aria-label="Acceso administrador" onclick="toggleAdmin()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleAdmin();}">
+      <div class="brand-icon" id="brandIcon"><span class="material-symbols-outlined">restaurant_menu</span></div>
       <div>
         <div class="brand-name">
           RubenceChef
@@ -66,7 +66,11 @@
       <button class="btn-pill ghost" id="themeBtn" onclick="toggleTheme()" style="padding:7px 10px;" aria-label="Cambiar tema claro/oscuro">
         <span class="material-symbols-outlined" style="font-size:16px;">dark_mode</span>
       </button>
-      <button class="btn-pill ghost" id="adminBtn" onclick="toggleAdmin()" aria-label="Admin">
+      <!-- v108: el acceso a Admin ahora está en el nombre+icono de arriba a la
+           izquierda (.app-brand), para dejar la barra más despejada. Este botón
+           se deja oculto (en vez de borrarlo) porque el código sigue
+           actualizando su icono/color al entrar o salir de Admin. -->
+      <button class="btn-pill ghost" id="adminBtn" onclick="toggleAdmin()" aria-label="Admin" style="display:none;">
         <span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>
       </button>
     </div>
@@ -234,6 +238,9 @@
       </button>
     </div>
     <div class="stats-grid" id="adminStats"></div>
+    <button class="btn-pill ghost" id="forceReloadAllBtn" onclick="forceReloadAllDevices()" style="display:none; width:100%; justify-content:center; margin-bottom:14px;">
+      <span class="material-symbols-outlined" style="font-size:16px;">sync</span> Actualizar la app en todos los dispositivos
+    </button>
     <div class="admin-tabs-wrap">
       <div class="admin-tabs" id="adminTabs" role="tablist"></div>
     </div>
@@ -527,9 +534,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
-<script src="js/app.js?v=107"></script>
-<script src="js/timer.js?v=107"></script>
-<script src="js/radio.js?v=107"></script>
-<script src="js/midi.js?v=107"></script>
+<script src="js/app.js?v=110"></script>
+<script src="js/timer.js?v=110"></script>
+<script src="js/radio.js?v=110"></script>
+<script src="js/midi.js?v=110"></script>
 </body>
 </html>

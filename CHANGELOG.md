@@ -4,6 +4,29 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v110 — El icono de la app avisa cuando estás en modo admin
+
+### Añadido
+- **El icono de "RubenceChef" (arriba a la izquierda) se rellena de color cuando estás dentro del modo admin** (y vuelve a su aspecto normal al salir), para verlo de un vistazo sin tener que entrar en el panel. Es el mismo aviso que antes daba el botón "Admin" de la cabecera, ahora en el nombre de la app.
+
+---
+
+## v109 — El acceso a Admin pasa al nombre de la app
+
+### Cambiado
+- **El botón "Admin" de la cabecera ha desaparecido**; ahora se entra pulsando el nombre e icono "RubenceChef" de arriba a la izquierda (hace exactamente lo mismo: pide la contraseña la primera vez, y una vez dentro lleva directo al panel). La barra de arriba queda con más aire.
+
+---
+
+## v108 — Actualizar la app en todos los dispositivos desde Admin
+
+### Añadido
+- **Nuevo botón en Admin: "Actualizar la app en todos los dispositivos".** Al pulsarlo (con confirmación antes de hacer nada), avisa en tiempo real a todos los móviles y al monitor que tengan la app abierta en ese momento, para que se actualicen solos en segundos — sin tener que esperar a la comprobación automática de cada 20 minutos ni decirle a cada uno que lo haga a mano.
+  - Si algún dispositivo está en mitad de editar algo, no se le interrumpe: en vez de recargar de golpe, le sale el aviso de que hay una versión nueva, igual que ya pasaba con la comprobación automática.
+  - Hace falta ejecutar una vez el script `sql/tiempo-real-actualizaciones.sql` en Supabase para que el aviso llegue al instante. Si no se ejecuta, no se rompe nada: los dispositivos se seguirán actualizando solos como hasta ahora, solo que tardando hasta 20 minutos en darse cuenta en vez de unos segundos.
+
+---
+
 ## v107 — Resumen del día, con más presencia
 
 ### Cambiado
