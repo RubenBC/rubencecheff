@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v107';
+const APP_VERSION = 'v110';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -25,6 +25,19 @@ function forceReload() {
   location.href = location.pathname + '?r=' + Date.now();
 }
 
+// Aviso de "hay algo nuevo, pulsa para actualizar" arriba del todo: no interrumpe
+// a nadie, decide el que esté delante cuándo le viene bien.
+function showUpdateBanner(message) {
+  if (document.getElementById('updateBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'updateBanner';
+  b.className = 'update-banner';
+  b.innerHTML = `<span class="material-symbols-outlined update-banner-icon">new_releases</span>
+    <span class="update-banner-text">${escapeHtml(message)}</span>
+    <button onclick="forceReload()">Actualizar</button>`;
+  document.body.appendChild(b);
+}
+
 // Comprueba si hay una versión nueva publicada, sin recargar nada todavía; si la hay,
 // muestra un aviso para que el que esté delante decida cuándo actualizar.
 async function checkForUpdate() {
@@ -33,19 +46,37 @@ async function checkForUpdate() {
     if (!res.ok) return;
     const html = await res.text();
     const m = html.match(/js\/app\.js\?v=(\d+)/);
-    if (m && ('v' + m[1]) !== APP_VERSION && !document.getElementById('updateBanner')) {
-      const b = document.createElement('div');
-      b.id = 'updateBanner';
-      b.className = 'update-banner';
-      b.innerHTML = `<span class="material-symbols-outlined update-banner-icon">new_releases</span>
-        <span class="update-banner-text">Hay una versión nueva de la app.</span>
-        <button onclick="forceReload()">Actualizar</button>`;
-      document.body.appendChild(b);
-    }
+    if (m && ('v' + m[1]) !== APP_VERSION) showUpdateBanner('Hay una versión nueva de la app.');
   } catch (e) {}
 }
 setInterval(checkForUpdate, 20 * 60 * 1000); // cada 20 min, por si la pantalla se queda abierta horas sin tocar
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+
+// Recarga como forceReload(), pero guardando antes dónde estabas (ficha o
+// pestaña) para volver exactamente ahí después. La usan tanto el resumen de
+// las 07:30 como el aviso del admin para actualizar todos los dispositivos.
+function reloadKeepingView() {
+  try {
+    if (currentRecipeId && document.getElementById('detailPage')?.classList.contains('active')) {
+      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'recipe', id: currentRecipeId, fromPage: currentPage }));
+    } else if (currentProdId && document.getElementById('productionDetailPage')?.classList.contains('active')) {
+      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'production', id: currentProdId, fromPage: currentPage }));
+    } else {
+      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'tab', page: currentPage }));
+    }
+  } catch (e) {}
+  location.href = location.pathname + '?r=' + Date.now();
+}
+// ¿Es buen momento para recargar sin preguntar? No, si hay algo escrito a
+// medias (editor abierto, un campo de texto activo, o cualquier modal abierto).
+function isSafeToAutoReload() {
+  if (document.getElementById('editorPage')?.classList.contains('active')) return false;
+  if (document.getElementById('productionEditorPage')?.classList.contains('active')) return false;
+  if (document.querySelector('.modal-overlay[style*="flex"]')) return false;
+  const ae = document.activeElement;
+  if (ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return false;
+  return true;
+}
 
 // ═══════════════════════════════════════
 //   RESUMEN DIARIO (cada día a las 07:30)
@@ -78,16 +109,7 @@ function msUntilDailyBrief() {
 // Igual que forceReload(), pero guardando antes dónde estabas (como ya hace
 // la restauración de loadData()) para volver exactamente ahí tras recargar.
 function reloadForDailyBrief() {
-  try {
-    if (currentRecipeId && document.getElementById('detailPage')?.classList.contains('active')) {
-      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'recipe', id: currentRecipeId, fromPage: currentPage }));
-    } else if (currentProdId && document.getElementById('productionDetailPage')?.classList.contains('active')) {
-      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'production', id: currentProdId, fromPage: currentPage }));
-    } else {
-      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'tab', page: currentPage }));
-    }
-  } catch (e) {}
-  location.href = location.pathname + '?r=' + Date.now();
+  reloadKeepingView();
 }
 function scheduleDailyBriefReload() {
   clearTimeout(window._dailyBriefTimer);
@@ -107,6 +129,47 @@ setInterval(() => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && isPastDailyBriefTime() && !dailyBriefAlreadyShownToday()) reloadForDailyBrief();
 });
+
+// ═══════════════════════════════════════
+//   ACTUALIZAR TODOS LOS DISPOSITIVOS (botón de Admin)
+// ═══════════════════════════════════════
+// El admin pulsa el botón → se guarda un aviso en app_settings → Supabase
+// Realtime lo manda al instante a todos los dispositivos conectados (sin
+// esperar a la comprobación cada 20 min). Si alguien tiene algo a medias
+// (editando, un modal abierto...) no se le interrumpe: le sale el aviso de
+// "Actualizar" para que lo haga cuando quiera, igual que con una versión
+// nueva normal. Necesita el Realtime activado para app_settings
+// (sql/tiempo-real-actualizaciones.sql); si no está activado, este aviso
+// instantáneo no llega, pero la comprobación normal cada 20 min lo sigue
+// recogiendo igual, así que nunca se rompe nada por no haberlo ejecutado.
+let _forceReloadChannel = null;
+function setupForceReloadListener() {
+  if (_forceReloadChannel) return;
+  try {
+    _forceReloadChannel = sb.channel('app-settings-force-reload')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.force_reload' }, () => {
+        if (isSafeToAutoReload()) reloadKeepingView();
+        else showUpdateBanner('El admin ha publicado cambios nuevos.');
+      })
+      .subscribe();
+  } catch (e) { console.warn('No se pudo activar el aviso en tiempo real:', e?.message || e); }
+}
+async function forceReloadAllDevices() {
+  const ok = await showConfirm({
+    title:       'Actualizar en todos los dispositivos',
+    message:     'Los móviles y el monitor que tengan la app abierta ahora mismo se van a recargar (o les saldrá el aviso, si alguno está editando algo). ¿Continuar?',
+    confirmText: 'Actualizar a todos',
+    icon:        'sync',
+  });
+  if (!ok) return;
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: 'force_reload', value: String(Date.now()) });
+    if (error) throw error;
+    showToast('Aviso enviado a todos los dispositivos');
+  } catch (e) {
+    if (!handleAuthError(e)) showToast('No se pudo enviar el aviso');
+  }
+}
 
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 // Cuenta compartida del equipo de cocina (se crea en Supabase → Authentication → Users).
@@ -163,6 +226,27 @@ function normalizeText(s) {
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 }
 
+// v109 — Aspecto de "modo admin". Se aplica al icono del nombre de la app
+// (arriba a la izquierda, el acceso real desde v109: restaurant_menu normal,
+// escudo relleno en modo admin) y también al botón #adminBtn, que se dejó
+// oculto pero cuyo estado se sigue manteniendo por si algún día volviera a
+// hacer falta mostrarlo.
+function setAdminIndicator(on) {
+  const icon = document.getElementById('brandIcon');
+  if (icon) {
+    icon.classList.toggle('admin-on', on);
+    const sym = icon.querySelector('.material-symbols-outlined');
+    if (sym) sym.textContent = on ? 'admin_panel_settings' : 'restaurant_menu';
+  }
+  const btn = document.getElementById('adminBtn');
+  if (btn) {
+    btn.innerHTML = on
+      ? `<span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span><span class="btn-label"> Admin</span>`
+      : `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
+    btn.classList.toggle('admin-on', on);
+  }
+}
+
 // Detecta si un error de Supabase se debe a sesión caducada / falta de permisos
 // (RLS rechaza la escritura) y, en ese caso, avisa claramente y reabre el login.
 // Devuelve true si el error era de sesión (ya gestionado), false si es otro error.
@@ -181,9 +265,7 @@ function handleAuthError(error) {
   }
   isAdmin = false;
   dropAdminSession(); // cierra la de admin y vuelve a la de cocina
-  document.getElementById('adminBtn').innerHTML =
-    `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
-  document.getElementById('adminBtn').classList.remove('admin-on');
+  setAdminIndicator(false);
   updateBadges();
   showToast('Tu sesión de administrador ha caducado. Inicia sesión de nuevo.');
   // Se reabre el login sin mover de pantalla (para no perder lo que estabas haciendo)
@@ -409,6 +491,7 @@ async function loadData() {
     } catch (e) { console.warn('No se pudo restaurar la vista tras recargar:', e); }
 
     maybeShowDailyBrief();
+    setupForceReloadListener();
 
   } catch (err) {
     console.error('Error cargando datos:', err);
@@ -1820,8 +1903,7 @@ async function adminLogout() {
   if (!ok) return;
   await dropAdminSession(); // cierra la de admin y vuelve a la de cocina (o pide la contraseña si no se puede)
   isAdmin = false;
-  document.getElementById('adminBtn').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
-  document.getElementById('adminBtn').classList.remove('admin-on');
+  setAdminIndicator(false);
   updateBadges();
   document.getElementById('adminAddRecipeRow').style.display    = 'none';
   document.getElementById('adminAddProductionRow').style.display = 'none';
@@ -1906,9 +1988,7 @@ async function doLogin() {
 }
 
 function activateAdminUI() {
-  document.getElementById('adminBtn').innerHTML =
-    `<span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span><span class="btn-label"> Admin</span>`;
-  document.getElementById('adminBtn').classList.add('admin-on');
+  setAdminIndicator(true);
   updateBadges();
   if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
   if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
@@ -1982,8 +2062,7 @@ function showAuthGate(msg) {
   recipes = []; productions = []; recipeProductions = []; comments = []; weights = []; brines = [];
   tags = []; tagFilter = { recipes: null, productions: null }; importantDates = []; orderItems = []; customStations = []; isAdmin = false;
   melodies = []; melodyDefaultId = '1'; melodyTonesLoaded = new Set(); midiEdit = null; midiStopPreview(); applyMelodyOptions();
-  const ab = document.getElementById('adminBtn');
-  if (ab) { ab.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`; ab.classList.remove('admin-on'); }
+  setAdminIndicator(false);
   ['adminAddRecipeRow', 'adminAddProductionRow', 'addWeightBtn', 'addBrineBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
   const fb = document.getElementById('floatBackBtn'); if (fb) fb.classList.remove('show'); // no dejar la flecha suelta sobre la pantalla de acceso
   setTimeout(() => { const i = document.getElementById('gateInput'); if (i) { i.value = ''; i.focus(); } }, 120);
@@ -2626,6 +2705,8 @@ function renderAdmin() {
     <div class="stat-card"><span class="material-symbols-outlined">menu_book</span><div class="stat-card-num">${recipes.length}</div><div class="stat-card-lbl">Recetas</div></div>
     <div class="stat-card"><span class="material-symbols-outlined">blender</span><div class="stat-card-num">${productions.length}</div><div class="stat-card-lbl">Producciones</div></div>
     <div class="stat-card"><span class="material-symbols-outlined">mark_chat_unread</span><div class="stat-card-num">${isAdmin ? pending.length : '—'}</div><div class="stat-card-lbl">Pendientes</div></div>`;
+
+  document.getElementById('forceReloadAllBtn').style.display = isAdmin ? '' : 'none';
 
   if (!isAdmin) {
     document.getElementById('adminTabs').innerHTML = '';
