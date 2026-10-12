@@ -54,16 +54,26 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 ═══════════════════════════════════════ */
 .topbar { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--outline-light); padding: calc(12px + env(safe-area-inset-top)) 16px 12px; }
 .topbar-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.app-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* v108 — el nombre+icono de la app es ahora el acceso a Admin (antes era un
+   botón aparte en topbar-actions, ver más abajo): cursor de botón y un
+   fondo sutil al tocar/pasar el ratón, para que se note que es pulsable. */
+.app-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 12px; padding: 4px 6px; margin: -4px -6px; transition: background 0.15s ease; }
+.app-brand:hover, .app-brand:active { background: var(--surface2); }
 /* v104 — sin esta regla, los botones de la derecha (campana, refrescar,
    tema, admin) no tenían ni flex ni separación entre sí: si no cabían en
    una fila se amontonaban unos sobre otros al saltar de línea. */
 .topbar-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px 6px; }
 /* v105 — en vertical (móvil/tablet) el botón Admin es solo el candado, sin
-   la palabra "Admin"; el texto vuelve a partir de 900px (ver más abajo). */
+   la palabra "Admin"; el texto vuelve a partir de 900px (ver más abajo).
+   v108 — el botón en sí ya está oculto siempre (ver index.html), así que
+   esto ya no se nota, pero se deja por si algún día vuelve a hacer falta. */
 #adminBtn .btn-label { display: none; }
-.brand-icon { background: var(--primary-container); border-radius: 12px; padding: 8px; display: flex; }
-.brand-icon .material-symbols-outlined { color: var(--primary); font-size: 20px; }
+.brand-icon { background: var(--primary-container); border-radius: 12px; padding: 8px; display: flex; transition: background 0.15s ease; }
+.brand-icon .material-symbols-outlined { color: var(--primary); font-size: 20px; transition: color 0.15s ease; }
+/* v109 — en modo admin el icono de la marca se rellena (mismo lenguaje que
+   un botón "filled"), para notar de un vistazo que se está dentro de Admin. */
+.brand-icon.admin-on { background: var(--primary); }
+.brand-icon.admin-on .material-symbols-outlined { color: white; }
 .brand-name { font-size: 18px; font-weight: 800; line-height: 1.1; }
 .brand-sub  { font-size: 10px; color: var(--text2); }
 
