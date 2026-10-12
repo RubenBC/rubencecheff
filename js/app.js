@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v105';
+const APP_VERSION = 'v106';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -46,6 +46,67 @@ async function checkForUpdate() {
 }
 setInterval(checkForUpdate, 20 * 60 * 1000); // cada 20 min, por si la pantalla se queda abierta horas sin tocar
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+
+// ═══════════════════════════════════════
+//   RESUMEN DIARIO (cada día a las 07:30)
+// ═══════════════════════════════════════
+// Fecha+tiempo de Madrid+eventos de hoy. En una pantalla que se queda
+// abierta (el monitor fijo de cocina) se recarga ella sola a esa hora,
+// igual que "Actualizar" en la cabecera, para traer datos frescos; el
+// resumen se enseña ya con la página recién cargada (ver el final de
+// loadData()). En el móvil de cada uno, que no puede "despertarse" solo,
+// se enseña la primera vez que se abra la app ese día, aunque no sea a
+// las 07:30 en punto.
+const DAILY_BRIEF_HOUR = 7, DAILY_BRIEF_MIN = 30;
+const MADRID_LAT = 40.4168, MADRID_LON = -3.7038;
+
+function todayKey(d = new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function isPastDailyBriefTime(d = new Date()) {
+  return d.getHours() > DAILY_BRIEF_HOUR || (d.getHours() === DAILY_BRIEF_HOUR && d.getMinutes() >= DAILY_BRIEF_MIN);
+}
+function dailyBriefAlreadyShownToday() {
+  try { return localStorage.getItem('rubencechef-daily-brief-date') === todayKey(); } catch (e) { return false; }
+}
+function msUntilDailyBrief() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), DAILY_BRIEF_HOUR, DAILY_BRIEF_MIN, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  return next - now;
+}
+// Igual que forceReload(), pero guardando antes dónde estabas (como ya hace
+// la restauración de loadData()) para volver exactamente ahí tras recargar.
+function reloadForDailyBrief() {
+  try {
+    if (currentRecipeId && document.getElementById('detailPage')?.classList.contains('active')) {
+      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'recipe', id: currentRecipeId, fromPage: currentPage }));
+    } else if (currentProdId && document.getElementById('productionDetailPage')?.classList.contains('active')) {
+      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'production', id: currentProdId, fromPage: currentPage }));
+    } else {
+      sessionStorage.setItem('rubencechef-reload-restore', JSON.stringify({ view: 'tab', page: currentPage }));
+    }
+  } catch (e) {}
+  location.href = location.pathname + '?r=' + Date.now();
+}
+function scheduleDailyBriefReload() {
+  clearTimeout(window._dailyBriefTimer);
+  window._dailyBriefTimer = setTimeout(() => {
+    if (!dailyBriefAlreadyShownToday()) reloadForDailyBrief();
+    else scheduleDailyBriefReload();
+  }, msUntilDailyBrief());
+}
+scheduleDailyBriefReload();
+// Red de seguridad por si a las 07:30 el dispositivo estaba dormido o la
+// pestaña en segundo plano (el temporizador exacto de arriba no se dispara
+// fiable en esos casos): lo pilla en menos de 10 min, o al instante al
+// volver a mirar la pantalla.
+setInterval(() => {
+  if (document.visibilityState === 'visible' && isPastDailyBriefTime() && !dailyBriefAlreadyShownToday()) reloadForDailyBrief();
+}, 10 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && isPastDailyBriefTime() && !dailyBriefAlreadyShownToday()) reloadForDailyBrief();
+});
 
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 // Cuenta compartida del equipo de cocina (se crea en Supabase → Authentication → Users).
@@ -346,6 +407,8 @@ async function loadData() {
         }
       }
     } catch (e) { console.warn('No se pudo restaurar la vista tras recargar:', e); }
+
+    maybeShowDailyBrief();
 
   } catch (err) {
     console.error('Error cargando datos:', err);
@@ -3473,6 +3536,125 @@ function updateBadges() {
   if (n > 0 && isAdmin) { tb.innerHTML = `<span class="badge">${n}</span>`; tb.style.display = ''; }
   else       { tb.style.display = 'none'; }
   if (currentPage === 'admin') renderAdminTabs();
+}
+
+// ─── Resumen diario: tiempo de Madrid + eventos de hoy ───
+const WEATHER_LABELS = {
+  0: ['Despejado', '☀️'], 1: ['Mayormente despejado', '🌤️'], 2: ['Parcialmente nublado', '⛅'], 3: ['Nublado', '☁️'],
+  45: ['Niebla', '🌫️'], 48: ['Niebla con escarcha', '🌫️'],
+  51: ['Llovizna ligera', '🌦️'], 53: ['Llovizna moderada', '🌦️'], 55: ['Llovizna densa', '🌧️'],
+  56: ['Llovizna helada', '🥶'], 57: ['Llovizna helada densa', '🥶'],
+  61: ['Lluvia ligera', '🌧️'], 63: ['Lluvia moderada', '🌧️'], 65: ['Lluvia fuerte', '🌧️'],
+  66: ['Lluvia helada', '🧊'], 67: ['Lluvia helada fuerte', '🧊'],
+  71: ['Nevada ligera', '🌨️'], 73: ['Nevada moderada', '🌨️'], 75: ['Nevada fuerte', '❄️'], 77: ['Granos de nieve', '🌨️'],
+  80: ['Chubascos ligeros', '🌦️'], 81: ['Chubascos moderados', '🌧️'], 82: ['Chubascos violentos', '⛈️'],
+  85: ['Chubascos de nieve', '🌨️'], 86: ['Chubascos de nieve fuertes', '❄️'],
+  95: ['Tormenta', '⛈️'], 96: ['Tormenta con granizo', '⛈️'], 97: ['Tormenta fuerte', '⛈️'], 99: ['Tormenta con granizo fuerte', '⛈️'],
+};
+
+// Sin clave, sin registro (Open-Meteo). Se guarda en caché un día entero:
+// si se abre varias veces la misma pantalla no hace falta volver a pedirlo.
+async function fetchMadridWeather() {
+  const cacheKey = 'rubencechef-weather-cache';
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+    if (cached && cached.date === todayKey()) return cached.data;
+  } catch (e) {}
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${MADRID_LAT}&longitude=${MADRID_LON}`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max`
+    + `&timezone=Europe%2FMadrid&forecast_days=1`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('No se pudo obtener el tiempo (' + res.status + ')');
+  const json = await res.json();
+  const data = {
+    code: json.daily.weather_code[0],
+    tMax: Math.round(json.daily.temperature_2m_max[0]),
+    tMin: Math.round(json.daily.temperature_2m_min[0]),
+    rain: (json.daily.precipitation_probability_max || [])[0],
+  };
+  try { localStorage.setItem(cacheKey, JSON.stringify({ date: todayKey(), data })); } catch (e) {}
+  return data;
+}
+
+function getTodaysApprovedEvents() {
+  const key = todayKey();
+  return importantDates
+    .filter(d => d.status === 'aprobado' && d.event_date === key)
+    .sort((a, b) => (a.event_time || '').localeCompare(b.event_time || ''));
+}
+
+function renderDailyBriefBody(weather, weatherError) {
+  const body = document.getElementById('dailyBriefBody');
+  if (!body) return;
+
+  const dateLabel = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateCap = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+
+  let weatherHtml;
+  if (weatherError) {
+    weatherHtml = `
+      <div class="daily-brief-weather">
+        <span class="daily-brief-weather-icon">🌡️</span>
+        <div class="daily-brief-weather-label">No se ha podido cargar el tiempo</div>
+      </div>`;
+  } else if (!weather) {
+    weatherHtml = `
+      <div class="daily-brief-weather">
+        <span class="daily-brief-weather-icon skeleton" style="border-radius:8px;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+        <div class="daily-brief-weather-label">Cargando el tiempo…</div>
+      </div>`;
+  } else {
+    const [label, icon] = WEATHER_LABELS[weather.code] || ['', '🌡️'];
+    weatherHtml = `
+      <div class="daily-brief-weather">
+        <span class="daily-brief-weather-icon">${icon}</span>
+        <div>
+          <div class="daily-brief-weather-temps">${weather.tMin}° / ${weather.tMax}°</div>
+          <div class="daily-brief-weather-label">${escapeHtml(label)}${weather.rain != null ? ` · ${weather.rain}% prob. lluvia` : ''}</div>
+        </div>
+      </div>`;
+  }
+
+  const events = getTodaysApprovedEvents();
+  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
+  const eventsHtml = events.length
+    ? events.map(d => `
+      <div class="event-banner-row">
+        <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
+        <div class="event-banner-info">
+          <div class="event-banner-name">${d.event_time ? escapeHtml(String(d.event_time).slice(0, 5)) + ' — ' : ''}${escapeHtml(d.title)}</div>
+          ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
+        </div>
+      </div>`).join('')
+    : `<div style="font-size:13px; color:var(--text2); padding:4px 0 2px;">Sin eventos previstos para hoy.</div>`;
+
+  body.innerHTML = `
+    <div class="daily-brief-date">${escapeHtml(dateCap)}</div>
+    ${weatherHtml}
+    <div class="daily-brief-section-title">Eventos de hoy</div>
+    ${eventsHtml}
+  `;
+}
+
+async function showDailyBriefModal() {
+  renderDailyBriefBody(null, false); // fecha y eventos ya, el tiempo en cuanto llegue
+  openModalNav('dailyBriefModal');
+  try {
+    const weather = await fetchMadridWeather();
+    renderDailyBriefBody(weather, false);
+  } catch (e) {
+    console.warn('No se pudo obtener el tiempo de Madrid:', e?.message || e);
+    renderDailyBriefBody(null, true);
+  }
+}
+
+// Se llama al final de cada carga completa de datos (loadData): tanto en la
+// primera vez que se abre la app ese día como después de la recarga de las
+// 07:30 en la pantalla fija.
+function maybeShowDailyBrief() {
+  if (!isPastDailyBriefTime() || dailyBriefAlreadyShownToday()) return;
+  try { localStorage.setItem('rubencechef-daily-brief-date', todayKey()); } catch (e) {}
+  showDailyBriefModal();
 }
 
 // ═══════════════════════════════════════
