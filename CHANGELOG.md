@@ -4,6 +4,19 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v106 — Resumen del día (07:30) y dos columnas en móvil
+
+### Añadido
+- **Resumen del día a las 07:30**, con el día de la semana, la fecha, el tiempo de Madrid (sin clave, vía Open-Meteo) y los eventos de hoy (la misma función de "Partidos y conciertos" que ya tenías, filtrada al día de hoy). Funciona distinto según el dispositivo, porque un móvil no puede "despertarse" solo:
+  - **Monitor fijo de cocina** (pantalla que se queda abierta): a las 07:30 en punto se recarga ella sola (como pulsar "Actualizar"), vuelve exactamente a donde estaba (misma ficha o pestaña) y enseña el resumen. Si a esa hora estuviera dormida, lo detecta en menos de 10 minutos o nada más volver a mirarla.
+  - **Cualquier móvil**: la primera vez que se abra la app ese día (sea la hora que sea, si ya ha pasado las 07:30), se enseña el resumen una sola vez.
+  - No vuelve a salir dos veces el mismo día en el mismo dispositivo.
+
+### Cambiado
+- **Platos y Producciones en dos columnas en móvil** (antes una sola, de borde a borde). Las tarjetas se han reajustado (foto más baja, letra algo más pequeña) para que se lean bien a ese ancho.
+
+---
+
 ## v105 — Admin solo con el candado en vertical
 
 ### Cambiado
