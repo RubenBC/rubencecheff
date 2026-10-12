@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v107 — Resumen del día, con más presencia
+
+### Cambiado
+- **La ventana del resumen del día ocupa más pantalla y con letra más grande** (fecha, tiempo y eventos): antes tenía el tamaño de un modal normal; ahora destaca más al abrirse, en vez de verse como un aviso pequeño más.
+
+---
+
 ## v106 — Resumen del día (07:30) y dos columnas en móvil
 
 ### Añadido
