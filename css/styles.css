@@ -127,6 +127,25 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .recipe-card-footer span { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px; }
 .recipe-card-footer .material-symbols-outlined { font-size: 15px; }
 
+/* v106 — Platos y Producciones en dos columnas en móvil (antes una sola).
+   Por debajo de 900px ya no había grid (el de arriba es solo para
+   escritorio/tablet ancha): las tarjetas se apilaban en una columna. */
+@media (max-width: 899px) {
+  #recipeList, #productionList { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #recipeList .recipe-card, #productionList .recipe-card { margin-bottom: 0; }
+  #recipeList .empty-state, #productionList .empty-state { grid-column: 1 / -1; }
+  #recipeList .chips-row, #productionList .chips-row { grid-column: 1 / -1; width: 100%; }
+  #recipeList .recipe-card-img, #recipeList .recipe-card-img-placeholder,
+  #productionList .recipe-card-img, #productionList .recipe-card-img-placeholder { height: 108px; }
+  #recipeList .recipe-card-img-placeholder .material-symbols-outlined,
+  #productionList .recipe-card-img-placeholder .material-symbols-outlined { font-size: 30px; }
+  #recipeList .recipe-card-body, #productionList .recipe-card-body { padding: 10px 12px 12px; }
+  #recipeList .recipe-card h3, #productionList .recipe-card h3 { font-size: 14px; line-height: 1.25; }
+  #recipeList .recipe-card p, #productionList .recipe-card p { font-size: 12px; margin-bottom: 8px; }
+  #recipeList .recipe-card-meta, #productionList .recipe-card-meta { gap: 6px; margin-bottom: 6px; }
+  #recipeList .recipe-card-footer, #productionList .recipe-card-footer { gap: 10px; flex-wrap: wrap; }
+}
+
 /* ═══════════════════════════════════════
    TAGS
 ═══════════════════════════════════════ */
@@ -647,6 +666,15 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
 .event-banner-info { flex: 1; }
 .event-banner-name { font-size: 14px; font-weight: 700; color: var(--text); }
 .event-banner-note { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* v106 — Resumen diario (fecha + tiempo de Madrid + eventos de hoy), cada
+   día a las 07:30. */
+.daily-brief-date { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+.daily-brief-weather { display: flex; align-items: center; gap: 12px; background: var(--surface2); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; }
+.daily-brief-weather-icon { font-size: 32px; line-height: 1; }
+.daily-brief-weather-temps { font-size: 19px; font-weight: 800; color: var(--text); }
+.daily-brief-weather-label { font-size: 13px; color: var(--text2); }
+.daily-brief-section-title { font-size: 12.5px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
 
 /* Evento de alto riesgo: mucho trabajo previsto, resaltado en rojo */
 .comment-card.high-risk {
