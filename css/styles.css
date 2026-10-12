@@ -667,14 +667,22 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
 .event-banner-name { font-size: 14px; font-weight: 700; color: var(--text); }
 .event-banner-note { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
-/* v106 — Resumen diario (fecha + tiempo de Madrid + eventos de hoy), cada
-   día a las 07:30. */
-.daily-brief-date { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
-.daily-brief-weather { display: flex; align-items: center; gap: 12px; background: var(--surface2); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; }
-.daily-brief-weather-icon { font-size: 32px; line-height: 1; }
-.daily-brief-weather-temps { font-size: 19px; font-weight: 800; color: var(--text); }
-.daily-brief-weather-label { font-size: 13px; color: var(--text2); }
-.daily-brief-section-title { font-size: 12.5px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+/* v107 — Resumen diario (fecha + tiempo de Madrid + eventos de hoy), cada
+   día a las 07:30. Con más presencia que un modal normal: letra grande,
+   más aire, y la hoja ocupa más pantalla en vez de quedarse en un cajetín
+   compacto como el resto de modales. */
+#dailyBriefModal .modal-sheet { min-height: 62vh; padding-top: 10px; }
+#dailyBriefModal .modal-title { font-size: 20px; }
+.daily-brief-date { font-size: 24px; font-weight: 800; color: var(--text); margin: 4px 0 22px; }
+.daily-brief-weather { display: flex; align-items: center; gap: 18px; background: var(--surface2); border-radius: 18px; padding: 22px 20px; margin-bottom: 26px; }
+.daily-brief-weather-icon { font-size: 52px; line-height: 1; }
+.daily-brief-weather-temps { font-size: 30px; font-weight: 800; color: var(--text); }
+.daily-brief-weather-label { font-size: 15px; color: var(--text2); margin-top: 2px; }
+.daily-brief-section-title { font-size: 13.5px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+#dailyBriefBody .event-banner-icon { font-size: 24px; }
+#dailyBriefBody .event-banner-name { font-size: 15.5px; }
+#dailyBriefBody .event-banner-note { font-size: 13px; }
+#dailyBriefBody .event-banner-row { padding: 13px 0; }
 
 /* Evento de alto riesgo: mucho trabajo previsto, resaltado en rojo */
 .comment-card.high-risk {
