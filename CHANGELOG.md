@@ -4,6 +4,26 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v111 — Auditoría completa
+
+### Corregido
+- **La lista de Pedidos y los comentarios salían vacíos al entrar como admin.** La app arranca con la sesión de cocina, que por seguridad recibe esas dos listas vacías; al entrar luego como admin no se volvían a pedir, así que se veían vacías hasta el siguiente refresco automático (hasta 15 min). Era justo lo que pasó con los pedidos. Ahora se cargan en cuanto entras como admin.
+- **Si la sesión de admin caduca por detrás**, la app ya no enseña listas vacías como si se hubiera borrado algo: avisa y pide la contraseña.
+- **El resumen de las 07:30 ya no recarga la app si estás editando algo** (antes se perdía lo escrito): espera a que termines.
+- **Ni corta timers ni radio**: si suena o va a sonar un timer en menos de 20 min, o está la radio puesta, el resumen se enseña sin recargar. Antes un timer podía quedarse sin pitar tras la recarga. Lo mismo para "Actualizar en todos los dispositivos": a esos dispositivos les sale el aviso en vez de recargarse.
+- **Con la pantalla de contraseña abierta**, el resumen ya no recarga la app una y otra vez (borraba la contraseña a medio escribir).
+- **Botón "Actualizar" de la cabecera**: si estás editando con cambios sin guardar, ahora pregunta antes; y al recargar vuelves a la misma ficha o pestaña.
+- **Colores de la app instalada** (manifest): seguían siendo los de la paleta antigua (verde azulado); ahora coinciden con los actuales.
+- **La barra de estado del móvil** sigue al modo oscuro.
+- **El aviso de "hay una versión nueva"**: al pulsar "Actualizar" te devuelve a la misma receta, producción o pestaña donde estabas, en vez de llevarte a Platos.
+
+### Limpieza
+- Quitado código que ya no se usaba: el botón Admin oculto, funciones de la antigua lista de pedidos automática, de la antigua ventana de radio y de un panel que ya no existe, y unas 25 reglas de estilo sin uso.
+- Unificadas funciones duplicadas de escape de texto.
+- README actualizado con la estructura real.
+
+---
+
 ## v110 — El icono de la app avisa cuando estás en modo admin
 
 ### Añadido
