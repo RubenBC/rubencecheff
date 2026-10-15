@@ -24,7 +24,6 @@
   let tickId = null, worker = null, vibId = null, lastPre = 0;
   let audioCtx = null, master = null, sched = null, wakeLock = null;
   let baseTitle = document.title;
-  window.setBaseTitle = (t) => { baseTitle = t; updateTitle(); }; // usado por el modo Navidad/Halloween
 
   /* ───────── utilidades ───────── */
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -112,8 +111,7 @@
   // Tras cada ciclo hay una pausa de 3 s antes de repetir.
   const PAUSE_S = 3;
   // Estribillo de "Jingle Bells" (James Lord Pierpont, 1857, dominio público),
-  // una octava arriba para que se oiga bien en la cocina. Ya no está atado al
-  // Modo Navidad: es una melodía más, seleccionable todo el año.
+  // una octava arriba para que se oiga bien en la cocina.
   // Notas: [frecuencia, duración en tiempos]. Se convierte al formato de TONES.
   const JB = (() => {
     const E = 659.25, G = 783.99, C = 523.25, D = 587.33, F = 698.46;
@@ -132,8 +130,7 @@
 
   // Inicio del "Dies Irae" (canto gregoriano, siglo XIII, autor desconocido,
   // de dominio público): la frase que el cine lleva un siglo citando como "la
-  // melodía del mal" (El resplandor, El rey león, Star Wars...). Ya no está
-  // atada al Modo Halloween: es una melodía más, seleccionable todo el año.
+  // melodía del mal" (El resplandor, El rey león, Star Wars...).
   const DI = (() => {
     const A = 220.00, B = 246.94, C = 261.63, D = 293.66;
     const beat = 0.26;
@@ -175,7 +172,7 @@
       // (si no, lo que hay es el "1" del arranque de emergencia, no una elección)
       const keep = _melodyOptionsReady ? sel.value : null;
       sel.innerHTML = BUILTIN_MELODIES.concat(customList || [])
-        .map(m => `<option value="${m.id}">${m.id === defaultMelodyId ? '★ ' : ''}${String(m.name).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))}</option>`).join('');
+        .map(m => `<option value="${esc(m.id)}">${m.id === defaultMelodyId ? '★ ' : ''}${esc(m.name)}</option>`).join('');
       sel.value = (keep && [...sel.options].some(o => o.value === keep)) ? keep : defaultMelodyId;
       _melodyOptionsReady = true;
     }
@@ -510,7 +507,6 @@
   setTimeout(measureNav, 0);
 
   window.openTimerModal = function () {
-    if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
     ensureAudio(); // este toque desbloquea el audio para cuando suene
     const m = $('timerModal');
     if (m.style.display !== 'flex') {

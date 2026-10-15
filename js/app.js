@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v110';
+const APP_VERSION = 'v111';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -21,8 +21,20 @@ function versionMismatch() {
 // Recarga forzando que se descargue todo de nuevo (no una copia guardada del navegador).
 // Con la app instalada, abrirla no siempre coge la versión nueva aunque ya esté subida
 // a GitHub; antes había que cerrarla del todo para que se notara. Con esto no hace falta.
-function forceReload() {
-  location.href = location.pathname + '?r=' + Date.now();
+// v111 — Antes recargaba sin más: si estabas editando un plato con cambios
+// sin guardar, se perdían sin avisar. Ahora pregunta, y al volver te deja
+// en la misma ficha o pestaña donde estabas (no siempre en Platos).
+async function forceReload() {
+  const recipeDirty = document.getElementById('editorPage')?.classList.contains('active') && isRecipeEditorDirty();
+  const prodDirty   = document.getElementById('productionEditorPage')?.classList.contains('active') && isProdEditorDirty();
+  if (recipeDirty || prodDirty) {
+    const ok = await showConfirm({
+      title: 'Cambios sin guardar', message: 'Si actualizas ahora perderás los cambios que no has guardado.',
+      confirmText: 'Actualizar igualmente', cancelText: 'Seguir editando', icon: 'edit_off',
+    });
+    if (!ok) return;
+  }
+  reloadKeepingView();
 }
 
 // Aviso de "hay algo nuevo, pulsa para actualizar" arriba del todo: no interrumpe
@@ -52,7 +64,7 @@ async function checkForUpdate() {
 setInterval(checkForUpdate, 20 * 60 * 1000); // cada 20 min, por si la pantalla se queda abierta horas sin tocar
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
 
-// Recarga como forceReload(), pero guardando antes dónde estabas (ficha o
+// Recarga guardando antes dónde estabas (ficha o
 // pestaña) para volver exactamente ahí después. La usan tanto el resumen de
 // las 07:30 como el aviso del admin para actualizar todos los dispositivos.
 function reloadKeepingView() {
@@ -67,17 +79,30 @@ function reloadKeepingView() {
   } catch (e) {}
   location.href = location.pathname + '?r=' + Date.now();
 }
-// ¿Es buen momento para recargar sin preguntar? No, si hay algo escrito a
-// medias (editor abierto, un campo de texto activo, o cualquier modal abierto).
-function isSafeToAutoReload() {
-  if (document.getElementById('editorPage')?.classList.contains('active')) return false;
-  if (document.getElementById('productionEditorPage')?.classList.contains('active')) return false;
-  if (document.querySelector('.modal-overlay[style*="flex"]')) return false;
+// ¿Está alguien usando la app ahora mismo? (editor abierto, un modal, o
+// escribiendo en un campo). Entonces no se recarga nada por sorpresa.
+function isUserBusy() {
+  if (document.getElementById('editorPage')?.classList.contains('active')) return true;
+  if (document.getElementById('productionEditorPage')?.classList.contains('active')) return true;
+  if (document.querySelector('.modal-overlay[style*="flex"]')) return true;
   const ae = document.activeElement;
-  if (ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return false;
-  return true;
+  if (ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return true;
+  return false;
 }
-
+// v111 — ¿Suena algo, o va a sonar pronto? (un timer sonando o a menos de
+// 20 min de sonar, o la radio puesta). Recargar cortaría el sonido, y el
+// navegador no deja que vuelva a sonar solo hasta que alguien toque la
+// pantalla: un timer podía acabar sin pitar tras la recarga de las 07:30.
+function isMediaActive() {
+  return (typeof timerBlocksReload === 'function' && timerBlocksReload()) ||
+         (typeof radioIsActive === 'function' && radioIsActive());
+}
+// ¿Es buen momento para recargar sin preguntar?
+function isSafeToAutoReload() { return !isUserBusy() && !isMediaActive(); }
+function authGateOpen() {
+  const g = document.getElementById('authGate');
+  return !!g && g.style.display !== 'none';
+}
 // ═══════════════════════════════════════
 //   RESUMEN DIARIO (cada día a las 07:30)
 // ═══════════════════════════════════════
@@ -106,29 +131,36 @@ function msUntilDailyBrief() {
   if (next <= now) next.setDate(next.getDate() + 1);
   return next - now;
 }
-// Igual que forceReload(), pero guardando antes dónde estabas (como ya hace
-// la restauración de loadData()) para volver exactamente ahí tras recargar.
-function reloadForDailyBrief() {
+// v111 — Decide qué hacer cuando toca el resumen:
+//  · alguien está editando / con un modal abierto → se espera 1 min y se
+//    vuelve a mirar (antes recargaba igual y se perdía lo que estaba escrito);
+//  · suena o va a sonar un timer, o está la radio → se enseña el resumen SIN
+//    recargar, para no cortar el sonido;
+//  · pantalla de acceso abierta (sin sesión) → nada (antes recargaba en
+//    bucle cada vez que se volvía a la app, borrando la contraseña a medias);
+//  · si no → recarga guardando dónde estabas, y el resumen sale al terminar.
+function dailyBriefTick() {
+  if (!isPastDailyBriefTime() || dailyBriefAlreadyShownToday()) return;
+  if (document.visibilityState !== 'visible' || authGateOpen()) return;
+  if (isUserBusy()) {
+    clearTimeout(window._dailyBriefRetry);
+    window._dailyBriefRetry = setTimeout(dailyBriefTick, 60 * 1000);
+    return;
+  }
+  if (isMediaActive()) { maybeShowDailyBrief(); return; }
   reloadKeepingView();
 }
 function scheduleDailyBriefReload() {
   clearTimeout(window._dailyBriefTimer);
-  window._dailyBriefTimer = setTimeout(() => {
-    if (!dailyBriefAlreadyShownToday()) reloadForDailyBrief();
-    else scheduleDailyBriefReload();
-  }, msUntilDailyBrief());
+  window._dailyBriefTimer = setTimeout(() => { dailyBriefTick(); scheduleDailyBriefReload(); }, msUntilDailyBrief());
 }
 scheduleDailyBriefReload();
 // Red de seguridad por si a las 07:30 el dispositivo estaba dormido o la
 // pestaña en segundo plano (el temporizador exacto de arriba no se dispara
 // fiable en esos casos): lo pilla en menos de 10 min, o al instante al
 // volver a mirar la pantalla.
-setInterval(() => {
-  if (document.visibilityState === 'visible' && isPastDailyBriefTime() && !dailyBriefAlreadyShownToday()) reloadForDailyBrief();
-}, 10 * 60 * 1000);
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && isPastDailyBriefTime() && !dailyBriefAlreadyShownToday()) reloadForDailyBrief();
-});
+setInterval(dailyBriefTick, 10 * 60 * 1000);
+document.addEventListener('visibilitychange', dailyBriefTick);
 
 // ═══════════════════════════════════════
 //   ACTUALIZAR TODOS LOS DISPOSITIVOS (botón de Admin)
@@ -226,25 +258,14 @@ function normalizeText(s) {
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 }
 
-// v109 — Aspecto de "modo admin". Se aplica al icono del nombre de la app
-// (arriba a la izquierda, el acceso real desde v109: restaurant_menu normal,
-// escudo relleno en modo admin) y también al botón #adminBtn, que se dejó
-// oculto pero cuyo estado se sigue manteniendo por si algún día volviera a
-// hacer falta mostrarlo.
+// v109 — Aspecto de "modo admin": el icono del nombre de la app (arriba a la
+// izquierda, que es el acceso a Admin) se rellena mientras estás dentro.
 function setAdminIndicator(on) {
   const icon = document.getElementById('brandIcon');
-  if (icon) {
-    icon.classList.toggle('admin-on', on);
-    const sym = icon.querySelector('.material-symbols-outlined');
-    if (sym) sym.textContent = on ? 'admin_panel_settings' : 'restaurant_menu';
-  }
-  const btn = document.getElementById('adminBtn');
-  if (btn) {
-    btn.innerHTML = on
-      ? `<span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span><span class="btn-label"> Admin</span>`
-      : `<span class="material-symbols-outlined" style="font-size:16px;">lock</span><span class="btn-label"> Admin</span>`;
-    btn.classList.toggle('admin-on', on);
-  }
+  if (!icon) return;
+  icon.classList.toggle('admin-on', on);
+  const sym = icon.querySelector('.material-symbols-outlined');
+  if (sym) sym.textContent = on ? 'admin_panel_settings' : 'restaurant_menu';
 }
 
 // Detecta si un error de Supabase se debe a sesión caducada / falta de permisos
@@ -280,6 +301,7 @@ function escapeHtml(s) {
   }[c]));
 }
 const escapeAttr = escapeHtml;
+const escAttr = escapeHtml; // (antes era una copia aparte, sin escapar el apóstrofo)
 
 // Enfoca el último elemento que casa con el selector (p. ej. el ingrediente
 // recién añadido en el editor) para poder escribir sin un toque extra.
@@ -330,7 +352,6 @@ let recipeProductions    = [];
 let comments             = [];
 let importantDates       = [];
 let eventsWindowDays     = 5; // se sobreescribe con el ajuste guardado en Supabase (app_settings)
-let importantDatesExpanded = false; // el panel de Admin arranca plegado para no ocupar toda la pantalla
 let weights              = [];
 let brines               = [];
 let tags = []; // etiquetas: pueden llevarlas varias a la vez tanto platos como producciones
@@ -467,7 +488,7 @@ async function loadData() {
     renderEventsButton();
     updateBadges();
 
-    // Si veníamos de la auto-recarga cada 15 min, volver exactamente a la
+    // Si veníamos de una recarga (botón Actualizar, resumen de las 07:30 o aviso del admin), volver exactamente a la
     // ficha/pestaña donde estaba, en vez de aterrizar siempre en Platos.
     try {
       const raw = sessionStorage.getItem('rubencechef-reload-restore');
@@ -523,10 +544,8 @@ async function loadData() {
 //   NAVEGACIÓN
 // ═══════════════════════════════════════
 function showPage(page, btn, skipPush) {
-  // El panel de admin es una página propia (botón Admin de arriba) y solo con sesión
+  // El panel de admin es una página propia (se abre pulsando el nombre de la app, arriba a la izquierda) y solo con sesión
   if (page === 'admin' && !isAdmin) page = 'recipes';
-  // Si la ventana de Radio está abierta, minimizarla a burbuja al cambiar de pestaña
-  if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen();
   if (typeof radioPreviewStop === 'function') radioPreviewStop(); // no dejar sonando una prueba de emisora al salir de Admin
   if (typeof midiStopPreview === 'function') midiStopPreview();   // ni la de la melodía
   if (typeof timerCloseForNav === 'function') timerCloseForNav(); // el panel del timer se cierra al cambiar de pestaña
@@ -1249,7 +1268,6 @@ async function saveRecipe() {
   currentRecipeId = recipeEditorData.id;
   recipeEditorBaseline = JSON.stringify(recipeEditorData); // ya guardado: sin cambios pendientes
   showToast('Receta guardada ✓');
-  refreshPedidosIfVisible();
   exitRecipeEditor(true);
 }
 
@@ -1290,7 +1308,6 @@ async function deleteRecipe(id) {
   });
   if (!ok) return;
   showToast('Receta eliminada');
-  refreshPedidosIfVisible();
   backTo('recipes'); renderRecipes();
 }
 
@@ -1796,7 +1813,6 @@ async function saveProduction() {
   currentProdId = prodEditorData.id;
   prodEditorBaseline = JSON.stringify(prodEditorData);
   showToast('Producción guardada ✓');
-  refreshPedidosIfVisible();
   exitProdEditor(true);
 }
 
@@ -1835,7 +1851,6 @@ async function deleteProduction(id) {
   });
   if (!ok) return;
   showToast('Producción eliminada');
-  refreshPedidosIfVisible();
   backTo('productions'); renderProductions();
 }
 
@@ -1903,6 +1918,7 @@ async function adminLogout() {
   if (!ok) return;
   await dropAdminSession(); // cierra la de admin y vuelve a la de cocina (o pide la contraseña si no se puede)
   isAdmin = false;
+  comments = []; orderItems = []; rebuildOrderState(); // datos solo de admin: no dejarlos en memoria
   setAdminIndicator(false);
   updateBadges();
   document.getElementById('adminAddRecipeRow').style.display    = 'none';
@@ -1976,6 +1992,7 @@ async function doLogin() {
     isAdmin = true;
     closeLoginModal();
     activateAdminUI();
+    await reloadAdminData();
     showToast('Bienvenido, Chef 👨‍🍳');
     renderEventsButton();
     if (_openAdminAfterLogin) { _openAdminAfterLogin = false; openAdminPanel(); return; }
@@ -1985,6 +2002,24 @@ async function doLogin() {
     if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     if (err) { err.textContent = 'Contraseña incorrecta'; err.style.display = ''; }
   }
+}
+
+// v111 — Datos que solo puede leer el admin. Con la seguridad de Supabase,
+// la sesión de cocina recibe pedidos y comentarios VACÍOS (sin error). Como
+// la app arranca con la sesión de cocina, al entrar luego como admin la lista
+// de Pedidos y los comentarios salían vacíos hasta el siguiente refresco
+// automático (hasta 15 min después). Ahora se piden en cuanto entras.
+async function reloadAdminData() {
+  try {
+    const [cRes, oRes] = await Promise.all([
+      sb.from('comments').select('*').order('created_at', { ascending: false }),
+      sb.from('order_items').select('*'),
+    ]);
+    if (!cRes.error) comments = cRes.data || [];
+    if (!oRes.error) { orderItems = oRes.data || []; rebuildOrderState(); }
+    updateBadges();
+    if (currentPage === 'fichas' && utilTab === 'pedidos') renderPedidosList();
+  } catch (e) { console.warn('No se pudieron cargar los datos de admin:', e?.message || e); }
 }
 
 function activateAdminUI() {
@@ -2243,11 +2278,6 @@ function renderImportantDatesAdmin() {
       ${pendingHtml}
       ${activeHtml}
     ` : ''}`;
-}
-
-function toggleImportantDatesSection() {
-  importantDatesExpanded = !importantDatesExpanded;
-  renderImportantDatesAdmin();
 }
 
 async function approveImportantDate(id, btn) {
@@ -3269,7 +3299,6 @@ function radioAdminPreview() {
   if (/^http:\/\//i.test(url)) url = 'https://' + url.slice(7); // se prueba tal cual se guardaría
   if (/\.(pls|m3u)(\?|$)/i.test(url)) { showToast('Ese enlace es una lista (.pls/.m3u), no un flujo directo'); return; }
 
-  if (typeof radioMinimizeIfOpen === 'function') radioMinimizeIfOpen(); // no solapar con la radio real
   radioPreviewStatus = 'loading';
   renderRadioPreviewStatus();
 
@@ -3795,11 +3824,6 @@ function fmtNum(n) { return Number.isInteger(n) ? n : parseFloat(n.toFixed(3)); 
 // ═══════════════════════════════════════
 let _pedIndexByKey = {};
 
-function escAttr(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 // Reconstruye el estado guardado (check/comentario/grupo/edición) por materia prima.
 function rebuildOrderState() {
@@ -3817,25 +3841,6 @@ function rebuildOrderState() {
       display_name: it.display_name || null,
     };
   });
-}
-
-// Lista de materias primas en vivo desde ingredientes de recetas + producciones,
-// más los nombres de pesos de ración y de salmueras.
-function buildMateriasPrimas() {
-  const map = {}; // key normalizada -> nombre a mostrar
-  const addName = (raw) => {
-    const cleaned = cleanIngredientName(raw);
-    if (!cleaned) return;
-    const key = normalizeText(cleaned);
-    if (!key || map[key]) return;
-    map[key] = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-  };
-  const addIngredients = (arr) => (arr || []).forEach(e => (e.ingredients || []).forEach(ing => addName(ing.name)));
-  addIngredients(recipes);
-  addIngredients(productions);
-  (weights || []).forEach(w => addName(w.name));     // pesos de ración
-  (brines  || []).forEach(b => addName(b.product));  // salmueras
-  return map;
 }
 
 // La lista de pedidos es 100% manual: se construye solo con los artículos
@@ -3866,7 +3871,7 @@ function renderPedidos() {
     <div class="ped-toolbar">
       <div class="ped-search">
         <span class="material-symbols-outlined">search</span>
-        <input type="text" id="pedSearchInput" placeholder="Buscar en la lista…" oninput="onPedidosSearch(this.value)">
+        <input type="text" id="pedSearchInput" placeholder="Buscar…" oninput="onPedidosSearch(this.value)">
       </div>
       ${orderEditCols ? `<button class="btn-pill ${pedidosEdit ? '' : 'ghost'}" id="pedEditBtn" onclick="setPedidosEdit(${!pedidosEdit})">
         <span class="material-symbols-outlined" style="font-size:15px;">${pedidosEdit ? 'done' : 'edit'}</span> ${pedidosEdit ? 'Listo' : 'Editar'}
@@ -4220,13 +4225,6 @@ async function sendPedidoPDF() {
       showToast('PDF descargado');
     }
   });
-}
-
-// Recalcula la lista si está visible (tras añadir/editar/borrar recetas).
-function refreshPedidosIfVisible() {
-  if (document.getElementById('fichasPage')?.classList.contains('active') && utilTab === 'pedidos') {
-    renderPedidosList();
-  }
 }
 
 function renderWeights() {
@@ -4762,6 +4760,9 @@ function toggleTheme() {
 function updateThemeIcon(isDark) {
   const btn = document.getElementById('themeBtn');
   if (btn) btn.querySelector('.material-symbols-outlined').textContent = isDark ? 'light_mode' : 'dark_mode';
+  // v111 — la barra de estado del móvil acompaña al tema (antes se quedaba verde oscuro en modo claro y oscuro)
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', isDark ? '#15181A' : '#174C43');
 }
 
 function initTheme() {
@@ -4863,6 +4864,11 @@ async function refreshDataSilently() {
   try {
     const { data: { session: cur } } = await sb.auth.getSession();
     if (!cur) { showAuthGate('La sesión ha caducado. Introduce la contraseña.'); return; }
+    // v111 — La app cree que eres admin pero la sesión real ya no lo es
+    // (caducó o volvió a la de cocina): con los permisos de cocina los pedidos
+    // y comentarios llegarían vacíos y parecería que se han borrado. Se avisa
+    // y se pide la contraseña de admin en vez de enseñar listas vacías.
+    if (isAdmin && cur.user && cur.user.email !== ADMIN_EMAIL) { handleAuthError({ code: '42501' }); return; }
     const res = await Promise.all([
       sb.from('recipes').select('*').order('name'),
       sb.from('productions').select('*').order('name'),
@@ -5011,12 +5017,6 @@ window.addEventListener('popstate', (e) => {
   // 1d) Hay un modal abierto: el "atrás" lo cierra.
   const openModal = document.querySelector('.modal-overlay[style*="flex"]');
   if (openModal) {
-    // La Radio no se cierra: se minimiza a burbuja (si no, seguía sonando sin
-    // controles visibles y parecía que la burbuja había desaparecido).
-    if (openModal.id === 'radioModal' && typeof radioMinimize === 'function') {
-      radioMinimize({ fromBack: true });
-      return;
-    }
     // El timer no se puede cerrar con "atrás" mientras suena: hay que pulsar Detener.
     if (openModal.id === 'timerModal' && typeof timerIsRinging === 'function' && timerIsRinging()) {
       history.pushState(leaving || { view: 'staticModal', id: 'timerModal' }, '');

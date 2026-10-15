@@ -217,9 +217,9 @@
     if (typeof showPage === 'function') showPage('radio', document.getElementById('nav-radio'));
     else render();
   };
-  // Ya no hay ventana que minimizar: quedan como no-op por compatibilidad
-  window.radioMinimizeIfOpen = function () {};
-  window.radioMinimize = function () { render(); };
+  // Para app.js: ¿está la radio sonando (o conectando)? Así las recargas
+  // automáticas (resumen de las 07:30, aviso del admin) no la cortan.
+  window.radioIsActive = () => current !== null && (status === 'playing' || status === 'connecting');
 
   window.radioBubbleClick = function (e) {
     if (bubbleDragged) { bubbleDragged = false; return; } // fue un arrastre, no un toque
