@@ -63,11 +63,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
    tema, admin) no tenían ni flex ni separación entre sí: si no cabían en
    una fila se amontonaban unos sobre otros al saltar de línea. */
 .topbar-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px 6px; }
-/* v105 — en vertical (móvil/tablet) el botón Admin es solo el candado, sin
-   la palabra "Admin"; el texto vuelve a partir de 900px (ver más abajo).
-   v108 — el botón en sí ya está oculto siempre (ver index.html), así que
-   esto ya no se nota, pero se deja por si algún día vuelve a hacer falta. */
-#adminBtn .btn-label { display: none; }
 .brand-icon { background: var(--primary-container); border-radius: 12px; padding: 8px; display: flex; transition: background 0.15s ease; }
 .brand-icon .material-symbols-outlined { color: var(--primary); font-size: 20px; transition: color 0.15s ease; }
 /* v109 — en modo admin el icono de la marca se rellena (mismo lenguaje que
@@ -166,7 +161,6 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
 .tag-salsas    { background: #E8F5E9; color: #1B5E20; }
 .tag-ensaladas { background: #F3E5F5; color: #4A148C; }
 .tag-guarniciones { background: #FBE9E7; color: #BF360C; }
-.tag-plato     { background: #E8F4FD; color: #006064; }
 .tag-coulis    { background: #FCE4EC; color: #880E4F; }
 .tag-vinagreta { background: #FFFDE7; color: #F57F17; }
 .tag-vegetariano { background: #F1F8E9; color: #33691E; }
@@ -183,13 +177,6 @@ body.dark .tag-sin-etiquetas { border-color: var(--outline); }
 ═══════════════════════════════════════ */
 .detail-img { width: 100%; height: 260px; object-fit: cover; border-radius: 12px; display: block; margin-bottom: 12px; cursor: zoom-in; transition: opacity 0.15s; }
 .detail-img:active { opacity: 0.85; }
-.detail-img-placeholder { width: 100%; height: 220px; border-radius: 12px; background: var(--surface2); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
-.detail-img-placeholder .material-symbols-outlined { font-size: 64px; color: var(--outline); opacity: 0.3; }
-.stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
-.stat-item { display: flex; align-items: center; gap: 6px; }
-.stat-item .material-symbols-outlined { font-size: 18px; color: var(--primary); }
-.stat-item-val { font-size: 16px; font-weight: 800; }
-.stat-item-lbl { font-size: 11px; color: var(--text2); }
 
 /* ═══════════════════════════════════════
    PRODUCCIONES VINCULADAS
@@ -300,7 +287,6 @@ body.dark .tag-sin-etiquetas { border-color: var(--outline); }
    BADGES
 ═══════════════════════════════════════ */
 .badge { background: var(--danger); color: white; border-radius: 10px; font-size: 10px; font-weight: 800; padding: 1px 6px; min-width: 18px; text-align: center; display: inline-block; }
-.nav-badge { position: absolute; top: 2px; right: calc(50% - 26px); background: var(--danger); color: white; border-radius: 8px; font-size: 9px; font-weight: 800; padding: 1px 5px; z-index: 2; }
 
 /* ═══════════════════════════════════════
    MODAL
@@ -504,7 +490,6 @@ body.dark .modal-sheet { background: var(--surface); }
 body.dark .toast { background: var(--surface2); color: var(--text); }
 body.dark .search-dropdown { background: var(--surface); }
 body.dark .recipe-card-img-placeholder,
-body.dark .detail-img-placeholder { background: var(--surface2); }
 
 /* ═══════════════════════════════════════
    BOTONES REORDENAR
@@ -603,8 +588,6 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
 .order-row.edit .order-name { font-weight: 700; }
 .order-act { flex-shrink: 0; }
 .order-act .material-symbols-outlined { font-size: 20px; color: var(--text2); }
-.order-row.is-hidden { opacity: 0.5; }
-.ped-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--primary); background: var(--primary-container); border-radius: var(--shape-full); padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
 
 /* ═══════════════════════════════════════
    v14 — PULIDO PROFESIONAL
@@ -635,8 +618,7 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   background: var(--surface2);
 }
 /* Placeholder sin foto: degradado sutil en vez de gris plano */
-.recipe-card-img-placeholder,
-.detail-img-placeholder {
+.recipe-card-img-placeholder {
   background: linear-gradient(135deg, var(--primary-container), var(--surface2));
 }
 
@@ -749,7 +731,6 @@ body.dark .detail-img-placeholder { background: var(--surface2); }
   .brand-name { font-size: 16px; }
   .app-brand > div:last-child { display: flex; align-items: baseline; gap: 8px; }
   .events-btn-label { display: inline; }
-  #adminBtn .btn-label { display: inline; }
 
   #recipeList, #productionList {
     display: grid;
@@ -860,7 +841,6 @@ body.dark .timer-btn.stop { color: #1a0000; }
 
 /* v45 — Admin dentro de Utilidades: 4 pestañas caben en el móvil */
 .seg-btn { min-width: 0; white-space: nowrap; }
-.seg-badge { background: var(--danger); color: white; border-radius: 8px; font-size: 9px; font-weight: 800; padding: 1px 5px; margin-left: 1px; }
 @media (max-width: 430px) {
   .seg-btn { font-size: 12.5px; gap: 3px; padding: 9px 2px; }
   .seg-btn .material-symbols-outlined { display: none; } /* con 4 pestañas en móvil solo texto, para que quepan */
@@ -955,22 +935,7 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
    arriba y la lista de emisoras con filtros por estilo debajo. En horizontal
    ancho (monitor, tablet), reproductor a la izquierda y lista a la derecha.
 ═══════════════════════════════════════ */
-#radioModal { z-index: 700; }
-.radio-sheet {
-  background: white; border-radius: 14px 14px 0 0;
-  padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
-  width: 100%; max-width: 640px; height: 95vh; height: 95dvh; max-height: 95dvh;
-  display: flex; flex-direction: column; gap: 6px;
-  animation: slideUp 0.22s ease; box-shadow: 0 -6px 28px rgba(0,0,0,0.2);
-}
-body.dark .radio-sheet { background: var(--surface); }
 
-/* Cabecera */
-.radio-sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; flex-shrink: 0; }
-.radio-sheet-title { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 800; color: var(--primary); letter-spacing: 0.2px; }
-.radio-sheet-title .material-symbols-outlined { font-size: 21px; }
-.radio-min-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--surface2); color: var(--text2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.radio-min-btn .material-symbols-outlined { font-size: 26px; }
 
 .radio-body { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
 
@@ -1120,7 +1085,6 @@ body.dark .radio-card.active .radio-card-desc { color: var(--text); }
 
 /* Horizontal ancho (monitor, tablet): reproductor a la izquierda, lista a la derecha */
 @media (orientation: landscape) and (min-width: 640px) {
-  .radio-sheet { max-width: 1040px; }
   .radio-body { flex-direction: row; gap: 18px; align-items: stretch; }
   .radio-player { flex: 0 0 300px; justify-content: center; }
   .radio-browser { flex: 1; }
@@ -1177,11 +1141,10 @@ body.dark .radio-bubble-btn.stop { background: rgba(255,255,255,0.08); }
 /* v61 — el globo de comentarios pendientes es el último <span> del botón
    Utilidades: la regla de las etiquetas del menú (span:last-child) le quitaba
    el position:absolute y aparecía debajo del texto en vez de en la esquina. */
-.nav-btn span.nav-badge { position: absolute; max-width: none; overflow: visible; z-index: 2; }
 
 /* ═══════════════════════════════════════
    PANEL DE ADMINISTRACIÓN (v66)
-   Página propia (botón Admin de arriba) con pestañas por tema.
+   Página propia (se abre pulsando el nombre de la app, arriba a la izquierda) con pestañas por tema.
 ═══════════════════════════════════════ */
 .admin-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 .admin-head h2 { display: flex; align-items: center; gap: 8px; font-size: 20px; margin: 0; }
@@ -1222,7 +1185,6 @@ body.dark .radio-bubble-btn.stop { background: rgba(255,255,255,0.08); }
 }
 
 /* Botón de arriba con la sesión iniciada */
-#adminBtn.admin-on { background: var(--primary-container); color: var(--primary); border-color: transparent; }
 
 /* Probar una emisora en Admin antes de guardarla (v67) */
 .radio-preview-status { font-size: 12.5px; font-weight: 700; color: var(--text2); }
@@ -1233,7 +1195,7 @@ body.dark .radio-bubble-btn.stop { background: rgba(255,255,255,0.08); }
    v68 — Auditoría de interfaz
 ═══════════════════════════════════════ */
 /* Modo oscuro: los globos rojos llevaban texto blanco sobre rosa claro (casi ilegible) */
-body.dark .badge, body.dark .nav-badge, body.dark .seg-badge, body.dark .admin-tab-badge,
+body.dark .badge, body.dark .admin-tab-badge,
 body.dark .radio-card.error .radio-card-badge { color: #690005; }
 /* Tarjetas de platos sin foto: hueco más bajo (antes 200 px vacíos por plato) */
 .recipe-card-img-placeholder { height: 96px; }
@@ -1315,9 +1277,6 @@ body.gated { overflow: hidden; }
 /* ═══════════════════════════════════════
    v85 — Pestaña "Melodía" del panel de admin (MIDI recortado para el timer)
 ═══════════════════════════════════════ */
-.midi-saved { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text); }
-.midi-saved .material-symbols-outlined { color: var(--primary); font-size: 22px; flex-shrink: 0; }
-.midi-saved small { color: var(--text2); font-size: 12px; line-height: 1.4; }
 .midi-none { font-size: 13px; color: var(--text2); line-height: 1.4; }
 .midi-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .midi-pick { display: inline-flex; cursor: pointer; }
