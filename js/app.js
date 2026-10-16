@@ -1256,7 +1256,7 @@ async function saveRecipe() {
   const btn = document.getElementById('saveRecipeBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('recipes').upsert(recipeEditorData);
-    if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+    if (error) { console.error(error); if (!handleAuthError(error)) showToast('Error al guardar: ' + (error.message || 'desconocido')); return false; }
     return true;
   });
   if (!ok) return;
@@ -1804,7 +1804,7 @@ async function saveProduction() {
   const btn = document.getElementById('saveProdBtn');
   const ok = await runWithLoading(btn, 'Guardando...', async () => {
     const { error } = await sb.from('productions').upsert(prodEditorData);
-    if (error) { if (!handleAuthError(error)) showToast('Error al guardar'); return false; }
+    if (error) { console.error(error); if (!handleAuthError(error)) showToast('Error al guardar: ' + (error.message || 'desconocido')); return false; }
     return true;
   });
   if (!ok) return;
