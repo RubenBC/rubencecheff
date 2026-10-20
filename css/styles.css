@@ -155,15 +155,6 @@ h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap:
    TAGS
 ═══════════════════════════════════════ */
 .tag { padding: 3px 12px; border-radius: var(--shape-full); font-size: 11px; font-weight: 700; }
-.tag-carnes    { background: #FDECEA; color: #B71C1C; }
-.tag-pescados  { background: #E3F2FD; color: #0D47A1; }
-.tag-postres   { background: #FFF8E1; color: #F57F17; }
-.tag-salsas    { background: #E8F5E9; color: #1B5E20; }
-.tag-ensaladas { background: #F3E5F5; color: #4A148C; }
-.tag-guarniciones { background: #FBE9E7; color: #BF360C; }
-.tag-coulis    { background: #FCE4EC; color: #880E4F; }
-.tag-vinagreta { background: #FFFDE7; color: #F57F17; }
-.tag-vegetariano { background: #F1F8E9; color: #33691E; }
 /* Etiquetas (platos y producciones, pueden llevar varias a la vez): un estilo
    neutro, igual para todas, ya que la lista la crea el admin y no se puede
    saber de antemano qué nombres va a tener para darle un color propio. */
