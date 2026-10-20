@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v111';
+const APP_VERSION = 'v112';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -956,11 +956,21 @@ function restoreRecipeDetail(id) {
   document.getElementById('adminAddRecipeRow').style.display = 'none';
   setActiveNavBtn('recipes');
   renderRecipeDetail();
+  requestAnimationFrame(() => window.scrollTo(0, savedScroll.recipes || 0));
 }
 
-function restoreProdDetail(id, fromPage) {
+// "Volver" del detalle de una producción abierta desde un plato: regresa a ese plato
+function backToRecipeFromProd() {
+  const rid = prodFromRecipeId;
+  if (!rid) { backTo('productions'); return; }
+  if (history.state && history.state.view === 'prodDetail' && history.state.fromRecipe === rid) history.back();
+  else restoreRecipeDetail(rid);
+}
+
+function restoreProdDetail(id, fromPage, fromRecipe) {
   currentProdId = id;
-  productionsSubView = { id, fromPage };
+  prodFromRecipeId = fromRecipe || null;
+  productionsSubView = { id, fromPage, fromRecipe: fromRecipe || null };
   currentMultiplier = 1;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('productionDetailPage').classList.add('active');
@@ -1491,13 +1501,17 @@ function renderProductions() {
 // ═══════════════════════════════════════
 //   PRODUCCIONES — DETALLE
 // ═══════════════════════════════════════
+let prodFromRecipeId = null; // plato desde el que se abrió la producción (o null)
 function showProdDetail(id) {
   savedScroll[currentPage] = window.scrollY;
   currentProdId = id;
   currentMultiplier = 1;
   const fromPage = currentPage;
-  productionsSubView = { id, fromPage };
-  history.pushState({ view: 'prodDetail', id, fromPage }, '');
+  // Si se abre desde el detalle de un plato, "Volver" debe devolver a ese plato (no a la lista)
+  const fromRecipe = document.getElementById('detailPage').classList.contains('active') ? currentRecipeId : null;
+  prodFromRecipeId = fromRecipe;
+  productionsSubView = { id, fromPage, fromRecipe };
+  history.pushState({ view: 'prodDetail', id, fromPage, fromRecipe }, '');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('productionDetailPage').classList.add('active');
   document.getElementById('searchSection').style.display = 'none';
@@ -1546,7 +1560,7 @@ function renderProdDetail(fromPage) {
 
   document.getElementById('productionDetailPage').innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
-      <button class="back-btn" onclick="backTo('${backPage}')">
+      <button class="back-btn" onclick="${prodFromRecipeId && backPage === 'recipes' ? 'backToRecipeFromProd()' : `backTo('${backPage}')`}">
         <span class="material-symbols-outlined">arrow_back</span> Volver
       </button>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -5036,7 +5050,7 @@ window.addEventListener('popstate', (e) => {
   }
 
   if (state && state.view === 'prodDetail') {
-    restoreProdDetail(state.id, state.fromPage);
+    restoreProdDetail(state.id, state.fromPage, state.fromRecipe);
     return;
   }
 
