@@ -208,21 +208,6 @@ const ADMIN_EMAIL = 'rbcheca@gmail.com';
 // La app pide su contraseña al abrir; sin sesión no se carga ningún dato.
 const KITCHEN_EMAIL = 'cocina@rubencechef.app';
 
-const RECIPE_CATEGORIES = ['Todas', 'Carnes', 'Pescados', 'Ensaladas', 'Postres'];
-
-const CAT_TAG = {
-  'Carnes':          'tag-carnes',
-  'Pescados':        'tag-pescados',
-  'Postres':         'tag-postres',
-  'Salsas y fondos': 'tag-salsas',
-  'Ensaladas':       'tag-ensaladas',
-  'Guarniciones':    'tag-guarniciones',
-  'Sopas y salsas':  'tag-salsas',
-  'Vegetariano':     'tag-vegetariano',
-  'Coulis':          'tag-coulis',
-  'Vinagreta':       'tag-vinagreta',
-};
-
 const ALLERGENS = [
   { id: 'gluten',     label: 'Gluten',           emoji: '🌾' },
   { id: 'crustaceos', label: 'Crustáceos',        emoji: '🦐' },
@@ -648,7 +633,7 @@ function renderSearchDropdown(q, raw) {
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">menu_book</span>
         <div class="search-dropdown-info">
           <div class="search-dropdown-name">${escapeHtml(r.name)}</div>
-          <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
+          ${tagChipsHtml(r, 10)}
         </div>
       </div>`).join('');
   }
@@ -787,7 +772,7 @@ function renderRecipes() {
   const raw = (si ? (si.innerText || '') : '').trim();
   const q = normalizeText(raw); // sin tildes: "cesar" encuentra "César"
   const filtered = recipes.filter(r =>
-    (!q || normalizeText(r.name).includes(q) || normalizeText(r.category).includes(q) || (r.tags || []).some(id => normalizeText(tags.find(t => t.id === id)?.name || '').includes(q))) &&
+    (!q || normalizeText(r.name).includes(q) || (r.tags || []).some(id => normalizeText(tags.find(t => t.id === id)?.name || '').includes(q))) &&
     (!tagFilter.recipes || (r.tags || []).includes(tagFilter.recipes))
   ).sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), 'es', { sensitivity: 'base', numeric: true }));
 
@@ -812,7 +797,6 @@ function renderRecipes() {
         : `<div class="recipe-card-img-placeholder"><span class="material-symbols-outlined">restaurant</span></div>`}
       <div class="recipe-card-body">
         <div class="recipe-card-meta">
-          <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
           ${tagChipsHtml(r)}
         </div>
         <h3>${escapeHtml(r.name)}</h3>
@@ -923,7 +907,6 @@ function renderRecipeDetail() {
     ${photoHtml}
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="tag ${CAT_TAG[r.category] || ''}">${escapeHtml(r.category)}</span>
         ${tagChipsHtml(r)}
       </div>
       <h2 style="font-size:22px; margin-bottom:6px;">${escapeHtml(r.name)}</h2>
@@ -1015,7 +998,7 @@ function backTo(page) {
 // ═══════════════════════════════════════
 function openAddRecipe() {
   recipeEditorMode = 'add';
-  recipeEditorData = { id: Date.now().toString(), name: '', category: 'Carnes', servings: 4, description: '', photo: '', plating: '', tags: [], ingredients: [], steps: [] };
+  recipeEditorData = { id: Date.now().toString(), name: '', servings: 4, description: '', photo: '', plating: '', tags: [], ingredients: [], steps: [] };
   recipeEditorBaseline = JSON.stringify(recipeEditorData);
   renderRecipeEditor();
   enterEditor('editorPage');
@@ -1098,18 +1081,9 @@ function renderRecipeEditor() {
         <div class="form-label">Nombre</div>
         <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.innerText.trim()">${escapeHtml(r.name)}</div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <div class="form-label">Categoría</div>
-          <select class="form-select" onchange="recipeEditorData.category=this.value">
-            ${RECIPE_CATEGORIES.filter(c => c !== 'Todas').map(c =>
-              `<option ${r.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group">
-          <div class="form-label">Etiquetas</div>
-          ${renderTagPicker(r.tags, 'toggleRecipeEditorTag')}
-        </div>
+      <div class="form-group">
+        <div class="form-label">Etiquetas</div>
+        ${renderTagPicker(r.tags, 'toggleRecipeEditorTag')}
       </div>
       <div class="form-group">
         <div class="form-label">Descripción</div>
@@ -1419,7 +1393,7 @@ function openLinkRecipesModal(prodId) {
         <div class="link-prod-row" onclick="toggleRecipeLink('${r.id}', this)">
           <div>
             <div style="font-size:14px; font-weight:600;">${escapeHtml(r.name)}</div>
-            <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
+            ${tagChipsHtml(r, 10)}
           </div>
           <span class="material-symbols-outlined check-icon" style="color:${selectedRecipeIds.includes(r.id) ? 'var(--primary)' : 'var(--outline-light)'};">
             ${selectedRecipeIds.includes(r.id) ? 'check_circle' : 'radio_button_unchecked'}
@@ -1622,7 +1596,7 @@ function renderProdDetail(fromPage) {
               <div class="prod-link-row" onclick="goToRecipeFromProd('${r.id}')">
                 <div>
                   <div class="prod-link-name">${escapeHtml(r.name)}</div>
-                  <span class="tag ${CAT_TAG[r.category] || ''}" style="font-size:10px;">${escapeHtml(r.category)}</span>
+                  ${tagChipsHtml(r, 10)}
                 </div>
                 <span class="material-symbols-outlined" style="color:var(--outline);">chevron_right</span>
               </div>`).join('')
@@ -2971,10 +2945,9 @@ async function exportRecetarioPDF() {
       newPage();
       toc.push({ title: it.name || '(sin nombre)', kind, page: doc.getNumberOfPages() });
 
-      // Cabecera: los platos siguen mostrando su categoría; las producciones ya no
-      // tienen (ahora son etiquetas, pueden ser varias), se muestran igual si tiene.
+      // Cabecera: platos y producciones muestran sus etiquetas (pueden ser varias)
       const itTagNames = (it.tags || []).map(id => tags.find(t => t.id === id)?.name).filter(Boolean);
-      const headerSuffix = kind === 'recipe' ? it.category : itTagNames.join(' · ');
+      const headerSuffix = itTagNames.join(' · ');
       doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...TEAL);
       doc.text(`${kind === 'recipe' ? 'PLATO' : 'PRODUCCIÓN'}${headerSuffix ? ' · ' + String(headerSuffix).toUpperCase() : ''}`, M, y); y += 7;
       para(it.name || '(sin nombre)', 20, 'bold', TEXT, 2);
