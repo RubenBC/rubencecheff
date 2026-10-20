@@ -6,6 +6,9 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ## v111 — Auditoría completa
 
+### Cambiado
+- **Los platos ya no tienen categoría: solo etiquetas**, igual que las producciones. Desaparece el selector "Categoría" del editor y la etiqueta de color en la lista, ficha, buscador, vínculos y PDF. Las categorías que ya tenías (Carnes, Pescados…) se convierten en etiquetas con `sql/quitar-categorias-platos.sql`, sin perder nada. Ejecuta ese SQL antes de subir la app.
+
 ### Corregido
 - **No se podían guardar producciones nuevas ("Error al guardar").** La columna antigua `category` de la base de datos seguía siendo obligatoria y la app ya no la rellena desde las etiquetas. Se arregla con `sql/arreglar-categoria-producciones.sql`. Además, el aviso de error de guardar ahora dice el motivo real.
 - **La lista de Pedidos y los comentarios salían vacíos al entrar como admin.** La app arranca con la sesión de cocina, que por seguridad recibe esas dos listas vacías; al entrar luego como admin no se volvían a pedir, así que se veían vacías hasta el siguiente refresco automático (hasta 15 min). Era justo lo que pasó con los pedidos. Ahora se cargan en cuanto entras como admin.
