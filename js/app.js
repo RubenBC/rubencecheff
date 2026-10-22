@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v112';
+const APP_VERSION = 'v113';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -2193,6 +2193,59 @@ async function toggleHighRisk(id) {
   }
 }
 
+// ─── Avisos: reconocer el mismo evento aunque se escriba distinto ───
+// v113 — Antes solo se reconocían repetidos si el título coincidía casi
+// palabra por palabra. Ahora se comparan las palabras que identifican el
+// evento (artista, equipos, recinto), ignorando relleno ("concierto",
+// "de", "en"…), con alias de recintos y equipos, y en el mismo día.
+const EVENT_ALIASES = [
+  [/\bwizink( center)?\b/g, 'movistar arena'],
+  [/\bbarclaycard center\b/g, 'movistar arena'],
+  [/\bpalacio de los? deportes\b/g, 'movistar arena'],
+  [/\b(riyadh air )?metropolitano\b/g, 'metropolitano'],
+  [/\bcivitas metropolitano\b/g, 'metropolitano'],
+  [/\bsantiago bernabeu\b/g, 'bernabeu'],
+  [/\breal madrid( c\.?f\.?)?\b/g, 'realmadrid'],
+  [/\b(club )?atletico( de)? madrid\b|\bat\.? madrid\b|\batm\b/g, 'atletico'],
+  [/\brayo vallecano\b/g, 'rayo'],
+  [/\bfc barcelona\b|\bbarça\b|\bbarca\b/g, 'barcelona'],
+];
+const EVENT_NOISE = new Set(['concierto','conciertos','partido','futbol','liga','copa','champions','league','tour','gira','directo','live',
+  'en','de','del','la','el','los','las','con','y','e','a','al','vs','v','the','fc','cf','cd','ud','club','madrid','estadio','jornada']);
+function eventTokens(title) {
+  let t = normalizeText(title);
+  EVENT_ALIASES.forEach(([re, to]) => { t = t.replace(re, to); });
+  return new Set(t.replace(/[^a-z0-9ñ]+/g, ' ').split(' ')
+    .filter(w => w && !EVENT_NOISE.has(w) && !(/^\d{1,2}$/.test(w))));
+}
+// 0..1: qué parte de las palabras del título más corto aparece en el otro
+function eventSimilarity(a, b) {
+  const A = eventTokens(a), B = eventTokens(b);
+  if (A.size === 0 || B.size === 0) return normalizeText(a) === normalizeText(b) ? 1 : 0;
+  let shared = 0;
+  A.forEach(w => { if (B.has(w)) shared++; });
+  return shared / Math.min(A.size, B.size);
+}
+const _evMinutes = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+// ¿Es el mismo evento? Mismo día, título muy parecido y (si ambos tienen hora) horas cercanas
+function sameEvent(a, b, minSim) {
+  if (!a || !b || a.event_date !== b.event_date) return false;
+  const ta = _evMinutes(a.event_time), tb = _evMinutes(b.event_time);
+  if (ta !== null && tb !== null && Math.abs(ta - tb) >= 180) return false;
+  return eventSimilarity(a.title, b.title) >= (minSim || 0.75);
+}
+// Quita repetidos de una lista (solo al mostrar; no borra nada): se queda con el que más datos tiene
+function dedupeEvents(list) {
+  const kept = [];
+  list.forEach(ev => {
+    const i = kept.findIndex(k => sameEvent(k, ev));
+    if (i === -1) { kept.push(ev); return; }
+    const score = e => (e.event_time ? 2 : 0) + (e.note ? 1 : 0) + (e.high_risk ? 1 : 0);
+    if (score(ev) > score(kept[i])) kept[i] = ev;
+  });
+  return kept;
+}
+
 function renderImportantDatesAdmin() {
   const el = document.getElementById('importantDatesSection');
   if (!el) return;
@@ -2215,12 +2268,23 @@ function renderImportantDatesAdmin() {
           <span class="material-symbols-outlined" style="font-size:18px; color:${d.high_risk ? 'var(--danger)' : 'var(--outline)'};">warning</span>
         </button>`;
 
+  // Posibles repetidos: pendientes que se parecen a un aviso aprobado o a otro pendiente anterior
+  const dupInfo = d => {
+    const i = importantDates.indexOf(d);
+    const other = importantDates.find((o, j) => o !== d && o.status !== 'descartado' &&
+      (o.status === 'aprobado' || j < i) && sameEvent(o, d, 0.5));
+    if (!other) return null;
+    return { other, strict: sameEvent(other, d, 0.75) };
+  };
+  const dupCount = pending.filter(d => dupInfo(d)?.strict).length;
+
   const row = (d, actions) => `
     <div class="comment-card ${d.high_risk ? 'high-risk' : ''}">
       <div style="flex:1;">
         <div class="comment-recipe">${ICONS[d.category] || '📅'} ${escapeHtml(fmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''}</div>
         <div class="comment-text">${escapeHtml(d.title)}</div>
         ${d.note ? `<div class="comment-date">${escapeHtml(d.note)}</div>` : ''}
+        ${d.status === 'pendiente' && dupInfo(d) ? `<div class="comment-date" style="color:var(--danger);">⚠ Posible repetido de «${escapeHtml(dupInfo(d).other.title)}»</div>` : ''}
       </div>
       <div style="display:flex; gap:6px; flex-shrink:0;">${highRiskBtn(d)}${actions}</div>
     </div>`;
@@ -2263,9 +2327,38 @@ function renderImportantDatesAdmin() {
       <div class="section-title" style="margin-top:18px;">
         <span class="material-symbols-outlined">pending_actions</span> Pendientes de aprobar
       </div>
+      ${dupCount > 0 ? `
+      <button class="btn-pill" style="margin-bottom:10px;" onclick="discardDuplicatePending(this)">
+        <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span> Descartar ${dupCount} repetido${dupCount === 1 ? '' : 's'}
+      </button>` : ''}
       ${pendingHtml}
       ${activeHtml}
     ` : ''}`;
+}
+
+// Descarta de golpe las sugerencias pendientes que repiten un aviso ya aprobado
+// o una sugerencia anterior (mismo día, mismo evento aunque el nombre cambie).
+async function discardDuplicatePending(btn) {
+  const ids = importantDates.filter((d, i) => d.status === 'pendiente' &&
+    importantDates.some((o, j) => o !== d && o.status !== 'descartado' && (o.status === 'aprobado' || j < i) && sameEvent(o, d)))
+    .map(d => d.id);
+  if (ids.length === 0) { showToast('No hay repetidos'); return; }
+  const ok = await showConfirm({
+    title: 'Descartar repetidos',
+    message: `Se descartarán ${ids.length} sugerencia${ids.length === 1 ? '' : 's'} pendiente${ids.length === 1 ? '' : 's'} que repite${ids.length === 1 ? '' : 'n'} un aviso que ya tienes. ¿Continuar?`,
+    confirmText: 'Descartar', icon: 'content_copy',
+  });
+  if (!ok) return;
+  await runWithLoading(btn, 'Descartando...', async () => {
+    const { data, error } = await sb.from('important_dates').update({ status: 'descartado' }).in('id', ids).select();
+    if (error || !data || data.length === 0) {
+      if (!handleAuthError(error || new Error('sin cambios'))) showToast('Error al descartar');
+      return;
+    }
+    importantDates = importantDates.map(d => ids.includes(d.id) ? { ...d, status: 'descartado' } : d);
+    renderImportantDatesAdmin();
+    showToast(`${data.length} repetido${data.length === 1 ? '' : 's'} descartado${data.length === 1 ? '' : 's'} ✓`);
+  });
 }
 
 async function approveImportantDate(id, btn) {
@@ -2386,47 +2479,16 @@ async function importCsvEvents(btn) {
     return;
   }
 
-  // Recintos que han cambiado de nombre por patrocinio pero son el mismo
-  // sitio: si el título trae uno de estos nombres, se sustituye por el
-  // actual antes de comparar, para que "Leiva en WiZink" y "Leiva en
-  // Movistar Arena" se reconozcan como el mismo concierto. Añade aquí
-  // cualquier otro recinto que cambie de nombre en el futuro.
-  const VENUE_ALIASES = [
-    [/\bwizink center\b/g,   'movistar arena'],
-    [/\bwizink\b/g,          'movistar arena'],
-    [/\bbarclaycard center\b/g, 'movistar arena'],
-    [/\bpalacio de los? deportes\b/g, 'movistar arena'],
-  ];
-  const applyVenueAliases = s => VENUE_ALIASES.reduce((acc, [re, to]) => acc.replace(re, to), s);
-
-  // Compara títulos de forma resistente a variaciones de redacción: separa
-  // por guion/"vs"/"v." y ordena los trozos alfabéticamente, así "Real
-  // Madrid - Barcelona" y "Barcelona vs Real Madrid" se reconocen como el
-  // mismo evento aunque se redacten distinto entre una importación y otra.
-  const canonicalTitle = title => applyVenueAliases(normalizeText(title))
-    .split(/\s*(?:-|vs\.?|v\.)\s*/)
-    .map(p => p.trim())
-    .filter(Boolean)
-    .sort()
-    .join('|');
-
-  // Sin comparar la categoría: la IA a veces llama "concierto" y otras "evento" a lo mismo
-  const isDuplicate = ev => importantDates.some(d =>
-    d.event_date === ev.event_date &&
-    canonicalTitle(d.title) === canonicalTitle(ev.title)
-  );
+  // Repetidos: mismo día y mismo evento aunque el nombre esté escrito distinto
+  // (ver sameEvent). Se compara con todo lo guardado, en cualquier estado.
+  const isDuplicate = ev => importantDates.some(d => sameEvent(d, ev));
   const newRows = rows.filter(r => !isDuplicate(r));
   const skipped = rows.length - newRows.length;
 
   // Además de comparar con lo que ya había guardado, evita meter dos veces
   // el mismo evento si el propio CSV pegado lo repite por error.
-  const seenInBatch = new Set();
-  const dedupedRows = newRows.filter(r => {
-    const key = `${r.event_date}|${canonicalTitle(r.title)}`;
-    if (seenInBatch.has(key)) return false;
-    seenInBatch.add(key);
-    return true;
-  });
+  const dedupedRows = [];
+  newRows.forEach(r => { if (!dedupedRows.some(x => sameEvent(x, r))) dedupedRows.push(r); });
   const skippedInBatch = newRows.length - dedupedRows.length;
 
   if (dedupedRows.length === 0) {
@@ -3542,12 +3604,12 @@ async function deleteTag(id) {
 function getUpcomingBannerEvents() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const limit = new Date(today); limit.setDate(limit.getDate() + eventsWindowDays);
-  return importantDates
+  return dedupeEvents(importantDates
     .filter(d => d.status === 'aprobado')
     .filter(d => {
       const ed = new Date(d.event_date + 'T00:00:00');
       return ed >= today && ed <= limit;
-    })
+    }))
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
 }
 
@@ -3675,8 +3737,8 @@ async function fetchMadridWeather() {
 
 function getTodaysApprovedEvents() {
   const key = todayKey();
-  return importantDates
-    .filter(d => d.status === 'aprobado' && d.event_date === key)
+  return dedupeEvents(importantDates
+    .filter(d => d.status === 'aprobado' && d.event_date === key))
     .sort((a, b) => (a.event_time || '').localeCompare(b.event_time || ''));
 }
 
