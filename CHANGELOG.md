@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v113 — Avisos sin repetidos
+
+### Mejorado
+- **Los avisos repetidos se reconocen aunque el nombre esté escrito distinto.** Antes solo se detectaban si el título coincidía casi palabra por palabra. Ahora se comparan las palabras que identifican el evento (artista, equipos, recinto), ignorando el relleno ("concierto", "de", "en"…), con alias de recintos (WiZink = Movistar Arena) y de equipos, siempre en el mismo día y con horas parecidas. Se aplica al importar el CSV y también a lo que se muestra: si ya hay dos avisos aprobados repetidos, solo sale uno (se queda el que más datos tiene; no se borra nada).
+- **En Admin, las sugerencias pendientes marcan "⚠ Posible repetido de …"** y aparece un botón para **descartar todos los repetidos de golpe**.
+
+---
+
 ## v112 — Platos solo con etiquetas
 
 ### Cambiado
