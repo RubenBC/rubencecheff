@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recortar MIDI · herramienta aparte</title>
+<style>
+  :root { --p:#006A6A; --pc:#9CF1F0; --bg:#F4FBFA; --card:#fff; --s2:#DAE5E4; --tx:#191E1E; --tx2:#5F6968; --line:#DAE5E4; --danger:#BA1A1A; }
+  @media (prefers-color-scheme: dark) { :root { --p:#4FD8D8; --pc:#00504F; --bg:#0F1514; --card:#1A2322; --s2:#2A3433; --tx:#E0E4E3; --tx2:#A0ABAA; --line:#3A4443; --danger:#FFB4AB; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 18px 16px 60px; background: var(--bg); color: var(--tx); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; line-height: 1.4; }
+  main { max-width: 620px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: var(--p); }
+  .sub { font-size: 13px; color: var(--tx2); margin-bottom: 14px; }
+  .card { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 14px; margin-bottom: 14px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 999px; padding: 11px 18px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; background: var(--s2); color: var(--tx); }
+  .btn.main { background: var(--p); color: #fff; }
+  @media (prefers-color-scheme: dark) { .btn.main { color: #002020; } }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .file { font-weight: 700; margin: 0 0 8px; overflow-wrap: anywhere; }
+  .track { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 14px; margin-bottom: 6px; flex-wrap: wrap; cursor: pointer; }
+  .track.off { opacity: .55; cursor: default; }
+  .track input { width: 18px; height: 18px; accent-color: var(--p); }
+  .track .n { font-weight: 700; flex: 1; min-width: 90px; overflow-wrap: anywhere; }
+  .track .m { font-size: 12px; color: var(--tx2); }
+  .range { background: var(--s2); border-radius: 16px; padding: 10px 12px; margin-top: 10px; }
+  .range div { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 14px; font-weight: 600; }
+  .range span { width: 46px; color: var(--tx2); }
+  .range input { flex: 1; min-width: 0; accent-color: var(--p); }
+  .range b { width: 62px; text-align: right; font-variant-numeric: tabular-nums; }
+  .sum { font-size: 13px; color: var(--tx2); margin-top: 8px; }
+  .warn { color: var(--danger); font-weight: 700; margin-top: 4px; }
+  .note { font-size: 12px; color: var(--tx2); }
+  .ok { color: var(--p); font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Recortar MIDI</h1>
+  <div class="sub">Herramienta aparte, <b>no forma parte de la app de cocina</b>. Todo ocurre en este dispositivo: el archivo no se sube a ningún sitio y esta página no usa internet.</div>
+
+  <div class="card">
+    <label class="btn main" for="file">📂 Elegir archivo MIDI</label>
+    <input type="file" id="file" accept=".mid,.midi,audio/midi,audio/x-midi" style="display:none;">
+    <div class="note" style="margin-top:10px;">Elige un archivo .mid tuyo. Luego marca las pistas, recorta el trozo (máximo <span id="maxS">20</span> segundos), escúchalo y descárgalo como un MIDI nuevo. Ese archivo es el que subes en la app: Admin → Melodía.</div>
+    <div id="editor"></div>
+  </div>
+  <div class="note">Usa únicamente música que tengas derecho a usar. Esta herramienta no lleva ninguna canción incluida.</div>
+</main>
+
+<script>
+/* ═══════════════════════════════════════
+   LECTOR DE ARCHIVOS MIDI  (v85)
+   Sirve para que el admin recorte un trozo de un .mid suyo y lo use como
+   melodía del timer. Todo ocurre en el navegador: el archivo se lee aquí,
+   se eligen las pistas y el fragmento, y se convierte en la misma lista de
+   notas [frecuencia, inicio, duración] que usan las otras melodías del timer.
+   No lleva ninguna canción incluida: solo trabaja con el archivo que se le da.
+═══════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const MAX_BYTES = 2 * 1024 * 1024;   // un .mid normal pesa unas decenas de KB
+  const MAX_NOTES = 20000;             // límite de seguridad al leer
+  const MAX_LOOP_S = 20;               // duración máxima del fragmento (la alarma se repite en bucle)
+  const MAX_TONE_NOTES = 200;          // notas máximas por vuelta (cada nota son 2 osciladores)
+  const MAX_VOICES = 6;                // notas sonando a la vez
+
+  // Lee un archivo MIDI estándar (SMF formato 0 o 1). Lanza Error con un mensaje
+  // comprensible si no se puede leer.
+  function parse(buffer) {
+    if (!buffer || buffer.byteLength < 14) throw new Error('El archivo está vacío o no es un MIDI');
+    if (buffer.byteLength > MAX_BYTES) throw new Error('El archivo es demasiado grande para ser un MIDI normal');
+    const d = new DataView(buffer);
+    const u8 = new Uint8Array(buffer);
+    const tag = (o) => String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]);
+    if (tag(0) !== 'MThd') throw new Error('No es un archivo MIDI (.mid)');
+    const hdrLen = d.getUint32(4);
+    const format = d.getUint16(8), nTracks = d.getUint16(10), division = d.getUint16(12);
+    if (division & 0x8000) throw new Error('Este MIDI usa un tipo de tiempo (SMPTE) que no se puede leer');
+    if (format > 1) throw new Error('Este MIDI es de un formato que no se puede leer');
+    const ppq = division || 480;
+
+    let pos = 8 + hdrLen;
+    const rawTracks = [];
+    const tempos = [[0, 500000]]; // [tick, microsegundos por negra] (por defecto 120 ppm)
+    let totalNotes = 0;
+
+    for (let ti = 0; ti < nTracks && pos + 8 <= u8.length; ti++) {
+      if (tag(pos) !== 'MTrk') { const l = d.getUint32(pos + 4); pos += 8 + l; continue; }
+      const len = d.getUint32(pos + 4);
+      let p = pos + 8;
+      const end = Math.min(u8.length, p + len);
+      pos = p + len;
+      let tick = 0, running = 0, name = '';
+      const channels = new Set();
+      const open = new Map();    // "canal:nota" → [tickInicio, velocidad, ...]
+      const notes = [];          // [tickInicio, tickFin, nota, velocidad, canal]
+
+      const vlq = () => { let v = 0, b, n = 0; do { if (p >= end) throw new Error('MIDI dañado'); b = u8[p++]; v = (v << 7) | (b & 0x7f); n++; } while ((b & 0x80) && n < 5); return v; };
+
+      while (p < end) {
+        tick += vlq();
+        let st = u8[p];
+        if (st === 0xff) { // meta
+          const type = u8[p + 1]; p += 2;
+          const l = vlq();
+          if (type === 0x51 && l === 3) tempos.push([tick, (u8[p] << 16) | (u8[p + 1] << 8) | u8[p + 2]]);
+          else if (type === 0x03 && !name) name = new TextDecoder('latin1').decode(u8.subarray(p, p + l)).replace(/[\u0000-\u001f]/g, '').trim();
+          p += l;
+          if (type === 0x2f) break;
+          continue;
+        }
+        if (st === 0xf0 || st === 0xf7) { p += 1; const l = vlq(); p += l; continue; } // sysex
+        if (st & 0x80) { running = st; p++; } else { st = running; if (!st) throw new Error('MIDI dañado'); }
+        const kind = st & 0xf0, ch = st & 0x0f;
+        if (kind === 0xc0 || kind === 0xd0) { p += 1; continue; }
+        const a = u8[p], b2 = u8[p + 1]; p += 2;
+        if (kind === 0x90 && b2 > 0) {
+          const key = ch + ':' + a;
+          if (!open.has(key)) open.set(key, []);
+          open.get(key).push([tick, b2]);
+          channels.add(ch);
+        } else if (kind === 0x80 || kind === 0x90) {
+          const arr = open.get(ch + ':' + a);
+          if (arr && arr.length) {
+            const [t0, vel] = arr.shift();
+            if (tick > t0) { notes.push([t0, tick, a, vel, ch]); if (++totalNotes > MAX_NOTES) throw new Error('El MIDI tiene demasiadas notas'); }
+          }
+        }
+      }
+      // notas que no llegan a cerrarse: terminan al acabar la pista
+      open.forEach((arr, key) => arr.forEach(([t0, vel]) => { if (tick > t0) notes.push([t0, tick, +key.split(':')[1], vel, +key.split(':')[0]]); }));
+      rawTracks.push({ name, channels: [...channels].sort((x, y) => x - y), notes });
+    }
+    if (!rawTracks.length) throw new Error('El MIDI no contiene pistas');
+
+    // mapa de tempos → conversión de ticks a segundos
+    tempos.sort((x, y) => x[0] - y[0]);
+    const seg = []; // [tickInicio, segundosInicio, µs por negra]
+    let secs = 0, lastTick = 0, lastTempo = tempos[0][1];
+    tempos.forEach(([t, us], i) => {
+      if (i === 0 && t === 0) { seg.push([0, 0, us]); lastTempo = us; return; }
+      secs += (t - lastTick) * lastTempo / 1e6 / ppq;
+      seg.push([t, secs, us]); lastTick = t; lastTempo = us;
+    });
+    if (!seg.length || seg[0][0] !== 0) seg.unshift([0, 0, 500000]);
+    const toSec = (tk) => {
+      let s = seg[0];
+      for (let i = seg.length - 1; i >= 0; i--) if (seg[i][0] <= tk) { s = seg[i]; break; }
+      return s[1] + (tk - s[0]) * s[2] / 1e6 / ppq;
+    };
+
+    let duration = 0;
+    const tracks = rawTracks.map((rt, i) => {
+      const notes = rt.notes.map(([a, b, m, v, ch]) => ({ t: toSec(a), d: toSec(b) - toSec(a), m, v, ch }))
+        .sort((x, y) => x.t - y.t);
+      notes.forEach(n => { duration = Math.max(duration, n.t + n.d); });
+      const drums = rt.channels.length > 0 && rt.channels.every(c => c === 9);
+      const ms = notes.map(n => n.m);
+      return { index: i, name: rt.name, channels: rt.channels, drums, count: notes.length, low: ms.length ? Math.min.apply(null, ms) : 0, high: ms.length ? Math.max.apply(null, ms) : 0, notes };
+    }).filter(t => t.count > 0);
+    if (!tracks.length) throw new Error('El MIDI no tiene notas');
+    return { duration, tracks, ppq };
+  }
+
+  // Convierte las pistas elegidas y el fragmento [start, end) en notas para el timer:
+  // [frecuencia, inicio, duración]. Los graves que un móvil no reproduce se suben de
+  // octava, se limita cuántas notas suenan a la vez y cuántas hay en total, y se
+  // ignora la percusión (un MIDI la lleva en el canal 10 y no tiene sonido de notas).
+  function toTone(parsed, trackIdx, start, end) {
+    const sel = new Set(trackIdx);
+    const raw = [];
+    parsed.tracks.forEach(t => {
+      if (!sel.has(t.index) || t.drums) return;
+      t.notes.forEach(n => {
+        if (n.ch === 9) return;
+        if (n.t < start - 1e-6 || n.t >= end) return;
+        raw.push({ t: n.t - start, d: Math.min(n.d, end - n.t), m: n.m });
+      });
+    });
+    raw.sort((a, b) => a.t - b.t || b.m - a.m);
+    const out = [];
+    const active = []; // finales de las notas que están sonando
+    let dropped = 0, lastKey = '';
+    raw.forEach(n => {
+      while (active.length && active[0] <= n.t) active.shift();
+      let f = 440 * Math.pow(2, (n.m - 69) / 12);
+      while (f < 130) f *= 2;
+      while (f > 2100) f /= 2;
+      const dur = Math.max(0.09, Math.min(n.d, 1.5));
+      const key = Math.round(f) + '@' + n.t.toFixed(2);
+      if (key === lastKey) return;                      // la misma nota repetida en dos pistas
+      if (active.length >= MAX_VOICES || out.length >= MAX_TONE_NOTES) { dropped++; return; }
+      lastKey = key;
+      out.push([Math.round(f * 100) / 100, Math.round(n.t * 1000) / 1000, Math.round(dur * 1000) / 1000]);
+      active.push(n.t + dur); active.sort((a, b) => a - b);
+    });
+    return { notes: out, dropped, seconds: Math.max(0, end - start) };
+  }
+
+  window.RCMidi = { parse, toTone, MAX_LOOP_S, MAX_TONE_NOTES, MAX_VOICES };
+})();
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = x => (Math.round(x * 10) / 10).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' s';
+  const NAMES = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+  const noteName = m => NAMES[m % 12] + (Math.floor(m / 12) - 1);
+  const MAX = window.RCMidi.MAX_LOOP_S;
+  $('maxS').textContent = MAX;
+  let st = null;          // { name, parsed, sel:Set, start, end }
+  let token = 0;
+
+  /* ── sintetizador sencillo (el mismo estilo que el del timer) para escuchar el resultado ── */
+  let ac = null, master = null, playing = null;
+  function ensureAudio() {
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+      ac = new AC();
+      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 6;
+      master = ac.createGain(); master.gain.value = 1; master.connect(comp); comp.connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function beep(freq, t, dur, bus, list) {
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.9, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.connect(bus);
+    [['square', 0.45], ['triangle', 1.0]].forEach(([type, vol]) => {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = type; o.frequency.value = freq; og.gain.value = vol;
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.02); list.push(o);
+    });
+  }
+  function stopPlay() {
+    token++;
+    if (playing) { try { playing.bus.disconnect(); } catch (e) {} playing.list.forEach(o => { try { o.stop(); } catch (e) {} }); playing = null; }
+    const b = $('play'); if (b) b.textContent = '▶ Escuchar';
+  }
+  function play() {
+    if (playing) { stopPlay(); return; }
+    const tone = currentTone(); if (!tone.notes.length || !ensureAudio()) return;
+    const bus = ac.createGain(); bus.connect(master);
+    const list = [], t0 = ac.currentTime + 0.1;
+    tone.notes.forEach(([f, off, dur]) => beep(f, t0 + off, dur, bus, list));
+    playing = { bus, list };
+    const my = ++token;
+    $('play').textContent = '■ Parar';
+    const total = Math.max.apply(null, tone.notes.map(n => n[1] + n[2]));
+    setTimeout(() => { if (my === token) stopPlay(); }, (total + 0.4) * 1000);
+  }
+
+  /* ── escritura de un MIDI nuevo con solo las pistas y el trozo elegidos ──
+     Sin cambios de tempo y con 1 tick = 1 ms (división 1000, negra = 1.000.000 µs),
+     así los tiempos quedan exactos. La percusión no se incluye. */
+  function writeSMF(parsed, trackIdx, start, end) {
+    const vlq = n => { const b = [n & 0x7f]; while ((n >>>= 7)) b.unshift((n & 0x7f) | 0x80); return b; };
+    const ascii = s => Array.from(String(s)).map(c => { const k = c.charCodeAt(0); return k >= 32 && k < 127 ? k : 63; });
+    const meta = (type, data) => [0xff, type, ...vlq(data.length), ...data];
+    const chunk = (id, body) => { const n = body.length; return [...ascii(id), (n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255, ...body]; };
+    const tracks = [chunk('MTrk', [0, ...meta(0x03, ascii('Tempo')), 0, ...meta(0x51, [0x0f, 0x42, 0x40]), 0, ...meta(0x2f, [])])];
+    parsed.tracks.filter(t => trackIdx.indexOf(t.index) >= 0 && !t.drums).forEach(t => {
+      const ev = [];
+      t.notes.forEach(n => {
+        if (n.ch === 9 || n.t < start - 1e-6 || n.t >= end) return;
+        const on = Math.round((n.t - start) * 1000);
+        let off = Math.round((Math.min(n.t + n.d, end) - start) * 1000);
+        if (off <= on) off = on + 1;
+        ev.push([on, 1, 0x90 | n.ch, n.m, Math.max(1, n.v)]);
+        ev.push([off, 0, 0x80 | n.ch, n.m, 0]);
+      });
+      if (!ev.length) return;
+      ev.sort((a, b) => a[0] - b[0] || a[1] - b[1]);   // a igual instante, primero se cierra y luego se abre
+      const body = [0, ...meta(0x03, ascii(t.name || ('Pista ' + (t.index + 1))))];
+      let last = 0;
+      ev.forEach(e => { body.push(...vlq(e[0] - last), e[2], e[3], e[4]); last = e[0]; });
+      body.push(0, ...meta(0x2f, []));
+      tracks.push(chunk('MTrk', body));
+    });
+    const head = chunk('MThd', [0, 1, (tracks.length >> 8) & 255, tracks.length & 255, 0x03, 0xe8]);
+    return new Uint8Array([...head, ...tracks.reduce((a, t) => a.concat(t), [])]);
+  }
+  window.__writeSMF = writeSMF; // para las pruebas
+
+  function currentTone() { return window.RCMidi.toTone(st.parsed, [...st.sel], st.start, st.end); }
+
+  function summary() {
+    if (!st) return;
+    const tone = currentTone();
+    let warn = '';
+    if (!st.sel.size) warn = 'Marca al menos una pista.';
+    else if (!tone.notes.length) warn = 'En ese trozo no hay notas: mueve los deslizadores.';
+    else if (tone.dropped > 0) warn = 'En la app se quitarán ' + tone.dropped + ' notas para que suene limpio (demasiadas a la vez). Prueba con menos pistas o un trozo más corto.';
+    $('sum').innerHTML = fmt(st.end - st.start) + ' de melodía · ' + tone.notes.length + ' notas' + (warn ? '<div class="warn">' + warn + '</div>' : '');
+    $('startV').textContent = fmt(st.start); $('endV').textContent = fmt(st.end);
+    $('play').disabled = $('dl').disabled = !tone.notes.length;
+  }
+
+  function render() {
+    if (!st) { $('editor').innerHTML = ''; return; }
+    const p = st.parsed;
+    $('editor').innerHTML =
+      '<div class="file" style="margin-top:14px;">' + esc(st.name) + '</div>' +
+      p.tracks.map(t => '<label class="track' + (t.drums ? ' off' : '') + '"><input type="checkbox" data-t="' + t.index + '"' + (st.sel.has(t.index) ? ' checked' : '') + (t.drums ? ' disabled' : '') + '>' +
+        '<span class="n">' + esc(t.name || 'Pista ' + (t.index + 1)) + '</span><span class="m">' + t.count + ' notas · ' + (t.drums ? 'percusión (no se incluye)' : noteName(t.low) + ' – ' + noteName(t.high)) + '</span></label>').join('') +
+      '<div class="range"><div><span>Desde</span><input type="range" id="rs" min="0" max="' + p.duration.toFixed(1) + '" step="0.1" value="' + st.start + '"><b id="startV"></b></div>' +
+      '<div><span>Hasta</span><input type="range" id="re" min="0" max="' + p.duration.toFixed(1) + '" step="0.1" value="' + st.end + '"><b id="endV"></b></div></div>' +
+      '<div class="sum" id="sum"></div>' +
+      '<div class="row"><button class="btn" id="play">▶ Escuchar</button><button class="btn main" id="dl">⬇ Descargar el trozo (.mid)</button></div>' +
+      '<div class="note" id="done" style="margin-top:10px;"></div>';
+    $('editor').querySelectorAll('input[type=checkbox]').forEach(cb => cb.onchange = () => { stopPlay(); const i = +cb.dataset.t; if (cb.checked) st.sel.add(i); else st.sel.delete(i); summary(); });
+    $('rs').oninput = () => setRange('start', $('rs').value);
+    $('re').oninput = () => setRange('end', $('re').value);
+    $('play').onclick = play;
+    $('dl').onclick = download;
+    summary();
+  }
+
+  function setRange(which, v) {
+    stopPlay();
+    const dur = st.parsed.duration, val = Math.max(0, Math.min(dur, parseFloat(v) || 0));
+    if (which === 'start') { st.start = val; if (st.end < st.start + 0.5) st.end = Math.min(dur, st.start + 0.5); if (st.end - st.start > MAX) st.end = st.start + MAX; }
+    else { st.end = val; if (st.end < st.start + 0.5) st.start = Math.max(0, st.end - 0.5); if (st.end - st.start > MAX) st.start = st.end - MAX; }
+    $('rs').value = st.start; $('re').value = st.end;
+    summary();
+  }
+
+  function download() {
+    const bytes = writeSMF(st.parsed, [...st.sel], st.start, st.end);
+    const base = st.name.replace(/\.(mid|midi)$/i, '').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'melodia';
+    const name = base + '-recorte.mid';
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' }));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 8000);
+    $('done').innerHTML = '<span class="ok">✓ Descargado: ' + esc(name) + '</span> (' + Math.round(bytes.length / 1024 * 10) / 10 + ' KB). Ahora súbelo en la app: <b>Admin → Melodía → Elegir archivo MIDI</b>.';
+  }
+
+  $('file').onchange = async function () {
+    const f = this.files && this.files[0]; if (!f) return;
+    stopPlay();
+    try {
+      if (f.size > 2 * 1024 * 1024) throw new Error('El archivo es demasiado grande para ser un MIDI normal');
+      const parsed = window.RCMidi.parse(await f.arrayBuffer());
+      const play = parsed.tracks.filter(t => !t.drums).sort((a, b) => b.count - a.count);
+      if (!play.length) throw new Error('Este MIDI solo tiene percusión: no hay notas que puedan sonar');
+      st = { name: f.name, parsed, sel: new Set(play.slice(0, 2).map(t => t.index)), start: 0, end: Math.min(parsed.duration, 15) };
+      render();
+    } catch (e) {
+      st = null; render();
+      $('editor').innerHTML = '<div class="warn" style="margin-top:12px;">' + esc(e.message || 'No se pudo leer el archivo') + '</div>';
+    }
+    this.value = '';
+  };
+})();
+</script>
+</body>
+</html>
