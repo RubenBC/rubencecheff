@@ -1308,3 +1308,10 @@ body.dark .update-banner { color: #002020; }
 .update-banner button { flex-shrink: 0; border: none; background: rgba(255,255,255,0.25); color: inherit; font: inherit; font-weight: 800; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
 .update-banner-icon { flex-shrink: 0; font-size: 18px; }
 .update-banner-text { flex: 1; min-width: 0; }
+
+/* Cosas que me importan una mierda (broma) */
+.importa-add { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.importa-add .form-input { flex: 1; min-width: 0; }
+.importa-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--outline-light); border-radius: 10px; margin-bottom: 7px; }
+.importa-text { font-size: 14px; font-weight: 600; word-break: break-word; }
+

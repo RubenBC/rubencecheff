@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v114 — Cosas que me importan una mierda
+
+### Añadido
+- **Nuevo botón en la barra de arriba, junto a "Próximos eventos": "Cosas que me importan una mierda".** Una lista manual para anotar lo que no te importa. Es una broma, así que es sencilla: se añade escribiendo y pulsando Añadir (o Enter) y se quita con la X. Se guarda solo en este dispositivo.
+
+---
+
 ## v113 — Avisos sin repetidos
 
 ### Mejorado

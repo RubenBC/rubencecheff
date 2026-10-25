@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v113';
+const APP_VERSION = 'v114';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -3663,6 +3663,49 @@ function renderEventsModalBody() {
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--outline);">delete</span>
       </button>` : ''}
     </div>`).join('');
+}
+
+// ─── Cosas que me importan una mierda (broma) ───
+// Lista manual que se guarda solo en este dispositivo (localStorage).
+const IMPORTA_KEY = 'rubencechef-me-importa-una-mierda';
+function importaLoad() {
+  try { const v = JSON.parse(localStorage.getItem(IMPORTA_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+function importaSave(list) {
+  try { localStorage.setItem(IMPORTA_KEY, JSON.stringify(list)); return true; } catch (e) { showToast('No se ha podido guardar en este dispositivo'); return false; }
+}
+function renderImportaList() {
+  const el = document.getElementById('importaList');
+  if (!el) return;
+  const list = importaLoad();
+  el.innerHTML = list.length === 0
+    ? `<div class="empty-state" style="padding:24px 0;"><span class="material-symbols-outlined">sentiment_satisfied</span>Nada de momento. Qué paz.</div>`
+    : list.map(it => `
+      <div class="importa-row">
+        <span class="importa-text">${escapeHtml(it.text)}</span>
+        <button class="btn-icon" onclick="deleteImporta('${escapeAttr(it.id)}')" aria-label="Quitar de la lista">
+          <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">close</span>
+        </button>
+      </div>`).join('');
+}
+function openImportaModal() {
+  renderImportaList();
+  openModalNav('importaModal');
+}
+function addImporta() {
+  const input = document.getElementById('importaInput');
+  const text = (input ? input.value : '').trim();
+  if (!text) return;
+  const list = importaLoad();
+  list.unshift({ id: newIdStr(), text: text.slice(0, 120) });
+  if (!importaSave(list)) return;
+  input.value = '';
+  renderImportaList();
+  input.focus();
+}
+function deleteImporta(id) {
+  importaSave(importaLoad().filter(it => it.id !== id));
+  renderImportaList();
 }
 
 async function openEventsModal() {
