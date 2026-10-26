@@ -1327,3 +1327,17 @@ body.dark .update-banner { color: #002020; }
 @media (prefers-reduced-motion: reduce) { .backup-banner { animation: none; } }
 .card.backup-due { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(198,40,40,0.18); }
 
+/* v116 — Usabilidad: objetivos táctiles y legibilidad */
+.back-btn { min-height: 44px; padding: 0 12px 0 4px; margin-left: -4px; }
+.order-check { color: var(--text2); }
+.nav-btn { font-size: 11px; }
+.chip { padding: 8px 14px; min-height: 36px; }
+.multiplier-row input { min-height: 38px; width: 80px; }
+.radio-vol-slider { height: 6px; border-radius: 3px; }
+.radio-vol-slider::-moz-range-progress, .radio-vol-slider::-moz-range-track { height: 6px; }
+.radio-vol-slider::-webkit-slider-thumb { width: 22px; height: 22px; }
+.radio-vol-slider::-moz-range-thumb { width: 22px; height: 22px; }
+.timer-tab { min-height: 36px; }
+.timer-name-input { min-height: 36px; }
+.timer-melody-select { min-height: 36px; }
+

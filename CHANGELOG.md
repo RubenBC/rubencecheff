@@ -4,6 +4,19 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v116 — Usabilidad: botones más fáciles de pulsar
+
+### Cambiado
+- "Volver" y "Cancelar" tienen una zona de pulsación de 44 px (antes 19).
+- Pedidos: el círculo de "sin marcar" se ve claramente.
+- Menú de abajo: etiquetas un poco mayores (11 px).
+- Filtros (chips), pestañas, nombre y melodía del timer: más altos (36 px).
+- Detalle de producción: el campo del multiplicador tiene etiqueta y teclado numérico.
+- Utilidades → Pedidos: ya no hay dos buscadores; queda solo el de Pedidos.
+- Radio: barra de volumen más gruesa y con el control más grande.
+
+---
+
 ## v115 — Admin reorganizado, etiquetas ordenables y aviso de copia de seguridad
 
 ### Añadido

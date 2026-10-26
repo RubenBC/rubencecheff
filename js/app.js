@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v115';
+const APP_VERSION = 'v116';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -1656,12 +1656,12 @@ function renderProdDetail(fromPage) {
     </div>
     <div class="multiplier-card">
       <div class="multiplier-label">
-        <span class="material-symbols-outlined">scale</span> Ajustar cantidades
+        <span class="material-symbols-outlined">scale</span> Ajustar cantidades <span style="font-weight:500; color:var(--text2); font-size:12px;">· elige o escribe otro número</span>
         ${m !== 1 ? `<span style="font-size:13px; color:var(--primary)">(×${m})</span>` : ''}
       </div>
       <div class="multiplier-row">
         ${mBtns}
-        <input type="number" min="0.1" step="0.5" value="${m}" onchange="setProdMultiplier(parseFloat(this.value)||1,'${backPage}')">
+        <input type="number" inputmode="decimal" min="0.1" step="0.5" value="${m}" aria-label="Otro multiplicador" title="Otro multiplicador" onchange="setProdMultiplier(parseFloat(this.value)||1,'${backPage}')">
       </div>
     </div>
     <div class="card">
@@ -4009,8 +4009,14 @@ function renderFichas() {
   if (utilTab === 'pesos')   renderPesos();
   if (utilTab === 'conv')    renderConvTab();
   if (utilTab === 'pedidos') renderPedidos();
+  syncGlobalSearchForUtil();
 }
 function setUtilTab(tab) { utilTab = tab; renderFichas(); }
+// En Pedidos hay buscador propio: se oculta el global para no tener dos
+function syncGlobalSearchForUtil() {
+  const el = document.getElementById('searchSection');
+  if (el && currentPage === 'fichas') el.style.display = utilTab === 'pedidos' ? 'none' : '';
+}
 
 function renderPesos() {
   document.getElementById('addWeightBtn').style.display = isAdmin ? '' : 'none';
