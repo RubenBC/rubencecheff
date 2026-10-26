@@ -4,6 +4,18 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v115 — Admin reorganizado, etiquetas ordenables y aviso de copia de seguridad
+
+### Añadido
+- **Etiquetas ordenables:** cada etiqueta en Admin → Etiquetas tiene flechas para subir y bajar. El orden se guarda y es el que salen en filtros y editores.
+- **Aviso semanal en rojo:** cada lunes a las 08:30 sale un banner rojo arriba del todo (solo con sesión de admin) recordando la copia de seguridad de las recetas, con el botón "Hacer la copia ahora" que lleva directo. Desaparece cuando se guarda o comparte el PDF; la ✕ lo oculta hasta mañana. La fecha de la última copia se guarda en Supabase (`app_settings.last_backup_at`).
+
+### Cambiado
+- **Admin pasa de 6 a 5 pestañas:** Comentarios, Avisos, Etiquetas, **Sonido** (radio + melodías) y **Sistema**.
+- **Sistema** reúne copia de seguridad (recetario en PDF, que sale de Fotos), optimizar fotos y "Actualizar la app en todos los dispositivos" (antes estaba suelto arriba del todo).
+
+---
+
 ## v114 — Cosas que me importan una mierda
 
 ### Añadido

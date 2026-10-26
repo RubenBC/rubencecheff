@@ -1167,12 +1167,12 @@ body.dark .radio-bubble-btn.stop { background: rgba(255,255,255,0.08); }
 .admin-tab-badge { background: var(--danger); color: white; border-radius: 9px; font-size: 10px; font-weight: 800; padding: 1px 6px; margin-left: 1px; }
 @media (max-width: 430px) {
   .admin-tabs { gap: 2px; }
-  .admin-tab { padding: 8px 6px; font-size: 12px; }
+  .admin-tab { padding: 8px 4px; font-size: 11.5px; gap: 3px; }
   .admin-tab .material-symbols-outlined { display: none; }
+  .admin-tab-badge { font-size: 9px; padding: 1px 4px; }
 }
 @media (max-width: 375px) {
-  .admin-tab { padding: 7px 4px; font-size: 11.5px; }
-  .admin-tab-badge { padding: 1px 5px; }
+  .admin-tab { padding: 7px 3px; font-size: 11.5px; }
 }
 
 /* Botón de arriba con la sesión iniciada */
@@ -1314,4 +1314,16 @@ body.dark .update-banner { color: #002020; }
 .importa-add .form-input { flex: 1; min-width: 0; }
 .importa-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--outline-light); border-radius: 10px; margin-bottom: 7px; }
 .importa-text { font-size: 14px; font-weight: 600; word-break: break-word; }
+
+/* Aviso semanal de copia de seguridad (lunes 08:30) */
+.backup-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; background: #C62828; color: #fff; border-bottom: 3px solid #8E1B1B; position: relative; z-index: 101; animation: backupPulse 2.4s ease-in-out infinite; }
+.backup-banner-icon { font-size: 26px; flex-shrink: 0; }
+.backup-banner-text { flex: 1 1 180px; min-width: 0; font-size: 14px; line-height: 1.3; }
+.backup-banner-text b { display: block; font-size: 15px; font-weight: 800; }
+.backup-banner-text span { font-size: 12.5px; opacity: 0.92; }
+.backup-banner-btn { border: none; background: #fff; color: #B71C1C; font-weight: 800; font-size: 14px; padding: 10px 16px; min-height: 40px; border-radius: 999px; cursor: pointer; font-family: 'Inter', sans-serif; }
+.backup-banner-later { border: none; background: rgba(255,255,255,0.18); color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; flex-shrink: 0; }
+@keyframes backupPulse { 0%, 100% { background: #C62828; } 50% { background: #E53935; } }
+@media (prefers-reduced-motion: reduce) { .backup-banner { animation: none; } }
+.card.backup-due { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(198,40,40,0.18); }
 

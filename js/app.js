@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v114';
+const APP_VERSION = 'v115';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -161,6 +161,83 @@ scheduleDailyBriefReload();
 // volver a mirar la pantalla.
 setInterval(dailyBriefTick, 10 * 60 * 1000);
 document.addEventListener('visibilitychange', dailyBriefTick);
+
+// ═══════════════════════════════════════
+//   AVISO SEMANAL: COPIA DE SEGURIDAD (lunes 08:30)
+// ═══════════════════════════════════════
+// Banner rojo arriba del todo, solo con la sesión de admin (la copia solo la
+// puede hacer el admin). Sale desde el lunes a las 08:30 y se queda hasta que
+// se guarda o comparte el PDF del recetario; la fecha de la última copia se
+// guarda en Supabase (app_settings.last_backup_at), así que si la haces desde
+// otro dispositivo, el aviso desaparece en todos. La ✕ lo oculta hasta mañana.
+const BACKUP_DAY = 1, BACKUP_HOUR = 8, BACKUP_MIN = 30; // 1 = lunes
+let lastBackupAt = null;          // ISO de la última copia hecha, o null
+let _backupStampLoaded = false;   // hasta saberlo no se enseña el aviso (evita falsos avisos)
+const BACKUP_SNOOZE_KEY = 'rubencechef-backup-snooze';
+
+// Último "lunes 08:30" ya pasado (inicio del ciclo semanal actual)
+function backupCycleStart(d = new Date()) {
+  const c = new Date(d);
+  c.setHours(BACKUP_HOUR, BACKUP_MIN, 0, 0);
+  c.setDate(c.getDate() - ((c.getDay() - BACKUP_DAY + 7) % 7));
+  if (c > d) c.setDate(c.getDate() - 7);
+  return c;
+}
+function isBackupDue() {
+  if (!isAdmin || !_backupStampLoaded) return false;
+  const last = lastBackupAt ? new Date(lastBackupAt) : null;
+  return !last || isNaN(last) || last < backupCycleStart();
+}
+function renderBackupBanner() {
+  const el = document.getElementById('backupBanner');
+  if (!el) return;
+  let snoozed = false;
+  try { snoozed = localStorage.getItem(BACKUP_SNOOZE_KEY) === todayKey(); } catch (e) {}
+  const show = isBackupDue() && !snoozed;
+  el.style.display = show ? '' : 'none';
+  if (show) {
+    const last = lastBackupAt ? new Date(lastBackupAt) : null;
+    const sub = document.getElementById('backupBannerSub');
+    if (sub) sub.textContent = last && !isNaN(last)
+      ? 'La última fue el ' + last.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) + '.'
+      : 'Todavía no hay ninguna hecha.';
+  }
+  if (currentPage === 'admin' && isAdmin) renderAdminTabs();
+}
+function snoozeBackupBanner() {
+  try { localStorage.setItem(BACKUP_SNOOZE_KEY, todayKey()); } catch (e) {}
+  renderBackupBanner();
+}
+async function loadBackupStamp() {
+  if (!isAdmin) return;
+  try {
+    const r = await sb.from('app_settings').select('value').eq('key', 'last_backup_at').maybeSingle();
+    if (!r.error) { lastBackupAt = r.data ? r.data.value : null; _backupStampLoaded = true; }
+  } catch (e) { console.warn('No se pudo leer la fecha de la última copia:', e?.message || e); }
+  renderBackupBanner();
+  if (currentPage === 'admin' && adminTab === 'maint') renderBackupAdmin();
+}
+async function markBackupDone() {
+  lastBackupAt = new Date().toISOString();
+  _backupStampLoaded = true;
+  renderBackupBanner();
+  if (currentPage === 'admin' && adminTab === 'maint') renderBackupAdmin();
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: 'last_backup_at', value: lastBackupAt });
+    if (error) throw error;
+    showToast('Copia de seguridad registrada ✓');
+  } catch (e) {
+    if (!handleAuthError(e)) showToast('No se ha podido registrar la fecha de la copia');
+  }
+}
+// El botón del aviso lleva directamente a la copia (Admin → Sistema)
+function openBackupSection() {
+  adminTab = 'maint';
+  openAdminPanel();
+  setTimeout(() => { const el = document.getElementById('backupSection'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 150);
+}
+setInterval(renderBackupBanner, 60 * 1000);                        // para que salga a las 08:30 con la app abierta
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') renderBackupBanner(); });
 
 // ═══════════════════════════════════════
 //   ACTUALIZAR TODOS LOS DISPOSITIVOS (botón de Admin)
@@ -1906,6 +1983,7 @@ async function adminLogout() {
   if (!ok) return;
   await dropAdminSession(); // cierra la de admin y vuelve a la de cocina (o pide la contraseña si no se puede)
   isAdmin = false;
+  lastBackupAt = null; _backupStampLoaded = false; renderBackupBanner();
   comments = []; orderItems = []; rebuildOrderState(); // datos solo de admin: no dejarlos en memoria
   setAdminIndicator(false);
   updateBadges();
@@ -2012,6 +2090,7 @@ async function reloadAdminData() {
 
 function activateAdminUI() {
   setAdminIndicator(true);
+  loadBackupStamp();
   updateBadges();
   if (currentPage === 'recipes')     document.getElementById('adminAddRecipeRow').style.display    = '';
   if (currentPage === 'productions') document.getElementById('adminAddProductionRow').style.display = '';
@@ -2739,18 +2818,16 @@ async function melodyDelete(id) {
 
 // ─── Panel de administración: pestañas ─────────
 const ADMIN_TABS = [
-  { key: 'comments', label: 'Comentarios', icon: 'forum' },
-  { key: 'events',   label: 'Avisos',      icon: 'stadium' },
-  { key: 'tags',     label: 'Etiquetas',   icon: 'label' },
-  { key: 'radio',    label: 'Radio',       icon: 'radio' },
-  { key: 'photos',   label: 'Fotos',       icon: 'photo_library' },
-  { key: 'melody',   label: 'Melodía',     icon: 'music_note' },
+  { key: 'comments', label: 'Comentarios',   icon: 'forum' },
+  { key: 'events',   label: 'Avisos',        icon: 'stadium' },
+  { key: 'tags',     label: 'Etiquetas',     icon: 'label' },
+  { key: 'sound',    label: 'Sonido',        icon: 'music_note' },   // emisoras de radio + melodías del timer
+  { key: 'maint',    label: 'Sistema', icon: 'build' },        // copia de seguridad, fotos, actualizar dispositivos
 ];
-const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', tags: 'adminTabTags', radio: 'adminTabRadio', photos: 'adminTabPhotos', melody: 'adminTabMelody' };
+const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', tags: 'adminTabTags', sound: 'adminTabSound', maint: 'adminTabMaint' };
 
 function setAdminTab(tab) {
-  if (tab !== 'radio') radioPreviewStop();
-  if (tab !== 'melody') midiStopPreview();
+  if (tab !== 'sound') { radioPreviewStop(); midiStopPreview(); }
   adminTab = tab;
   renderAdmin();
   window.scrollTo(0, 0);
@@ -2762,7 +2839,7 @@ function renderAdminTabs() {
   const counts = {
     comments: comments.filter(c => !c.resolved).length,
     events:   importantDates.filter(d => d.status === 'pendiente').length,
-    photos:   recipes.filter(recipeNeedsPhotoOptimize).length,
+    maint:    recipes.filter(recipeNeedsPhotoOptimize).length + (isBackupDue() ? 1 : 0),
   };
   el.innerHTML = ADMIN_TABS.map(t => `
     <button class="admin-tab${adminTab === t.key ? ' active' : ''}" role="tab" aria-selected="${adminTab === t.key}" onclick="setAdminTab('${t.key}')">
@@ -2807,9 +2884,8 @@ function renderAdmin() {
   renderAdminTabs();
   if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
   if (adminTab === 'tags')   { renderTagsAdmin(); return; }
-  if (adminTab === 'radio')  { renderRadioAdmin(); return; }
-  if (adminTab === 'photos') { renderPhotoAdmin(); return; }
-  if (adminTab === 'melody') { renderMelodyAdmin(); return; }
+  if (adminTab === 'sound')  { renderRadioAdmin(); renderMelodyAdmin(); return; }
+  if (adminTab === 'maint')  { renderBackupAdmin(); renderPhotoAdmin(); return; }
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
@@ -2849,13 +2925,44 @@ function renderAdmin() {
 
 }
 
+// Sube o baja una etiqueta (dir = -1 sube, 1 baja). Se renumeran todas (1..n) y solo se
+// guardan las que cambian de posición; si falla, se deshace.
+let _movingTag = false;
+async function moveTag(id, dir) {
+  if (_movingTag) return;
+  const i = tags.findIndex(t => t.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= tags.length) return;
+  _movingTag = true;
+  const before = tags;
+  const next = tags.slice();
+  [next[i], next[j]] = [next[j], next[i]];
+  const renum = next.map((t, k) => ({ ...t, sort_order: k + 1 }));
+  const changed = renum.filter((t, k) => t.sort_order !== before.find(b => b.id === t.id)?.sort_order);
+  tags = renum;
+  renderTagsAdmin();
+  try {
+    const { error } = await sb.from('tags').upsert(changed.map(t => ({ id: t.id, name: t.name, sort_order: t.sort_order })));
+    if (error) throw error;
+  } catch (e) {
+    tags = before;
+    renderTagsAdmin();
+    if (!handleAuthError(e)) showToast('No se ha podido guardar el orden');
+  } finally { _movingTag = false; }
+}
+
 function renderTagsAdmin() {
   const box = document.getElementById('adminTabTags');
   if (!box) return;
-  const tagHtml = tags.map(t => `
+  const tagHtml = tags.map((t, i) => `
     <div class="ficha-row">
       <div class="ficha-name">${escapeHtml(t.name)}</div>
       <div style="display:flex; gap:6px;">
+        <button class="btn-icon" onclick="moveTag('${t.id}', -1)" aria-label="Subir ${escAttr(t.name)}" title="Subir" ${i === 0 ? 'disabled style="opacity:0.3;"' : ''}>
+          <span class="material-symbols-outlined" style="font-size:20px;">arrow_upward</span>
+        </button>
+        <button class="btn-icon" onclick="moveTag('${t.id}', 1)" aria-label="Bajar ${escAttr(t.name)}" title="Bajar" ${i === tags.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
+          <span class="material-symbols-outlined" style="font-size:20px;">arrow_downward</span>
+        </button>
         <button class="btn-icon" onclick="renameTag('${t.id}')">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
         </button>
@@ -2870,7 +2977,7 @@ function renderTagsAdmin() {
       <span class="material-symbols-outlined">label</span> Etiquetas
     </div>
     <div class="note" style="font-size:12.5px; color:var(--text2); margin:-6px 0 10px;">
-      Las usan tanto los platos como las producciones; cada uno puede llevar varias a la vez. Se añaden o se quitan desde su propio editor.
+      Las usan tanto los platos como las producciones; cada uno puede llevar varias a la vez. Se añaden o se quitan desde su propio editor. Con las flechas ordenas cómo salen en los filtros y en los editores.
     </div>
     <div class="card">
       ${tagHtml}
@@ -2912,27 +3019,46 @@ function renderPhotoAdmin() {
         <span class="material-symbols-outlined" style="font-size:16px;">auto_fix_high</span> Optimizar fotos${pending > 0 ? ` (${pending})` : ''}
       </button>
     </div>
+`;
+}
 
-    <div class="section-title" style="margin-top:18px;">
-      <span class="material-symbols-outlined">picture_as_pdf</span> Recetario en PDF
+// ─── Copia de seguridad de las recetas (Admin → Sistema) ─────────
+// Es el recetario en PDF (ver más abajo). El aviso semanal de los lunes a las
+// 08:30 lleva aquí. La copia cuenta como hecha cuando se guarda o se comparte
+// el archivo (no solo al generarlo).
+function renderBackupAdmin() {
+  const box = document.getElementById('backupSection');
+  if (!box) return;
+  const when = lastBackupAt ? new Date(lastBackupAt) : null;
+  const whenTxt = when && !isNaN(when)
+    ? when.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) + ' a las ' + when.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    : 'todavía no se ha hecho ninguna';
+  box.innerHTML = `
+    <div class="section-title">
+      <span class="material-symbols-outlined">shield</span> Copia de seguridad de las recetas
     </div>
-    <div class="card">
+    <div class="card${isBackupDue() ? ' backup-due' : ''}">
       <div style="font-size:13px; color:var(--text2); margin-bottom:10px;">
-        Todos los platos (${recipes.length}) y producciones (${productions.length}) con su foto, ingredientes, elaboración y alérgenos, con índice. Sirve para imprimir o como copia de seguridad.
+        Un PDF con todos los platos (${recipes.length}) y producciones (${productions.length}): foto, ingredientes, elaboración y alérgenos, con índice. Sirve para imprimir o como copia de seguridad.
+      </div>
+      <div style="font-size:13px; margin-bottom:12px;">
+        <b>Última copia:</b> ${escapeHtml(whenTxt)}
+        ${isBackupDue() ? '<div style="color:var(--danger); font-weight:700; margin-top:4px;">⚠ Pendiente esta semana</div>' : '<div style="color:var(--primary); font-weight:700; margin-top:4px;">✓ Al día esta semana</div>'}
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
         <button class="btn-pill filled" id="exportPdfBtn" onclick="exportRecetarioPDF()">
           <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span> Generar recetario
         </button>
-        <button class="btn-pill" id="exportPdfSaveBtn" onclick="saveRecetarioPDF()" style="display:none;">
+        <button class="btn-pill" id="exportPdfSaveBtn" onclick="saveRecetarioPDF()" style="${_recetarioPdf ? '' : 'display:none;'}">
           <span class="material-symbols-outlined" style="font-size:16px;">download</span> Guardar / compartir
         </button>
       </div>
-      <div id="exportPdfStatus" style="font-size:12.5px; color:var(--text2); margin-top:8px;"></div>
+      <div id="exportPdfStatus" style="font-size:12.5px; color:var(--text2); margin-top:8px;">${_recetarioPdf ? '✓ Listo. Pulsa "Guardar / compartir" para completar la copia.' : ''}</div>
     </div>`;
+  if (_exportingPdf) { const b = document.getElementById('exportPdfBtn'); if (b) b.disabled = true; }
 }
 
-// ─── Recetario completo en PDF (Admin → Fotos) ─────────
+// ─── Recetario completo en PDF (Admin → Sistema → Copia de seguridad) ─────────
 // Un plato o producción por página (con su foto reducida al vuelo), portada,
 // índice con número de página y numeración "Página X de Y". Al terminar se
 // pulsa "Guardar / compartir": compartir un archivo exige un toque reciente
@@ -3125,7 +3251,7 @@ async function exportRecetarioPDF() {
     const name = `Recetario RubenceChef ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.pdf`;
     _recetarioPdf = { blob: doc.output('blob'), name };
     const sizeMb = (_recetarioPdf.blob.size / 1048576).toFixed(1).replace('.', ',');
-    setStatus(`✓ Listo: ${total} páginas, ${sizeMb} MB. Pulsa "Guardar / compartir".`);
+    setStatus(`✓ Listo: ${total} páginas, ${sizeMb} MB. Pulsa "Guardar / compartir" para completar la copia.`);
     const sb2 = document.getElementById('exportPdfSaveBtn');
     if (sb2) sb2.style.display = '';
     showToast('Recetario generado ✓');
@@ -3154,9 +3280,11 @@ async function saveRecetarioPDF() {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: 'Recetario RubenceChef' });
     } else { download(); showToast('PDF descargado'); }
+    markBackupDone();
   } catch (err) {
     if (err && err.name === 'AbortError') return;
     download(); showToast('PDF descargado');
+    markBackupDone();
   }
 }
 
