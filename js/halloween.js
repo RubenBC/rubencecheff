@@ -72,6 +72,53 @@
       '<circle cx="30" cy="22" r="8" fill="#1e1827"/><circle cx="26.5" cy="20.5" r="2.2" fill="#ff3b30"/><circle cx="33.5" cy="20.5" r="2.2" fill="#ff3b30"/><circle cx="30" cy="24" r="1.2" fill="#ff3b30"/></svg>'
   };
 
+  // 🧟🏃 Escena: un zombi persigue a una persona, la alcanza, la muerde y se la lleva convertida.
+  var ZOMBIE_BODY = SVG.zombie.replace(/^<svg[^>]*>|<\/svg>$/g, '');
+  function person(z) {
+    var skin = z ? '#8fb87a' : '#f3c9a3', line = z ? '#5c8049' : '#b98a62', shirt = z ? '#b8851c' : '#f0a81e', shirtL = z ? '#8a6414' : '#c98410';
+    var s = '<g class="' + (z ? 'hw-pz' : 'hw-pr') + '">' +
+      '<g class="hw-leg-a" style="--ox:27px"><rect x="22" y="78" width="11" height="34" rx="4" fill="#2f4f8f"/><rect x="19" y="111" width="17" height="9" rx="3.5" fill="#f2f2f2" stroke="#999" stroke-width="1"/></g>' +
+      '<g class="hw-leg-b" style="--ox:40px"><rect x="35" y="78" width="11" height="34" rx="4" fill="#3b5ea8"/><rect x="32" y="111" width="17" height="9" rx="3.5" fill="#fff" stroke="#999" stroke-width="1"/></g>' +
+      '<path d="M19 50 Q35 43 51 50 L53 83 L17 83 Z" fill="' + shirt + '" stroke="' + shirtL + '" stroke-width="1.5"/>' +
+      (z ? '<path d="M20 70 l5 5 l4 -4 l5 6 M44 60 l-4 8 l6 3" stroke="' + shirtL + '" stroke-width="1.6" fill="none"/>'
+         : '<path d="M30 52 v10 M40 52 v10" stroke="' + shirtL + '" stroke-width="1.6"/>');
+    if (z) {
+      s += '<g class="hw-arms" style="transform-origin:44px 55px"><rect x="44" y="56" width="25" height="8" rx="4" fill="' + skin + '"/><rect x="63" y="54" width="8" height="13" rx="3.5" fill="' + skin + '"/>' +
+           '<rect x="44" y="47" width="27" height="8" rx="4" fill="#9fc58a"/><rect x="65" y="45" width="8" height="13" rx="3.5" fill="#9fc58a"/></g>';
+    } else {
+      s += '<g class="hw-flail"><path d="M42 54 L58 28" stroke="' + shirt + '" stroke-width="8" stroke-linecap="round"/><circle cx="59.5" cy="25.5" r="4.6" fill="' + skin + '"/>' +
+           '<path d="M38 54 L48 25" stroke="' + shirtL + '" stroke-width="8" stroke-linecap="round"/><circle cx="49.5" cy="22" r="4.6" fill="' + skin + '"/></g>';
+    }
+    s += '<rect x="31" y="43" width="8" height="9" fill="' + skin + '"/>' +
+      '<circle cx="35" cy="32" r="15" fill="' + skin + '" stroke="' + line + '" stroke-width="1.4"/>' +
+      '<circle cx="26" cy="34" r="3.4" fill="' + skin + '" stroke="' + line + '" stroke-width="1"/>' +
+      '<path d="M19 32 C15 12 34 6 46 13 C51 16 51 22 49 25 C43 19 32 19 25 27 L21 39 Z" fill="' + (z ? '#2c2420' : '#3a2616') + '"/>';
+    if (z) {
+      s += '<circle cx="42" cy="31" r="5" fill="#f1f1d8" stroke="#1d2418" stroke-width="1.4"/><circle cx="43.4" cy="32" r="1.8" fill="#b02020"/>' +
+           '<path d="M38 24 L47 27" stroke="#2c2420" stroke-width="1.8"/><path d="M38 41 C42 44 47 43 50 40 C49 46 44 47 40 46 Z" fill="#2a1414"/><path d="M41 42 v3 M44 43 v3 M47 42 v3" stroke="#f0ecd0" stroke-width="1.6"/>' +
+           '<path d="M27 46 l4 3 l3 -3 M30 49 l-1 5" stroke="#7b2a2a" stroke-width="2" fill="none"/>';
+    } else {
+      s += '<circle cx="42" cy="31" r="4.8" fill="#fff" stroke="#444" stroke-width=".9"/><circle cx="43.4" cy="31.2" r="1.8" fill="#222"/>' +
+           '<path d="M37 22 L47 26" stroke="#3a2616" stroke-width="1.9" stroke-linecap="round"/>' +
+           '<ellipse cx="45" cy="41" rx="3.3" ry="4.8" fill="#5a1414"/><path d="M49 34 l3 4 l-3 1" fill="none" stroke="' + line + '" stroke-width="1.2"/>' +
+           '<path class="hw-sweat" d="M15 18 q-3 5 0 7 q3 -2 0 -7z" fill="#6ec6ff"/><path class="hw-sweat" style="animation-delay:-.4s" d="M53 12 q-3 5 0 7 q3 -2 0 -7z" fill="#6ec6ff"/>';
+    }
+    return s + '</g>';
+  }
+  var CHASE_SVG = '<svg viewBox="0 0 190 130">' +
+    '<g transform="translate(104 18) scale(.84)">' + '<g class="hw-p1">' + person(false) + '</g><g class="hw-p2">' + person(true) + '</g></g>' +
+    '<g class="hw-zoff"><g class="hw-chomp">' + ZOMBIE_BODY + '</g></g>' +
+    '<g class="hw-blood"><circle class="hw-drop" cx="128" cy="62" r="2.6" fill="#c8101c"/><circle class="hw-drop" style="animation-delay:-.3s" cx="134" cy="58" r="2" fill="#e01a28"/><circle class="hw-drop" style="animation-delay:-.6s" cx="123" cy="66" r="2.2" fill="#a00c16"/></g>' +
+    '<text class="hw-aah" x="164" y="11" font-size="15" font-weight="900" fill="#fff" stroke="#b3141b" stroke-width="4" paint-order="stroke" text-anchor="middle" font-family="Impact,Arial Black,sans-serif">¡AAAH!</text></svg>';
+  function chase(layer) {
+    var d = document.createElement('div');
+    d.className = 'hw-item hw-chase';
+    d.style.width = '162px'; d.style.bottom = '2px';
+    d.setAttribute('style', d.getAttribute('style') + ';--cd:120s;--dl:-112s;');
+    d.innerHTML = CHASE_SVG;
+    layer.appendChild(d);
+  }
+
   function mk(kind, cls, w, style) {
     var d = document.createElement('div');
     d.className = 'hw-item ' + (cls || '');
@@ -122,6 +169,7 @@
     walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60 });
     walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36 });
     walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop' });
+    chase(L);   // el zombi que persigue y muerde (aparece de vez en cuando)
     // arañas colgando
     var s1 = mk('spider', 'hw-spider', 30, 'left:12%;--d:6.5s;--dl:-1s;'); L.appendChild(s1);
     var s2 = mk('spider', 'hw-spider', 24, 'left:86%;--d:8.5s;--dl:-4s;'); L.appendChild(s2);

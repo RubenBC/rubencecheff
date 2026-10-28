@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v123 — Zombi que muerde (Halloween)
+
+### Añadido
+- **Halloween: escena del zombi que persigue a una persona.** De vez en cuando cruza la pantalla por abajo: la persona corre asustada, el zombi la alcanza, la muerde (sangre y "¡AAAH!") y se la lleva convertida en zombi. Aparece unos 35 s cada 2 minutos. Se quita junto con el resto del modo Halloween.
+
+---
+
 ## v122 — Alarma terrorífica (Halloween)
 
 ### Añadido
