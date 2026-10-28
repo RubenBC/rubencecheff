@@ -86,8 +86,6 @@
     var outer = mk(kind, 'hw-walk-' + (rtl ? 'rtl' : 'ltr'), w,
       (opts.bottom != null ? 'bottom:' + opts.bottom + ';' : 'top:' + opts.top + ';') +
       '--d:' + opts.dur + 's;--dl:-' + opts.delay + 's;');
-    // static (reduced-motion) position
-    outer.style.left = opts.stat + '%';
     var svg = outer.firstChild;
     var inner = document.createElement('div');
     inner.className = (rtl ? 'hw-flip ' : '') + (opts.inner || '');
@@ -100,28 +98,27 @@
     var L = document.createElement('div');
     L.id = 'hwLayer'; L.setAttribute('aria-hidden', 'true');
     // murciélagos
-    walker(L, 'bat', 58, { top: '6%',  dur: 26, delay: 4,  rtl: false, stat: 70, inner: 'hw-bob', vars: '--amp:14px;--b:1.9s' });
+    walker(L, 'bat', 58, { top: '6%',  dur: 26, delay: 4,  rtl: false, inner: 'hw-bob', vars: '--amp:14px;--b:1.9s' });
     walker(L, 'bat', 46, { top: '24%', dur: 34, delay: 20, rtl: true,  stat: 20, inner: 'hw-bob', vars: '--amp:18px;--b:2.4s' });
-    walker(L, 'bat', 66, { top: '42%', dur: 40, delay: 9,  rtl: false, stat: 40, inner: 'hw-bob', vars: '--amp:22px;--b:2.9s' });
+    walker(L, 'bat', 66, { top: '42%', dur: 40, delay: 9,  rtl: false, inner: 'hw-bob', vars: '--amp:22px;--b:2.9s' });
     // fantasmas
     walker(L, 'ghost', 56, { top: '33%', dur: 70, delay: 15, rtl: true,  stat: 78, inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s' });
-    walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, stat: 12, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s' });
+    walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s' });
     // en el suelo (encima del menú de abajo)
-    walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, stat: 8 });
+    walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false });
     walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60 });
     walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36 });
-    walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, stat: 88, inner: 'hw-hop' });
+    walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop' });
     // arañas colgando
     var s1 = mk('spider', 'hw-spider', 30, 'left:12%;--d:6.5s;--dl:-1s;'); L.appendChild(s1);
     var s2 = mk('spider', 'hw-spider', 24, 'left:86%;--d:8.5s;--dl:-4s;'); L.appendChild(s2);
     document.body.appendChild(L);
     place();
   }
-  // ⚡ Rayo de vez en cuando (cada 15-40 s): destello suave + rayo dibujado. Sin destellos si el móvil pide menos movimiento.
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ⚡ Rayo de vez en cuando (cada 15-40 s): destello suave + rayo dibujado (sin destello si el dispositivo pide menos movimiento: ver CSS).
   function lightning() {
     var L = document.getElementById('hwLayer');
-    if (L && !document.hidden && !reduce) {
+    if (L && !document.hidden) {
       var x = 8 + Math.random() * 80, flip = Math.random() < 0.5 ? -1 : 1;
       var bolt = document.createElement('div');
       bolt.className = 'hw-bolt';
@@ -131,7 +128,7 @@
       var flash = document.createElement('div');
       flash.className = 'hw-flash';
       L.appendChild(flash); L.appendChild(bolt);
-      setTimeout(function () { flash.remove(); bolt.remove(); }, 900);
+      setTimeout(function () { flash.remove(); bolt.remove(); }, 1300);
     }
     setTimeout(lightning, 15000 + Math.random() * 25000);
   }

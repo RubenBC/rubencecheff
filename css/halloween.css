@@ -101,8 +101,11 @@ body.dark #hwLayer .hw-item svg { filter: drop-shadow(0 0 2px rgba(255,150,70,0.
 .hw-bolt svg { width: 100%; height: 100%; display: block; }
 @keyframes hw-bolt { 0% { opacity: 0; } 6% { opacity: 1; } 14% { opacity: .15; } 24% { opacity: .95; } 60% { opacity: 0; } 100% { opacity: 0; } }
 
-/* "Reducir movimiento" del móvil: todo se queda quieto */
+/* "Reducir movimiento" activado (muchos PC con Windows lo traen así y por eso el
+   monitor los dejaba quietos): las criaturas se siguen moviendo igual, pero el
+   rayo sale sin destello de pantalla ni parpadeo, solo aparece y se apaga suave. */
 @media (prefers-reduced-motion: reduce) {
-  #hwLayer * { animation: none !important; }
-  .hw-flash, .hw-bolt { display: none; }
+  .hw-flash { display: none; }
+  .hw-bolt { animation: hw-bolt-soft 1.2s ease-in-out forwards; }
 }
+@keyframes hw-bolt-soft { 0% { opacity: 0; } 25% { opacity: .85; } 100% { opacity: 0; } }

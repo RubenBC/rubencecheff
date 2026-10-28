@@ -7,6 +7,7 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 ## v121 — Auditoría y limpieza
 
 ### Arreglado
+- **Monitor del PC: las criaturas de Halloween no se movían.** Windows suele traer activado "reducir animaciones" y la app las dejaba quietas. Ahora se mueven siempre; con esa opción activada solo se quita el destello de pantalla del rayo (el rayo aparece y se apaga suave). También se corrige que algunas criaturas empezaban su recorrido desplazadas.
 - **Modo claro con Halloween:** el nombre "RubenceChef" de la barra de arriba no se veía (texto oscuro sobre fondo negro).
 - **Botón "atrás" tras guardar o cancelar un editor:** había que pulsarlo dos veces (la primera volvía a la misma ficha). Ahora va directo a donde estabas antes.
 - **Editar una producción abierta desde un plato:** al guardar, "Volver" ya no te manda a la lista de producciones, sino al plato del que venías.
