@@ -108,9 +108,9 @@
   var CHASE_SVG = '<svg viewBox="0 0 190 130">' +
     '<g transform="translate(104 18) scale(.84)">' + '<g class="hw-p1">' + person(false) + '</g><g class="hw-p2">' + person(true) + '</g></g>' +
     '<g class="hw-zoff"><g class="hw-chomp">' + ZOMBIE_BODY + '</g></g>' +
-    '<g class="hw-zname"><rect x="21" y="-18" width="48" height="15" rx="3" fill="#000" fill-opacity=".6" stroke="#ff5a44" stroke-opacity=".7" stroke-width=".8"/>' +
-    '<text x="45" y="-8.5" font-size="9.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="system-ui,Arial,sans-serif">Rubén</text>' +
-    '<rect x="25" y="-5.5" width="40" height="2" rx="1" fill="#3a0f12"/><rect x="25" y="-5.5" width="30" height="2" rx="1" fill="#e11d2e"/></g>' +
+    '<g class="hw-zname"><rect x="21" y="-14" width="48" height="11" rx="3" fill="#000" fill-opacity=".6" stroke="#ff5a44" stroke-opacity=".7" stroke-width=".8"/>' +
+    '<text x="45" y="-6.3" font-size="9.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="system-ui,Arial,sans-serif">Rubén</text>' +
+    '</g>' +
     '<g class="hw-blood"><circle class="hw-drop" cx="128" cy="62" r="2.6" fill="#c8101c"/><circle class="hw-drop" style="animation-delay:-.3s" cx="134" cy="58" r="2" fill="#e01a28"/><circle class="hw-drop" style="animation-delay:-.6s" cx="123" cy="66" r="2.2" fill="#a00c16"/></g>' +
     '<text class="hw-aah" x="172" y="11" font-size="15" font-weight="900" fill="#fff" stroke="#b3141b" stroke-width="4" paint-order="stroke" text-anchor="middle" font-family="Impact,Arial Black,sans-serif">¡AAAH!</text></svg>';
   function chase(layer) {
@@ -144,7 +144,7 @@
     if (opts.name) { // nombre sobre la cabeza, estilo videojuego (fuera del contenedor volteado para que no salga al revés)
       var n = document.createElement('div');
       n.className = 'hw-name'; n.textContent = opts.name;
-      n.style.left = (opts.nx != null ? opts.nx : (rtl ? 55 : 45)) + '%'; if (opts.ny != null) n.style.top = opts.ny + 'px'; n.style.setProperty('--hp', (opts.hp || 100) + '%');
+      n.style.left = (opts.nx != null ? opts.nx : (rtl ? 55 : 45)) + '%'; if (opts.ny != null) n.style.top = opts.ny + 'px';
       outer.appendChild(n);
     }
     layer.appendChild(outer);
@@ -163,6 +163,7 @@
 
   function build() {
     addRingBg();
+    addToggle();
     if (document.getElementById('hwLayer')) return;
     var L = document.createElement('div');
     L.id = 'hwLayer'; L.setAttribute('aria-hidden', 'true');
@@ -171,15 +172,15 @@
     walker(L, 'bat', 46, { top: '24%', dur: 34, delay: 20, rtl: true,  stat: 20, inner: 'hw-bob', vars: '--amp:18px;--b:2.4s' });
     walker(L, 'bat', 66, { top: '42%', dur: 40, delay: 9,  rtl: false, inner: 'hw-bob', vars: '--amp:22px;--b:2.9s' });
     // fantasmas
-    walker(L, 'ghost', 56, { top: '33%', dur: 70, delay: 15, rtl: true,  stat: 78, inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s', name: 'Lucho', nx: 50, ny: -42, hp: 100 });
-    walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s', name: 'Alejandro', nx: 50, ny: -38, hp: 85 });
-    walker(L, 'ghost', 52, { top: '48%', dur: 78, delay: 33, rtl: true,  stat: 40, inner: 'hw-bob hw-ghost', vars: '--amp:14px;--b:2.9s', name: 'Alfredo', nx: 50, ny: -40, hp: 60 });
+    walker(L, 'ghost', 56, { top: '33%', dur: 70, delay: 15, rtl: true,  stat: 78, inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s', name: 'Lucho', nx: 50, ny: -37 });
+    walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s', name: 'Alejandro', nx: 50, ny: -33 });
+    walker(L, 'ghost', 52, { top: '48%', dur: 78, delay: 33, rtl: true,  stat: 40, inner: 'hw-bob hw-ghost', vars: '--amp:14px;--b:2.9s', name: 'Alfredo', nx: 50, ny: -35 });
     // en el suelo (encima del menú de abajo)
-    walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, name: 'Emerson', hp: 100 });
-    walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60, name: 'Virginia', hp: 72 });
-    walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36, name: 'Elena', nx: 22, ny: -20, hp: 100 });
-    walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop', name: 'Carmen', nx: 50, ny: -40, hp: 100 });
-    walker(L, 'pumpkin',40,  { bottom: '2px', dur: 66, delay: 41, rtl: true,  stat: 30, inner: 'hw-hop', name: 'Luis', nx: 50, ny: -38, hp: 90 });
+    walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, name: 'Emerson' });
+    walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60, name: 'Virginia' });
+    walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36, name: 'Elena', nx: 22, ny: -15 });
+    walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop', name: 'Carmen', nx: 50, ny: -35 });
+    walker(L, 'pumpkin',40,  { bottom: '2px', dur: 66, delay: 41, rtl: true,  stat: 30, inner: 'hw-hop', name: 'Luis', nx: 50, ny: -33 });
     chase(L);   // el zombi que persigue y muerde (aparece de vez en cuando)
     // arañas colgando
     var s1 = mk('spider', 'hw-spider', 30, 'left:12%;--d:6.5s;--dl:-1s;'); L.appendChild(s1);
@@ -187,10 +188,35 @@
     document.body.appendChild(L);
     place();
   }
+  // 👻 Interruptor de los dibujos (solo los dibujos; los colores se quedan). Va junto a "Próximos eventos".
+  var HW_KEY = 'rubencechef-hw-draw';
+  function hwOff() { try { return localStorage.getItem(HW_KEY) === 'off'; } catch (e) { return false; } }
+  function applyDraw() {
+    var off = hwOff(), b = document.getElementById('hwToggle');
+    document.body.classList.toggle('hw-off', off);
+    if (b) {
+      b.setAttribute('aria-pressed', off ? 'false' : 'true');
+      b.title = off ? 'Mostrar los dibujos de Halloween' : 'Ocultar los dibujos de Halloween';
+      b.setAttribute('aria-label', b.title);
+    }
+  }
+  function addToggle() {
+    if (document.getElementById('hwToggle')) return;
+    var ev = document.getElementById('eventsBtn');
+    if (!ev) return;
+    var b = document.createElement('button');
+    b.id = 'hwToggle'; b.type = 'button'; b.className = 'btn-pill ghost hw-toggle';
+    b.style.padding = '7px 10px';
+    b.innerHTML = '<span aria-hidden="true">👻</span>';
+    b.onclick = function () { try { localStorage.setItem(HW_KEY, hwOff() ? 'on' : 'off'); } catch (e) {} applyDraw(); };
+    ev.insertAdjacentElement('afterend', b);
+    applyDraw();
+  }
+
   // ⚡ Rayo de vez en cuando (cada 15-40 s): destello suave + rayo dibujado (sin destello si el dispositivo pide menos movimiento: ver CSS).
   function lightning() {
     var L = document.getElementById('hwLayer');
-    if (L && !document.hidden) {
+    if (L && !document.hidden && !document.body.classList.contains('hw-off')) {
       var x = 8 + Math.random() * 80, flip = Math.random() < 0.5 ? -1 : 1;
       var bolt = document.createElement('div');
       bolt.className = 'hw-bolt';

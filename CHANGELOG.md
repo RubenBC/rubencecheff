@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v127 — Interruptor de dibujos (Halloween)
+
+### Añadido
+- **Halloween: botón 👻 arriba, junto a "Próximos eventos", para activar o desactivar los dibujos** (criaturas, arañas y rayos). Solo afecta a los dibujos: los colores se quedan. Se recuerda en cada dispositivo.
+
+### Cambiado
+- Quitada la barra de vida roja bajo los nombres de los dibujos.
+
+---
+
 ## v126 — Nombre del gato (Halloween)
 
 ### Añadido
