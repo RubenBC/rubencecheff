@@ -93,7 +93,15 @@ body.dark #hwLayer .hw-item svg { filter: drop-shadow(0 0 2px rgba(255,150,70,0.
 .hw-spider::before { content: ''; position: absolute; left: 50%; bottom: 100%; width: 1.5px; height: 600px; background: rgba(180,170,190,0.8); }
 @keyframes hw-drop { from { transform: translateY(6px); } to { transform: translateY(110px); } }
 
+/* ⚡ rayo */
+.hw-flash { position: absolute; inset: 0; background: #fff4cc; mix-blend-mode: screen; opacity: 0; animation: hw-flash 0.8s ease-out forwards; }
+@keyframes hw-flash { 0% { opacity: 0; } 6% { opacity: .5; } 14% { opacity: .08; } 24% { opacity: .38; } 100% { opacity: 0; } }
+.hw-bolt { position: absolute; top: 0; width: 44px; height: 62%; opacity: 0; filter: drop-shadow(0 0 6px #ffe27a) drop-shadow(0 0 14px rgba(255,200,60,.8)); animation: hw-bolt 0.8s linear forwards; }
+.hw-bolt svg { width: 100%; height: 100%; display: block; }
+@keyframes hw-bolt { 0% { opacity: 0; } 6% { opacity: 1; } 14% { opacity: .15; } 24% { opacity: .95; } 60% { opacity: 0; } 100% { opacity: 0; } }
+
 /* "Reducir movimiento" del móvil: todo se queda quieto */
 @media (prefers-reduced-motion: reduce) {
   #hwLayer * { animation: none !important; }
+  .hw-flash, .hw-bolt { display: none; }
 }

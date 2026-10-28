@@ -117,6 +117,26 @@
     document.body.appendChild(L);
     place();
   }
+  // ⚡ Rayo de vez en cuando (cada 15-40 s): destello suave + rayo dibujado. Sin destellos si el móvil pide menos movimiento.
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function lightning() {
+    var L = document.getElementById('hwLayer');
+    if (L && !document.hidden && !reduce) {
+      var x = 8 + Math.random() * 80, flip = Math.random() < 0.5 ? -1 : 1;
+      var bolt = document.createElement('div');
+      bolt.className = 'hw-bolt';
+      bolt.style.left = x + '%';
+      bolt.style.transform = 'scaleX(' + flip + ')';
+      bolt.innerHTML = '<svg viewBox="0 0 60 200" preserveAspectRatio="none"><path d="M38 0 L14 78 L30 82 L8 200 L52 66 L34 62 L50 0 Z" fill="#fffbe0" stroke="#ffe27a" stroke-width="2" stroke-linejoin="round"/></svg>';
+      var flash = document.createElement('div');
+      flash.className = 'hw-flash';
+      L.appendChild(flash); L.appendChild(bolt);
+      setTimeout(function () { flash.remove(); bolt.remove(); }, 900);
+    }
+    setTimeout(lightning, 15000 + Math.random() * 25000);
+  }
+  setTimeout(lightning, 6000);
+
   // El área libre va entre la barra de arriba y el menú de abajo
   function place() {
     var tb = document.getElementById('mainTopbar') || document.querySelector('.topbar');

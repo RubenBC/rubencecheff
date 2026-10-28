@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v118 — Rayos en Halloween
+
+### Añadido
+- De vez en cuando (cada 15-40 s) cae un rayo con un destello suave. Con "reducir movimiento" activado en el móvil no hay destellos.
+
+---
+
 ## v117 — Modo Halloween 🎃
 
 ### Añadido
