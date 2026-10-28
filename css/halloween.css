@@ -40,6 +40,7 @@ body.dark .topbar, body.dark .bottom-nav {
   --text: #F3EAE4; --text2: #C9B3A6; --surface2: #2A1D17; --outline: #6B5348;
   --outline-light: #4A3328; --primary: #FF8A3D; --primary-container: #3A1D0E;
   background: rgba(14,9,7,0.96);
+  color: var(--text); /* sin esto el nombre de la app heredaba el texto oscuro del modo claro y no se veía */
 }
 .topbar { border-bottom: 3px solid #E8590C; }
 .bottom-nav { border-top: 3px solid #E8590C; }

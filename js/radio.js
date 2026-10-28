@@ -34,7 +34,6 @@
     E('radiole',      'Radiolé',       'Música española, copla, flamenco y rumba',  'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOLE.mp3'),
   ];
   window.RADIO_BUILTIN = BUILTIN;
-  window.RADIO_GROUPS  = GROUPS;
 
   function STATIONS_LIST() {
     const hidden = new Set(typeof hiddenBuiltinStations !== 'undefined' ? hiddenBuiltinStations : []);
@@ -58,7 +57,6 @@
     render();
   };
   window.radioToggleFavCurrent = function () { if (current) radioToggleFav(current); };
-
 
   let current = null;   // id de la emisora sonando/cargando, o null
   let status = 'idle';  // 'idle' | 'connecting' | 'playing' | 'paused' | 'error'
@@ -354,7 +352,6 @@
     if (current && !st) { radioStop(); return; } // la emisora que sonaba se ha borrado
 
     const all = STATIONS_LIST();
-
     const favList = all.filter(x => isFav(x.id));
 
     const card = s => {
@@ -423,7 +420,6 @@
       favBtn.classList.toggle('on', !!current && isFav(current));
     }
 
-    // burbuja (si está minimizada y hay algo sonando/cargando)
     // burbuja: solo fuera de la pestaña Radio y si hay algo puesto
     if (current && !onRadioPage()) showBubble(); else hideBubble();
     renderBubble();

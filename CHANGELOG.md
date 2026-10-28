@@ -4,6 +4,31 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v121 — Auditoría y limpieza
+
+### Arreglado
+- **Modo claro con Halloween:** el nombre "RubenceChef" de la barra de arriba no se veía (texto oscuro sobre fondo negro).
+- **Botón "atrás" tras guardar o cancelar un editor:** había que pulsarlo dos veces (la primera volvía a la misma ficha). Ahora va directo a donde estabas antes.
+- **Editar una producción abierta desde un plato:** al guardar, "Volver" ya no te manda a la lista de producciones, sino al plato del que venías.
+- **Comentarios en Admin:** al borrar uno, el aviso decía "Eliminar aviso"; ahora dice "Eliminar comentario".
+- **Conversor y regla de tres:** los decimales salen con coma (1,5) como en el resto de la app, y las cantidades muy pequeñas ya no se redondean a 0 (1,5 g = 0,0015 kg).
+- **Salmueras:** los tiempos de más de una hora salen con coma (1,5 h).
+- **Buscador:** usaba otra tipografía distinta a la del resto de la app.
+- **Etiquetas:** ya no se puede crear dos veces la misma.
+- El refresco automático en segundo plano ahora también recoge el ajuste de "días de antelación" de los avisos y la fecha de la última copia hecha desde otro dispositivo.
+
+### Cambiado
+- Textos unificados: "Plato" en vez de "Receta" (editor, avisos y estadística de Admin) y "Artículo" en vez de "Materia prima" en Pedidos.
+- Botones de solo icono con nombre para el lector de pantalla (editar, borrar, cambiar grupo, marcar artículo…).
+- La librería de Supabase va fijada a una versión concreta (2.117.3) para que una actualización suya no pueda romper la app sin avisar.
+
+### Limpieza interna
+- Código muerto eliminado (variables y funciones sin uso, bloque del service worker comentado, script de modo oscuro duplicado en index.html, estilos sin uso).
+- Estilos repetidos fusionados (29 reglas duplicadas de varias versiones). Comprobado con capturas antes y después: el aspecto es idéntico.
+- Funciones repetidas unificadas (iconos de eventos, fecha de hoy, normalización de datos) y comentarios desactualizados corregidos.
+
+---
+
 ## v120 — Changelog dentro de la app
 
 ### Añadido
