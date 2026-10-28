@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v126 — Nombre del gato (Halloween)
+
+### Añadido
+- **Halloween: el gato negro se llama Elena** (placa con su nombre encima, como el resto).
+
+---
+
 ## v125 — Nombres de fantasmas y calabazas (Halloween)
 
 ### Añadido

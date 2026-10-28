@@ -177,7 +177,7 @@
     // en el suelo (encima del menú de abajo)
     walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, name: 'Emerson', hp: 100 });
     walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60, name: 'Virginia', hp: 72 });
-    walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36 });
+    walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36, name: 'Elena', nx: 22, ny: -20, hp: 100 });
     walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop', name: 'Carmen', nx: 50, ny: -40, hp: 100 });
     walker(L, 'pumpkin',40,  { bottom: '2px', dur: 66, delay: 41, rtl: true,  stat: 30, inner: 'hw-hop', name: 'Luis', nx: 50, ny: -38, hp: 90 });
     chase(L);   // el zombi que persigue y muerde (aparece de vez en cuando)
