@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v119';
+const APP_VERSION = 'v120';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -2885,7 +2885,7 @@ function renderAdmin() {
   if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
   if (adminTab === 'tags')   { renderTagsAdmin(); return; }
   if (adminTab === 'sound')  { renderRadioAdmin(); renderMelodyAdmin(); return; }
-  if (adminTab === 'maint')  { renderBackupAdmin(); renderPhotoAdmin(); return; }
+  if (adminTab === 'maint')  { renderBackupAdmin(); renderPhotoAdmin(); renderChangelogAdmin(); return; }
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
@@ -3020,6 +3020,65 @@ function renderPhotoAdmin() {
       </button>
     </div>
 `;
+}
+
+// ─── Changelog de la app (Admin → Sistema) ─────────
+// Lee CHANGELOG.md del propio sitio y lo enseña por versiones plegables
+// (la más reciente abierta). Se descarga solo al pulsar el botón.
+let _changelogHtml = null, _changelogOpen = false;
+function changelogInline(t) {
+  return escapeHtml(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+function changelogToHtml(md) {
+  const out = []; let open = false, list = 0, first = true;
+  const closeList = () => { while (list > 0) { out.push('</ul>'); list--; } };
+  for (const raw of md.split('\n')) {
+    const line = raw.replace(/\s+$/, '');
+    let m;
+    if ((m = line.match(/^## (.+)/))) {
+      closeList(); if (open) out.push('</div></details>');
+      out.push(`<details class="cl-ver"${first ? ' open' : ''}><summary>${changelogInline(m[1])}</summary><div class="cl-body">`);
+      open = true; first = false;
+    } else if (!open) { continue; }
+    else if ((m = line.match(/^### (.+)/))) { closeList(); out.push(`<div class="cl-sub">${changelogInline(m[1])}</div>`); }
+    else if ((m = line.match(/^(\s*)- (.+)/))) {
+      const lvl = m[1].length >= 2 ? 2 : 1;
+      while (list < lvl) { out.push('<ul>'); list++; }
+      while (list > lvl) { out.push('</ul>'); list--; }
+      out.push(`<li>${changelogInline(m[2])}</li>`);
+    } else if (line === '---' || line === '') { if (line === '---') closeList(); }
+    else { closeList(); out.push(`<p>${changelogInline(line)}</p>`); }
+  }
+  closeList(); if (open) out.push('</div></details>');
+  return out.join('');
+}
+async function toggleChangelog() {
+  _changelogOpen = !_changelogOpen;
+  if (_changelogOpen && _changelogHtml === null) {
+    const box = document.getElementById('changelogBody'); if (box) box.innerHTML = '<div style="color:var(--text2); font-size:13px;">Cargando…</div>';
+    try {
+      const r = await fetch('CHANGELOG.md?v=' + encodeURIComponent(APP_VERSION), { cache: 'no-cache' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      _changelogHtml = changelogToHtml(await r.text());
+    } catch (e) {
+      _changelogOpen = false;
+      showToast('No se ha podido cargar el changelog (¿sin conexión?)');
+    }
+  }
+  renderChangelogAdmin();
+}
+function renderChangelogAdmin() {
+  const box = document.getElementById('changelogSection');
+  if (!box) return;
+  box.innerHTML = `
+    <div class="section-title"><span class="material-symbols-outlined">history</span> Changelog de la app</div>
+    <div class="card">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:10px;">Versión instalada: <b>${escapeHtml(APP_VERSION)}</b>. Lista de todos los cambios, de más reciente a más antigua.</div>
+      <button class="btn-pill" onclick="toggleChangelog()">
+        <span class="material-symbols-outlined" style="font-size:16px;">${_changelogOpen ? 'expand_less' : 'expand_more'}</span> ${_changelogOpen ? 'Ocultar changelog' : 'Ver changelog'}
+      </button>
+      <div id="changelogBody" class="cl-wrap" style="${_changelogOpen && _changelogHtml ? '' : 'display:none;'}">${_changelogOpen && _changelogHtml ? _changelogHtml : ''}</div>
+    </div>`;
 }
 
 // ─── Copia de seguridad de las recetas (Admin → Sistema) ─────────

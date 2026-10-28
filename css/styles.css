@@ -1336,3 +1336,16 @@ body.dark .update-banner { color: #002020; }
 .timer-name-input { min-height: 36px; }
 .timer-melody-select { min-height: 36px; }
 
+/* Changelog en Admin → Sistema (v120) */
+.cl-wrap { margin-top: 14px; max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.cl-ver { border-top: 1px solid var(--outline-light); padding: 4px 0; }
+.cl-ver > summary { cursor: pointer; font-weight: 800; font-size: 14px; padding: 10px 0; list-style: none; color: var(--primary); }
+.cl-ver > summary::-webkit-details-marker { display: none; }
+.cl-ver > summary::before { content: '▸ '; }
+.cl-ver[open] > summary::before { content: '▾ '; }
+.cl-body { font-size: 13px; line-height: 1.5; padding-bottom: 8px; }
+.cl-sub { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--text2); margin: 10px 0 4px; }
+.cl-body ul { margin: 2px 0 4px 18px; padding: 0; }
+.cl-body li { margin: 3px 0; }
+.cl-body code { background: var(--surface2); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+

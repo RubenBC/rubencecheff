@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v120 — Changelog dentro de la app
+
+### Añadido
+- **Admin → Sistema → "Changelog de la app":** con la sesión de admin iniciada se puede consultar la lista completa de cambios, por versiones plegables (la más reciente abierta).
+
+---
+
 ## v119 — Quitada la lista de broma
 
 ### Eliminado
