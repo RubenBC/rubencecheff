@@ -46,8 +46,7 @@ body.dark {
    <body>, este pasa a ser "contenedor de scroll" y la barra superior deja de
    quedarse fija arriba al bajar. */
 html { overflow-x: hidden; overscroll-behavior-y: contain; }
-body { min-height: 100vh; min-height: 100dvh; overflow-x: clip; }
-body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+body { min-height: 100vh; min-height: 100dvh; overflow-x: clip; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 
 /* ═══════════════════════════════════════
    TOPBAR
@@ -70,7 +69,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .brand-icon.admin-on { background: var(--primary); }
 .brand-icon.admin-on .material-symbols-outlined { color: white; }
 .brand-name { font-size: 18px; font-weight: 800; line-height: 1.1; }
-.brand-sub  { font-size: 10px; color: var(--text2); }
+.brand-sub { font-size: 10px; color: var(--text2); }
 
 /* ═══════════════════════════════════════
    SEARCH + CHIPS
@@ -79,11 +78,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .search-wrap .material-symbols-outlined { color: var(--text2); font-size: 20px; }
 .search-clear { border: none; background: var(--outline-light); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0; }
 .search-clear .material-symbols-outlined { font-size: 15px; color: var(--text2); }
-.search-wrap input { border: none; background: none; outline: none; font-size: 14px; font-family: 'Inter', sans-serif; color: var(--text); flex: 1; }
-.search-wrap input::placeholder { color: var(--text2); }
+.search-contenteditable { border: none; background: none; outline: none; font-size: 14px; font-family: 'Inter', sans-serif; color: var(--text); flex: 1; width: 100%; min-height: 20px; }
 .chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 .chips-row::-webkit-scrollbar { display: none; }
-.chip { border: 1.5px solid var(--outline-light); background: none; color: var(--text2); padding: 5px 14px; border-radius: var(--shape-full); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; transition: all 0.15s; }
 .chip.active { background: var(--primary); border-color: var(--primary); color: white; }
 
 /* ═══════════════════════════════════════
@@ -93,12 +90,10 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .btn-pill:active { transform: scale(0.96); }
 .btn-pill.filled { background: var(--primary); color: white; }
 .btn-pill.danger { background: var(--danger-light); color: var(--danger); }
-.btn-pill.ghost  { background: var(--surface2); color: var(--text2); }
+.btn-pill.ghost { background: var(--surface2); color: var(--text2); }
 .btn-action { width: 100%; background: var(--primary); color: white; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity 0.15s; }
 .btn-action:active { opacity: 0.85; }
 .btn-remove { background: none; border: none; cursor: pointer; color: var(--danger); display: flex; align-items: center; padding: 4px; flex-shrink: 0; margin-top: 4px; }
-.btn-icon { background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 4px; }
-.back-btn { border: none; background: none; color: var(--primary); font-weight: 700; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; padding: 0; }
 
 /* ═══════════════════════════════════════
    LAYOUT
@@ -189,7 +184,6 @@ body.dark .tag-sin-etiquetas { border-color: var(--outline); }
 .multiplier-label { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; margin-bottom: 12px; }
 .multiplier-label .material-symbols-outlined { color: var(--primary); font-size: 20px; }
 .multiplier-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.multiplier-row input { width: 70px; padding: 6px 10px; border-radius: var(--shape-full); border: 1.5px solid var(--outline-light); font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 700; outline: none; text-align: center; color: var(--text); }
 
 /* ═══════════════════════════════════════
    INGREDIENTES + PASOS
@@ -228,8 +222,8 @@ body.dark .tag-sin-etiquetas { border-color: var(--outline); }
 .stat-card-lbl { font-size: 11px; color: var(--text2); }
 .comment-card { background: var(--surface); border-radius: 10px; padding: 14px; border: 1px solid var(--outline-light); margin-bottom: 10px; display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; }
 .comment-recipe { font-size: 12px; color: var(--primary); font-weight: 800; margin-bottom: 4px; }
-.comment-text   { font-size: 14px; line-height: 1.5; }
-.comment-date   { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.comment-text { font-size: 14px; line-height: 1.5; }
+.comment-date { font-size: 11px; color: var(--text2); margin-top: 4px; }
 
 /* ═══════════════════════════════════════
    FICHAS
@@ -250,9 +244,9 @@ body.dark .tag-sin-etiquetas { border-color: var(--outline); }
 .ing-edit-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
 .ing-edit-row input { padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--outline-light); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; color: var(--text); }
 .ing-edit-row .ce-input { padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--outline-light); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; color: var(--text); background: var(--surface); min-height: 36px; }
-.ing-edit-name   { flex: 2; }
+.ing-edit-name { flex: 2; }
 .ing-edit-amount { width: 70px; text-align: center; }
-.ing-edit-unit   { width: 58px; text-align: center; }
+.ing-edit-unit { width: 58px; text-align: center; }
 .step-edit-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 10px; }
 .step-edit-num { min-width: 26px; height: 26px; border-radius: 50%; background: var(--primary-container); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; margin-top: 6px; }
 .step-edit-row textarea { flex: 1; padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--outline-light); font-size: 13px; font-family: 'Inter', sans-serif; resize: vertical; outline: none; }
@@ -288,7 +282,6 @@ body.dark .tag-sin-etiquetas { border-color: var(--outline); }
 @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .modal-title { font-size: 17px; font-weight: 800; color: var(--primary); }
-.modal-close { background: none; border: none; font-size: 18px; color: var(--text2); cursor: pointer; padding: 4px 8px; }
 
 /* ── Diálogo de confirmación ── */
 .confirm-overlay { align-items: center; padding: 24px; z-index: 600; }
@@ -530,7 +523,6 @@ body.dark .recipe-card-img-placeholder,
    UTILIDADES · segmentador
 ═══════════════════════════════════════ */
 .seg-control { display: flex; gap: 4px; background: var(--surface2); border-radius: var(--shape-full); padding: 4px; margin-bottom: 16px; }
-.seg-btn { flex: 1; border: none; background: none; color: var(--text2); padding: 9px 6px; border-radius: var(--shape-full); font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; }
 .seg-btn .material-symbols-outlined { font-size: 17px; }
 .seg-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
 
@@ -553,7 +545,6 @@ body.dark .recipe-card-img-placeholder,
 .order-group-head .gh-emoji { font-size: 18px; }
 .order-group-head .gh-count { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--text2); background: var(--surface2); border-radius: var(--shape-full); padding: 2px 9px; text-transform: none; letter-spacing: 0; }
 .order-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--outline-light); border-radius: 10px; margin-bottom: 7px; }
-.order-check { font-size: 24px; color: var(--outline-light); cursor: pointer; flex-shrink: 0; user-select: none; transition: color 0.12s; }
 .order-row.checked .order-check { color: var(--primary); }
 .order-name { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; min-width: 0; }
 .order-row.checked .order-name { color: var(--text2); }
@@ -627,13 +618,13 @@ body.dark .recipe-card-img-placeholder,
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   overflow: hidden;
 }
-.sk-img  { width: 100%; height: 200px; }
+.sk-img { width: 100%; height: 200px; }
 .sk-body { padding: 14px 16px 16px; }
-.sk-tag  { width: 72px;  height: 18px; border-radius: var(--shape-full); margin-bottom: 12px; }
+.sk-tag { width: 72px;  height: 18px; border-radius: var(--shape-full); margin-bottom: 12px; }
 .sk-line { height: 13px; border-radius: 6px; margin-bottom: 10px; }
 .sk-line.title { height: 16px; width: 55%; }
-.sk-line.w90   { width: 90%; }
-.sk-line.w70   { width: 70%; margin-bottom: 0; }
+.sk-line.w90 { width: 90%; }
+.sk-line.w70 { width: 70%; margin-bottom: 0; }
 
 @keyframes shimmer {
   0%   { background-position: 100% 0; }
@@ -754,8 +745,6 @@ body.dark .recipe-card-img-placeholder,
   /* Campos cortos y relacionados (p. ej. categoría + etiquetas) uno junto
      al otro en vez de apilados, para que el formulario no se vea más largo
      de lo necesario. En móvil se quedan apilados como siempre. */
-  .form-row { display: flex; gap: 14px; align-items: flex-start; }
-  .form-row > .form-group { flex: 1; min-width: 0; margin-bottom: 0; }
 
   /* El menú inferior sigue siendo táctil igual que en el móvil, pero
      centrado, compacto y con menos alto para dejar más sitio a las
@@ -772,17 +761,11 @@ body.dark .recipe-card-img-placeholder,
 /* ═══════════════════════════════════════
    TEMPORIZADOR / ALARMA (v43)
 ═══════════════════════════════════════ */
-#timerModal { z-index: 700; }
-.timer-sheet { background: white; border-radius: 14px 14px 0 0; padding: 10px 18px calc(12px + env(safe-area-inset-bottom)); width: 100%; max-width: 600px; min-height: 30vh; display: flex; flex-direction: column; gap: 6px; animation: slideUp 0.22s ease; box-shadow: 0 -4px 24px rgba(0,0,0,0.18); }
-body.dark .timer-sheet { background: var(--surface); }
 
 .timer-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; }
 .timer-tabs { display: flex; background: var(--surface2); border-radius: var(--shape-full); padding: 3px; }
-.timer-tab { border: none; background: none; color: var(--text2); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 800; padding: 6px 18px; border-radius: var(--shape-full); cursor: pointer; transition: all 0.15s; }
 .timer-tab.active { background: var(--primary); color: white; }
-.timer-title { font-size: 14px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
 
-.timer-display { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: clamp(44px, 7.5vh, 64px); line-height: 1; text-align: center; color: var(--primary); letter-spacing: 1px; padding: 2px 0; font-variant-numeric: tabular-nums; }
 .timer-display.dim { color: var(--outline); }
 .timer-alarm-picker { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--surface2); border-radius: 10px; padding: 10px; position: relative; }
 .alarm-part {
@@ -815,7 +798,6 @@ body.dark .timer-btn.stop { color: #1a0000; }
 
 /* Sonando */
 .timer-sheet.ringing { background: var(--danger-light); }
-.timer-sheet.ringing .timer-display { color: var(--danger); animation: timerBlink 0.7s steps(2, start) infinite; }
 @keyframes timerBlink { to { opacity: 0.25; } }
 
 /* Botón Timer en el menú inferior: punto naranja si hay algo en marcha */
@@ -831,25 +813,19 @@ body.dark .timer-btn.stop { color: #1a0000; }
 .timer-clock-toggle.on::after { content: ' ✓'; }
 
 /* v45 — Admin dentro de Utilidades: 4 pestañas caben en el móvil */
-.seg-btn { min-width: 0; white-space: nowrap; }
+.seg-btn { flex: 1; border: none; background: none; color: var(--text2); padding: 9px 6px; border-radius: var(--shape-full); font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; min-width: 0; white-space: nowrap; }
 @media (max-width: 430px) {
   .seg-btn { font-size: 12.5px; gap: 3px; padding: 9px 2px; }
   .seg-btn .material-symbols-outlined { display: none; } /* con 4 pestañas en móvil solo texto, para que quepan */
 }
 
 /* v46 — nombre opcional del timer */
-.timer-name-input { width: 100%; text-align: center; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); background: none; border: 1.5px dashed var(--outline-light); border-radius: 10px; padding: 4px 10px; outline: none; }
 .timer-name-input:focus { border-style: solid; border-color: var(--primary); }
-.timer-title { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.timer-sub.big { font-size: 19px; font-weight: 800; color: var(--danger); }
+.timer-title { font-size: 14px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* v47 — varios timers/alarmas a la vez */
-.timer-tab { padding: 6px 12px; }
-.timer-list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow-y: auto; }
 .trow { background: var(--surface2); border-radius: 10px; padding: 8px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
-.trow-name { font-size: 13px; font-weight: 800; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trow-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.trow-time { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 34px; line-height: 1.1; color: var(--primary); font-variant-numeric: tabular-nums; }
 .trow-time.dim { color: var(--outline); }
 .trow-btns { display: flex; gap: 6px; flex-shrink: 0; }
 .trow-btn { border: none; background: var(--primary); color: white; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 800; padding: 8px 12px; border-radius: 12px; cursor: pointer; }
@@ -857,24 +833,16 @@ body.dark .timer-btn.stop { color: #1a0000; }
 .trow-sub { font-size: 11.5px; font-weight: 600; color: var(--text2); }
 
 /* v48 — panel al 42 % con el tiempo bien grande + parpadeo rojo en los últimos 10 s */
-.timer-sheet { --timer-bg: white; background: var(--timer-bg); min-height: 42vh; }
 body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg); }
-.timer-display { flex: 1; display: flex; align-items: center; justify-content: center; font-size: min(12vh, 19vw); letter-spacing: 0; }
+.timer-display { font-family: 'Roboto Mono', monospace; font-weight: 500; line-height: 1; text-align: center; color: var(--primary); padding: 2px 0; font-variant-numeric: tabular-nums; flex: 1; display: flex; align-items: center; justify-content: center; font-size: min(12vh, 19vw); letter-spacing: 0; }
 .timer-display.long { font-size: min(9vh, 12.5vw); }
-.timer-sheet.ringing .timer-display { font-size: min(9vh, 13vw); }
-.timer-list { max-height: 60vh; }
 
 /* Un solo timer en marcha: tiempo grande, botones anchos debajo */
-.trow.single { padding: 10px 14px 12px; gap: 6px; }
-.trow.single .trow-name { text-align: center; font-size: 14px; }
-.trow.single .trow-line { flex-direction: column; align-items: stretch; gap: 8px; }
-.trow.single .trow-time { font-size: min(12vh, 19vw); text-align: center; line-height: 1.05; }
-.trow.single .trow-time.long { font-size: min(9vh, 12.5vw); }
 .trow.single .trow-btns { width: 100%; }
 .trow.single .trow-btn { flex: 1; padding: 12px; font-size: 14px; }
 .trow.single .trow-sub { text-align: center; font-size: 12.5px; }
 /* Varios en lista: tiempo algo mayor */
-.trow-time { font-size: 42px; }
+.trow-time { font-family: 'Roboto Mono', monospace; font-weight: 500; line-height: 1.1; color: var(--primary); font-variant-numeric: tabular-nums; font-size: 42px; }
 .trow-time.long { font-size: 30px; }
 
 /* Últimos 10 s: la ventana parpadea en rojo hasta que suena (luego queda roja fija, como al sonar) */
@@ -886,10 +854,9 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
   50%  { background: var(--timer-bg); }
 }
 /* Un solo timer: rellena todo el panel para que el tiempo quede centrado y grande */
-.timer-list { flex: 1; }
-.trow.single { flex: 1; }
-.trow.single .trow-line { flex: 1; justify-content: center; }
-.trow.single .trow-time { display: flex; align-items: center; justify-content: center; flex: 1; }
+.timer-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 60vh; flex: 1; }
+.trow.single { padding: 10px 14px 12px; gap: 6px; flex: 1; }
+.trow.single .trow-line { flex-direction: column; align-items: stretch; gap: 8px; flex: 1; justify-content: center; }
 
 /* Casilla de nombre: siempre en mayúsculas (el texto de ayuda se queda como está) */
 .timer-name-row { display: flex; gap: 6px; align-items: center; }
@@ -897,21 +864,20 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
 .timer-name-input:not(:placeholder-shown) { text-transform: uppercase; }
 
 /* v51 — panel al 50 % y nombre del timer mucho más grande */
-.timer-sheet { min-height: 50vh; }
+.timer-sheet { border-radius: 14px 14px 0 0; padding: 10px 18px calc(12px + env(safe-area-inset-bottom)); width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 6px; animation: slideUp 0.22s ease; box-shadow: 0 -4px 24px rgba(0,0,0,0.18); --timer-bg: white; background: var(--timer-bg); min-height: 50vh; }
 /* un solo timer: nombre grande y centrado sobre el tiempo */
 .trow.single .trow-name { font-size: clamp(24px, 4.4vh, 36px); font-weight: 800; color: var(--primary); text-align: center; line-height: 1.15; white-space: normal; overflow: visible; }
-.trow.single .trow-time { font-size: min(12vh, 19vw); }
+.trow.single .trow-time { text-align: center; line-height: 1.05; display: flex; align-items: center; justify-content: center; flex: 1; font-size: min(12vh, 19vw); }
 .trow.single .trow-time.long { font-size: min(9vh, 12.5vw); }
 /* varios timers: nombre legible en cada fila */
-.trow-name { font-size: 19px; font-weight: 800; color: var(--primary); }
+.trow-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 19px; font-weight: 800; color: var(--primary); }
 /* al sonar: nombre enorme */
 .timer-sheet.ringing .timer-title { font-size: 20px; }
-.timer-sub.big { font-size: clamp(28px, 5vh, 40px); line-height: 1.15; white-space: normal; padding: 0 4px; }
 
 /* v52 — al sonar, el nombre es el protagonista */
 .trow-name, .trow.single .trow-name { text-transform: uppercase; }
-.timer-sheet.ringing .timer-display { min-height: 0; overflow: hidden; text-align: center; line-height: 1.05; font-family: 'Inter', sans-serif; font-weight: 800; letter-spacing: 0; padding: 0 4px; overflow-wrap: normal; }
-.timer-sub.big { font-size: 20px; font-weight: 800; }
+.timer-sheet.ringing .timer-display { color: var(--danger); animation: timerBlink 0.7s steps(2, start) infinite; font-size: min(9vh, 13vw); min-height: 0; overflow: hidden; text-align: center; line-height: 1.05; font-family: 'Inter', sans-serif; font-weight: 800; letter-spacing: 0; padding: 0 4px; overflow-wrap: normal; }
+.timer-sub.big { color: var(--danger); line-height: 1.15; white-space: normal; padding: 0 4px; font-size: 20px; font-weight: 800; }
 
 /* v53 — atajo específico "Patatas · 7 min" */
 .timer-chip.potato { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; padding: 4px 0; }
@@ -926,7 +892,6 @@ body.dark .timer-sheet { --timer-bg: var(--surface); background: var(--timer-bg)
    arriba y la lista de emisoras con filtros por estilo debajo. En horizontal
    ancho (monitor, tablet), reproductor a la izquierda y lista a la derecha.
 ═══════════════════════════════════════ */
-
 
 .radio-body { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
 
@@ -1002,13 +967,6 @@ body.dark .radio-ctrl-main { color: #002020; box-shadow: 0 8px 20px rgba(0,0,0,0
 .radio-volume { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 300px; margin: 14px auto 0; }
 .radio-vol-btn { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: none; background: none; color: var(--text2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .radio-vol-btn .material-symbols-outlined { font-size: 21px; }
-.radio-vol-slider {
-  flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
-  background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--val, 100%), var(--outline-light) var(--val, 100%), var(--outline-light) 100%);
-  cursor: pointer; touch-action: pan-y;
-}
-.radio-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer; }
-.radio-vol-slider::-moz-range-thumb { width: 17px; height: 17px; border: none; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer; }
 .radio-vol-slider::-moz-range-progress { background: var(--primary); height: 4px; border-radius: 2px; }
 .radio-vol-slider::-moz-range-track { background: var(--outline-light); height: 4px; border-radius: 2px; }
 .radio-vol-pct { flex-shrink: 0; width: 36px; text-align: right; font-size: 11.5px; font-weight: 700; color: var(--text2); font-variant-numeric: tabular-nums; }
@@ -1051,12 +1009,11 @@ body.dark .radio-card.active .radio-card-desc { color: var(--text); }
 
 /* Barras de ecualizador animadas en la emisora que suena */
 .radio-eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 16px; }
-.radio-eq i { width: 3px; border-radius: 2px; background: currentColor; animation: radioEq 0.9s ease-in-out infinite; }
 .radio-eq i:nth-child(1) { height: 60%; animation-delay: -0.2s; }
 .radio-eq i:nth-child(2) { height: 100%; animation-delay: -0.5s; }
 .radio-eq i:nth-child(3) { height: 40%; animation-delay: -0.1s; }
 @keyframes radioEq { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
-.radio-eq i { transform-origin: bottom; }
+.radio-eq i { width: 3px; border-radius: 2px; background: currentColor; animation: radioEq 0.9s ease-in-out infinite; transform-origin: bottom; }
 
 /* Estrella de favorita */
 .radio-fav-btn { width: 40px; height: 40px; flex-shrink: 0; border: none; background: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--outline); }
@@ -1197,9 +1154,8 @@ body.dark .radio-card.error .radio-card-badge { color: #690005; }
 #pedSendBtn.is-empty { opacity: 0.45; box-shadow: none; }
 /* Zonas táctiles más grandes (con manos mojadas o con guantes en cocina):
    los iconos de editar/borrar medían ~26 px y estaban muy juntos */
-.btn-icon { min-width: 38px; min-height: 38px; justify-content: center; border-radius: 50%; }
-.modal-close { min-width: 40px; min-height: 40px; }
-.order-check { padding: 6px; margin: -6px; }
+.btn-icon { background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 4px; min-width: 38px; min-height: 38px; justify-content: center; border-radius: 50%; }
+.modal-close { background: none; border: none; font-size: 18px; color: var(--text2); cursor: pointer; padding: 4px 8px; min-width: 40px; min-height: 40px; }
 
 /* ═══════════════════════════════════════
    v70 — La Radio es una pestaña más (página normal, no ventana emergente).
@@ -1218,7 +1174,7 @@ body.dark .radio-card.error .radio-card-badge { color: #690005; }
 
 /* v72 — El timer se comporta como una pestaña: su panel queda encima del menú
    inferior, que sigue visible y se puede tocar para cambiar de pestaña */
-#timerModal { bottom: var(--nav-h, 0px); }
+#timerModal { z-index: 700; bottom: var(--nav-h, 0px); }
 #timerModal .timer-sheet { padding-bottom: 12px; max-height: calc(100vh - var(--nav-h, 0px) - 40px); max-height: calc(100dvh - var(--nav-h, 0px) - 40px); overflow-y: auto; }
 
 /* v74 — Flecha "Volver" flotante en el detalle de platos y producciones:
@@ -1234,7 +1190,6 @@ body.dark .radio-card.error .radio-card-badge { color: #690005; }
 .float-back-btn.show { opacity: 1; transform: none; pointer-events: auto; }
 .float-back-btn .material-symbols-outlined { font-size: 22px; }
 body.dark .float-back-btn { background: rgba(26,35,34,0.88); }
-
 
 /* ═══════════════════════════════════════
    v84 — Pantalla de acceso del equipo de cocina
@@ -1309,7 +1264,6 @@ body.dark .update-banner { color: #002020; }
 .update-banner-icon { flex-shrink: 0; font-size: 18px; }
 .update-banner-text { flex: 1; min-width: 0; }
 
-
 /* Aviso semanal de copia de seguridad (lunes 08:30) */
 .backup-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; background: #C62828; color: #fff; border-bottom: 3px solid #8E1B1B; position: relative; z-index: 101; animation: backupPulse 2.4s ease-in-out infinite; }
 .backup-banner-icon { font-size: 26px; flex-shrink: 0; }
@@ -1323,17 +1277,17 @@ body.dark .update-banner { color: #002020; }
 .card.backup-due { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(198,40,40,0.18); }
 
 /* v116 — Usabilidad: objetivos táctiles y legibilidad */
-.back-btn { min-height: 44px; padding: 0 12px 0 4px; margin-left: -4px; }
-.order-check { color: var(--text2); }
+.back-btn { border: none; background: none; color: var(--primary); font-weight: 700; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; min-height: 44px; padding: 0 12px 0 4px; margin-left: -4px; }
+.order-check { font-size: 24px; cursor: pointer; flex-shrink: 0; user-select: none; transition: color 0.12s; padding: 6px; margin: -6px; color: var(--text2); }
 .nav-btn { font-size: 11px; }
-.chip { padding: 8px 14px; min-height: 36px; }
-.multiplier-row input { min-height: 38px; width: 80px; }
-.radio-vol-slider { height: 6px; border-radius: 3px; }
+.chip { border: 1.5px solid var(--outline-light); background: none; color: var(--text2); border-radius: var(--shape-full); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; transition: all 0.15s; padding: 8px 14px; min-height: 36px; }
+.multiplier-row input { padding: 6px 10px; border-radius: var(--shape-full); border: 1.5px solid var(--outline-light); font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 700; outline: none; text-align: center; color: var(--text); min-height: 38px; width: 80px; }
+.radio-vol-slider { flex: 1; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--val, 100%), var(--outline-light) var(--val, 100%), var(--outline-light) 100%); cursor: pointer; touch-action: pan-y; height: 6px; border-radius: 3px; }
 .radio-vol-slider::-moz-range-progress, .radio-vol-slider::-moz-range-track { height: 6px; }
-.radio-vol-slider::-webkit-slider-thumb { width: 22px; height: 22px; }
-.radio-vol-slider::-moz-range-thumb { width: 22px; height: 22px; }
-.timer-tab { min-height: 36px; }
-.timer-name-input { min-height: 36px; }
+.radio-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer; width: 22px; height: 22px; }
+.radio-vol-slider::-moz-range-thumb { border: none; border-radius: 50%; background: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer; width: 22px; height: 22px; }
+.timer-tab { border: none; background: none; color: var(--text2); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 800; border-radius: var(--shape-full); cursor: pointer; transition: all 0.15s; padding: 6px 12px; min-height: 36px; }
+.timer-name-input { width: 100%; text-align: center; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); background: none; border: 1.5px dashed var(--outline-light); border-radius: 10px; padding: 4px 10px; outline: none; min-height: 36px; }
 .timer-melody-select { min-height: 36px; }
 
 /* Changelog en Admin → Sistema (v120) */

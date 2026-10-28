@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v120';
+const APP_VERSION = 'v121';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -363,7 +363,6 @@ function escapeHtml(s) {
   }[c]));
 }
 const escapeAttr = escapeHtml;
-const escAttr = escapeHtml; // (antes era una copia aparte, sin escapar el apóstrofo)
 
 // Enfoca el último elemento que casa con el selector (p. ej. el ingrediente
 // recién añadido en el editor) para poder escribir sin un toque extra.
@@ -423,7 +422,7 @@ let hiddenBuiltinStations = []; // ids de emisoras de serie que el admin ha borr
 let orderItems = [];        // filas de la tabla order_items (estado guardado)
 let orderState = {};        // key normalizada -> { name, supplier_group, checked, comment }
 let utilTab    = 'pesos';   // 'pesos' | 'conv' | 'pedidos'
-let adminTab   = 'comments'; // pestaña del panel de admin: comments | events | prod | radio | photos
+let adminTab   = 'comments'; // pestaña del panel de admin: comments | events | tags | sound | maint
 let pedidosSearch = '';
 let pedidosEdit   = false;  // modo edición de la lista de pedidos
 let orderEditCols = false;  // ¿existen las columnas hidden/manual/display_name?
@@ -468,6 +467,18 @@ let selectedProdIds    = [];
 // ═══════════════════════════════════════
 //   CARGA INICIAL
 // ═══════════════════════════════════════
+// Blindaje: si algún registro llegó de Supabase con ingredients/steps/
+// allergens/tags en null (p. ej. insertado por SQL sin esos campos), se
+// normaliza a array vacío para que abrir su detalle no rompa la app.
+function normalizeItem(it) {
+  it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
+  it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
+  it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
+  it.tags        = Array.isArray(it.tags)        ? it.tags        : [];
+  if (it.name == null) it.name = '';
+  if (it.description == null) it.description = '';
+  return it;
+}
 async function loadData() {
   try {
     const mainResults = await Promise.all([
@@ -497,18 +508,6 @@ async function loadData() {
     brines               = bData  || [];
     tags                 = tgData || [];
 
-    // Blindaje: si algún registro llegó de Supabase con ingredients/steps/
-    // allergens en null (p. ej. insertado por SQL sin esos campos), lo
-    // normalizamos a array vacío para que abrir su detalle no rompa la app.
-    const normalizeItem = it => {
-      it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
-      it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
-      it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
-      it.tags        = Array.isArray(it.tags)        ? it.tags        : [];
-      if (it.name == null) it.name = '';
-      if (it.description == null) it.description = '';
-      return it;
-    };
     recipes.forEach(normalizeItem);
     productions.forEach(normalizeItem);
 
@@ -710,7 +709,7 @@ function renderSearchDropdown(q, raw) {
         <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">menu_book</span>
         <div class="search-dropdown-info">
           <div class="search-dropdown-name">${escapeHtml(r.name)}</div>
-          ${tagChipsHtml(r, 10)}
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">${tagChipsHtml(r, 10)}</div>
         </div>
       </div>`).join('');
   }
@@ -788,9 +787,7 @@ function toggleProdAllergen(id) {
   renderProdEditor();
 }
 
-// ═══════════════════════════════════════
-//   FORMATO CANTIDADES
-// ═══════════════════════════════════════
+// Arrastrar para reordenar ingredientes y pasos en los editores
 function initSortable(containerId, arr, rerender) {
   const el = document.getElementById(containerId);
   if (!el || typeof Sortable === 'undefined') return;
@@ -823,6 +820,12 @@ function formatAmount(amount) {
   // Decimales con coma, como se escriben en España ("1,8 kg" y no "1.8 kg",
   // que en cocina se puede leer como mil ochocientos)
   return parseFloat(num.toFixed(2)).toLocaleString('es-ES', { maximumFractionDigits: 2 });
+}
+
+// Número con coma decimal, como se escribe en España (para conversor, regla de tres…)
+function fmtEs(n, maxDec = 2) {
+  const x = Number(n);
+  return Number.isFinite(x) ? x.toLocaleString('es-ES', { maximumFractionDigits: maxDec, useGrouping: false }) : '—';
 }
 
 // ═══════════════════════════════════════
@@ -1159,14 +1162,14 @@ function renderRecipeEditor() {
       <button class="back-btn" onclick="cancelRecipeEditor()">
         <span class="material-symbols-outlined">close</span> Cancelar
       </button>
-      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nueva receta' : 'Editar receta'}</span>
+      <span style="font-size:17px; font-weight:800;">${isNew ? 'Nuevo plato' : 'Editar plato'}</span>
       <button class="btn-pill filled" id="saveRecipeBtn" onclick="saveRecipe()">Guardar</button>
     </div>
     <div class="card">
       ${photoSection}
       <div class="form-group">
         <div class="form-label">Nombre</div>
-        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre de la receta..." oninput="recipeEditorData.name=this.innerText.trim()">${escapeHtml(r.name)}</div>
+        <div class="form-input contenteditable-input" contenteditable="true" data-placeholder="Nombre del plato..." oninput="recipeEditorData.name=this.innerText.trim()">${escapeHtml(r.name)}</div>
       </div>
       <div class="form-group">
         <div class="form-label">Etiquetas</div>
@@ -1328,17 +1331,27 @@ async function saveRecipe() {
   cleanupRecipePhotos(oldPaths); // la foto anterior, si se ha sustituido
   currentRecipeId = recipeEditorData.id;
   recipeEditorBaseline = JSON.stringify(recipeEditorData); // ya guardado: sin cambios pendientes
-  showToast('Receta guardada ✓');
+  showToast('Plato guardado ✓');
   exitRecipeEditor(true);
 }
 
 function cancelRecipeEditor() { return requestExitRecipeEditor(); }
 
+// Al salir del editor con Guardar o Cancelar se retira su entrada del historial,
+// para que el siguiente "atrás" no aterrice otra vez en la misma ficha.
+function dropEditorHistoryEntry() {
+  if (history.state && history.state.view === 'editor') { _silentPop = true; history.back(); }
+}
+
 function exitRecipeEditor(goToDetail) {
   exitInnerView();
+  dropEditorHistoryEntry();
   if (goToDetail && currentRecipeId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('detailPage').classList.add('active');
+    document.getElementById('searchSection').style.display = 'none';
+    recipesSubView = { id: currentRecipeId };
+    setActiveNavBtn('recipes');
     renderRecipeDetail();
   } else {
     backTo('recipes');
@@ -1351,8 +1364,8 @@ function exitRecipeEditor(goToDetail) {
 
 async function deleteRecipe(id) {
   const ok = await showConfirm({
-    title:       'Eliminar receta',
-    message:     '¿Seguro que quieres eliminar esta receta? Esta acción no se puede deshacer.',
+    title:       'Eliminar plato',
+    message:     '¿Seguro que quieres eliminar este plato? Esta acción no se puede deshacer.',
     confirmText: 'Eliminar',
     danger:      true,
     icon:        'delete',
@@ -1368,7 +1381,7 @@ async function deleteRecipe(id) {
     },
   });
   if (!ok) return;
-  showToast('Receta eliminada');
+  showToast('Plato eliminado');
   backTo('recipes'); renderRecipes();
 }
 
@@ -1480,7 +1493,7 @@ function openLinkRecipesModal(prodId) {
         <div class="link-prod-row" onclick="toggleRecipeLink('${r.id}', this)">
           <div>
             <div style="font-size:14px; font-weight:600;">${escapeHtml(r.name)}</div>
-            ${tagChipsHtml(r, 10)}
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">${tagChipsHtml(r, 10)}</div>
           </div>
           <span class="material-symbols-outlined check-icon" style="color:${selectedRecipeIds.includes(r.id) ? 'var(--primary)' : 'var(--outline-light)'};">
             ${selectedRecipeIds.includes(r.id) ? 'check_circle' : 'radio_button_unchecked'}
@@ -1687,7 +1700,7 @@ function renderProdDetail(fromPage) {
               <div class="prod-link-row" onclick="goToRecipeFromProd('${r.id}')">
                 <div>
                   <div class="prod-link-name">${escapeHtml(r.name)}</div>
-                  ${tagChipsHtml(r, 10)}
+                  <div style="display:flex; gap:4px; flex-wrap:wrap;">${tagChipsHtml(r, 10)}</div>
                 </div>
                 <span class="material-symbols-outlined" style="color:var(--outline);">chevron_right</span>
               </div>`).join('')
@@ -1885,10 +1898,19 @@ function cancelProdEditor() { return requestExitProdEditor(); }
 
 function exitProdEditor(goToDetail) {
   exitInnerView();
+  dropEditorHistoryEntry();
   if (goToDetail && currentProdId) {
+    // Editando: se vuelve a la ficha con el mismo "Volver" que tenía (lista o plato de origen).
+    // Recién creada: su "Volver" lleva a la lista de producciones.
+    const sv = prodEditorMode === 'edit' && productionsSubView && productionsSubView.id === currentProdId ? productionsSubView : null;
+    const fromPage = sv ? (sv.fromPage || 'productions') : 'productions';
+    prodFromRecipeId = sv ? (sv.fromRecipe || null) : null;
+    productionsSubView = { id: currentProdId, fromPage, fromRecipe: prodFromRecipeId };
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('productionDetailPage').classList.add('active');
-    renderProdDetail('productions');
+    document.getElementById('searchSection').style.display = 'none';
+    setActiveNavBtn('productions');
+    renderProdDetail(fromPage);
   } else {
     backTo('productions');
     renderProductions();
@@ -1948,7 +1970,7 @@ async function sendComment() {
   const btn = document.querySelector('#commentModal .btn-action');
   const ok = await runWithLoading(btn, 'Enviando...', async () => {
     const { error } = await sb.from('comments').insert(newComment);
-    if (error) { showToast('Error al enviar'); return false; }
+    if (error) { console.error(error); if (!handleAuthError(error)) showToast('Error al enviar'); return false; }
     return true;
   });
   if (!ok) return;
@@ -2237,11 +2259,6 @@ async function restoreAdminSession() {
   } catch(e) {}
 }
 
-// Los comentarios del personal se pueden enviar sin iniciar sesión (RLS lo
-// permite a propósito), así que es texto no confiable: hay que escaparlo
-// antes de insertarlo en el HTML del panel de Admin.
-// Panel de Admin: sugerencias de la IA pendientes de aprobar, y avisos ya
-// activos (aprobados) por si hay que retirar alguno (partido aplazado, etc.)
 // Marca/desmarca un evento como de alto riesgo (mucho trabajo previsto).
 // Solo tiene efecto real con sesión de admin (RLS lo exige); optimista en
 // pantalla, se revierte si el guardado falla.
@@ -2325,6 +2342,8 @@ function dedupeEvents(list) {
   return kept;
 }
 
+const EVENT_ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
+
 function renderImportantDatesAdmin() {
   const el = document.getElementById('importantDatesSection');
   if (!el) return;
@@ -2333,12 +2352,10 @@ function renderImportantDatesAdmin() {
   if (currentPage === 'admin') renderAdminTabs(); // número de pendientes en la pestaña
   const pending = importantDates.filter(d => d.status === 'pendiente')
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
-  const _t = new Date();
-  const today = `${_t.getFullYear()}-${String(_t.getMonth() + 1).padStart(2, '0')}-${String(_t.getDate()).padStart(2, '0')}`;
+  const today = todayKey();
   const active = importantDates.filter(d => d.status === 'aprobado' && d.event_date >= today)
     .sort((a, b) => a.event_date.localeCompare(b.event_date));
 
-  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
   const fmtDate = iso => new Date(iso + 'T00:00:00')
     .toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -2360,7 +2377,7 @@ function renderImportantDatesAdmin() {
   const row = (d, actions) => `
     <div class="comment-card ${d.high_risk ? 'high-risk' : ''}">
       <div style="flex:1;">
-        <div class="comment-recipe">${ICONS[d.category] || '📅'} ${escapeHtml(fmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''}</div>
+        <div class="comment-recipe">${EVENT_ICONS[d.category] || '📅'} ${escapeHtml(fmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''}</div>
         <div class="comment-text">${escapeHtml(d.title)}</div>
         ${d.note ? `<div class="comment-date">${escapeHtml(d.note)}</div>` : ''}
         ${d.status === 'pendiente' && dupInfo(d) ? `<div class="comment-date" style="color:var(--danger);">⚠ Posible repetido de «${escapeHtml(dupInfo(d).other.title)}»</div>` : ''}
@@ -2392,7 +2409,6 @@ function renderImportantDatesAdmin() {
       <span class="material-symbols-outlined">stadium</span> Partidos y conciertos
       ${pending.length > 0 ? '<span class="badge">' + pending.length + '</span>' : ''}
     </div>
-    ${true ? `
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
         <button class="btn-pill" onclick="openImportCsvModal()">
           <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span> Importar CSV
@@ -2411,8 +2427,7 @@ function renderImportantDatesAdmin() {
         <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span> Descartar ${dupCount} repetido${dupCount === 1 ? '' : 's'}
       </button>` : ''}
       ${pendingHtml}
-      ${activeHtml}
-    ` : ''}`;
+      ${activeHtml}`;
 }
 
 // Descarta de golpe las sugerencias pendientes que repiten un aviso ya aprobado
@@ -2513,9 +2528,8 @@ function openImportCsvModal() {
 
 // Pega el CSV separado por ";" (fecha;hora;titulo;categoria;nota), venga de donde venga,
 // filtra las filas que no cumplan el formato mínimo, descarta las que ya
-// existan en la base de datos (en cualquier estado: pendiente/aprobado/
-// descartado) comparando fecha + categoría + título sin acentos ni
-// mayúsculas, y guarda el resto como sugerencias pendientes de aprobar.
+// existan (en cualquier estado) o se repitan dentro del propio CSV (ver
+// sameEvent) y guarda el resto como sugerencias pendientes de aprobar.
 async function importCsvEvents(btn) {
   const input    = document.getElementById('csvImportInput');
   const resultEl = document.getElementById('csvImportResult');
@@ -2525,8 +2539,7 @@ async function importCsvEvents(btn) {
   const lines = raw.replace(/^\uFEFF/, '').split('\n').map(l => l.trim()).filter(l => l);
   const rows = [];
   let pastCount = 0;
-  const _n = new Date();
-  const todayIso = `${_n.getFullYear()}-${String(_n.getMonth() + 1).padStart(2, '0')}-${String(_n.getDate()).padStart(2, '0')}`;
+  const todayIso = todayKey();
   // Categorías tal como las suele escribir una IA ("Fútbol", "CONCIERTO", "partido"...)
   const CAT = { futbol: 'futbol', partido: 'futbol', concierto: 'concierto', evento: 'evento' };
   for (const line of lines) {
@@ -2604,7 +2617,6 @@ let melodies = [];          // filas de timer_melodies ya cargadas: [{id,name,fi
 let melodyDefaultId = '1';  // id predeterminado: '1' (tono clásico), 'jingle', 'diesirae', o el id de una subida
 let melodyTonesLoaded = new Set(); // ids cuyas notas ya se han descargado y pasado al timer en este dispositivo
 let midiEdit = null;        // lo que se está subiendo ahora mismo: { name, buffer, parsed, sel, start, end }
-let _melodyPreviewNotes = null;
 const newIdStr = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 function applyMelodyOptions(_retries) {
@@ -2720,7 +2732,6 @@ async function midiPickFile(input) {
 }
 
 function midiStopPreview() {
-  _melodyPreviewNotes = null;
   if (typeof timerStopPreview === 'function') timerStopPreview();
   document.querySelectorAll('[data-mel-playing]').forEach(b => {
     b.removeAttribute('data-mel-playing');
@@ -2814,15 +2825,13 @@ async function melodyDelete(id) {
   renderMelodyAdmin();
 }
 
-
-
 // ─── Panel de administración: pestañas ─────────
 const ADMIN_TABS = [
   { key: 'comments', label: 'Comentarios',   icon: 'forum' },
   { key: 'events',   label: 'Avisos',        icon: 'stadium' },
   { key: 'tags',     label: 'Etiquetas',     icon: 'label' },
   { key: 'sound',    label: 'Sonido',        icon: 'music_note' },   // emisoras de radio + melodías del timer
-  { key: 'maint',    label: 'Sistema', icon: 'build' },        // copia de seguridad, fotos, actualizar dispositivos
+  { key: 'maint',    label: 'Sistema',       icon: 'build' },        // copia de seguridad, fotos, changelog, actualizar dispositivos
 ];
 const ADMIN_PANEL_IDS = { comments: 'adminTabComments', events: 'adminTabEvents', tags: 'adminTabTags', sound: 'adminTabSound', maint: 'adminTabMaint' };
 
@@ -2859,7 +2868,7 @@ function renderAdmin() {
   const resolved = comments.filter(c =>  c.resolved);
 
   document.getElementById('adminStats').innerHTML = `
-    <div class="stat-card"><span class="material-symbols-outlined">menu_book</span><div class="stat-card-num">${recipes.length}</div><div class="stat-card-lbl">Recetas</div></div>
+    <div class="stat-card"><span class="material-symbols-outlined">menu_book</span><div class="stat-card-num">${recipes.length}</div><div class="stat-card-lbl">Platos</div></div>
     <div class="stat-card"><span class="material-symbols-outlined">blender</span><div class="stat-card-num">${productions.length}</div><div class="stat-card-lbl">Producciones</div></div>
     <div class="stat-card"><span class="material-symbols-outlined">mark_chat_unread</span><div class="stat-card-num">${isAdmin ? pending.length : '—'}</div><div class="stat-card-lbl">Pendientes</div></div>`;
 
@@ -2957,16 +2966,16 @@ function renderTagsAdmin() {
     <div class="ficha-row">
       <div class="ficha-name">${escapeHtml(t.name)}</div>
       <div style="display:flex; gap:6px;">
-        <button class="btn-icon" onclick="moveTag('${t.id}', -1)" aria-label="Subir ${escAttr(t.name)}" title="Subir" ${i === 0 ? 'disabled style="opacity:0.3;"' : ''}>
+        <button class="btn-icon" onclick="moveTag('${t.id}', -1)" aria-label="Subir ${escapeAttr(t.name)}" title="Subir" ${i === 0 ? 'disabled style="opacity:0.3;"' : ''}>
           <span class="material-symbols-outlined" style="font-size:20px;">arrow_upward</span>
         </button>
-        <button class="btn-icon" onclick="moveTag('${t.id}', 1)" aria-label="Bajar ${escAttr(t.name)}" title="Bajar" ${i === tags.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
+        <button class="btn-icon" onclick="moveTag('${t.id}', 1)" aria-label="Bajar ${escapeAttr(t.name)}" title="Bajar" ${i === tags.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
           <span class="material-symbols-outlined" style="font-size:20px;">arrow_downward</span>
         </button>
-        <button class="btn-icon" onclick="renameTag('${t.id}')">
+        <button class="btn-icon" onclick="renameTag('${t.id}')" aria-label="Renombrar ${escapeAttr(t.name)}">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
         </button>
-        <button class="btn-icon" onclick="deleteTag('${t.id}')">
+        <button class="btn-icon" onclick="deleteTag('${t.id}')" aria-label="Eliminar ${escapeAttr(t.name)}">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
         </button>
       </div>
@@ -2983,7 +2992,7 @@ function renderTagsAdmin() {
       ${tagHtml}
       <div style="margin-top:12px; display:flex; gap:8px;">
         <div class="form-input ce-input" id="newTagInput" contenteditable="true" data-placeholder="Nueva etiqueta..." style="flex:1;"></div>
-        <button class="btn-pill filled" id="addTagBtn" onclick="addTag()">
+        <button class="btn-pill filled" id="addTagBtn" onclick="addTag()" aria-label="Añadir etiqueta">
           <span class="material-symbols-outlined" style="font-size:16px;">add</span>
         </button>
       </div>
@@ -3145,14 +3154,13 @@ async function exportRecetarioPDF() {
   if (!window.jspdf || !window.jspdf.jsPDF) { showToast('No se pudo cargar el generador de PDF'); return; }
   const btn = document.getElementById('exportPdfBtn');
   const saveBtn = document.getElementById('exportPdfSaveBtn');
-  const status = document.getElementById('exportPdfStatus');
   const setStatus = t => { const el = document.getElementById('exportPdfStatus'); if (el) el.textContent = t; };
   const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base', numeric: true });
   const items = [
     ...recipes.slice().sort(byName).map(r => ({ kind: 'recipe', it: r })),
     ...productions.slice().sort(byName).map(p => ({ kind: 'production', it: p })),
   ];
-  if (!items.length) { showToast('No hay recetas que exportar'); return; }
+  if (!items.length) { showToast('No hay platos ni producciones que exportar'); return; }
 
   _exportingPdf = true;
   _recetarioPdf = null;
@@ -3306,8 +3314,7 @@ async function exportRecetarioPDF() {
       doc.text(`Página ${p} de ${total}`, W - M, H - 8, { align: 'right' });
     }
 
-    const d = new Date();
-    const name = `Recetario RubenceChef ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.pdf`;
+    const name = `Recetario RubenceChef ${todayKey()}.pdf`;
     _recetarioPdf = { blob: doc.output('blob'), name };
     const sizeMb = (_recetarioPdf.blob.size / 1048576).toFixed(1).replace('.', ',');
     setStatus(`✓ Listo: ${total} páginas, ${sizeMb} MB. Pulsa "Guardar / compartir" para completar la copia.`);
@@ -3413,7 +3420,7 @@ function renderRadioAdmin() {
           <div style="font-weight:800;">${escapeHtml(s.name)}</div>
           <div style="font-size:11.5px; color:var(--text2);">${s.flag || ''} ${escapeHtml(s.desc || '')}</div>
         </div>
-        <button class="btn-icon" onclick="radioAdminDeleteBuiltin('${s.id}')">
+        <button class="btn-icon" onclick="radioAdminDeleteBuiltin('${s.id}')" aria-label="Eliminar ${escapeAttr(s.name)}">
           <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
         </button>
       </div>`).join('');
@@ -3428,10 +3435,10 @@ function renderRadioAdmin() {
           <div style="font-size:11px; color:var(--outline); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(s.url)}</div>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
-          <button class="btn-icon" onclick="radioAdminEdit('${s.id}')">
+          <button class="btn-icon" onclick="radioAdminEdit('${s.id}')" aria-label="Editar ${escapeAttr(s.name)}">
             <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
           </button>
-          <button class="btn-icon" onclick="radioAdminDelete('${s.id}')">
+          <button class="btn-icon" onclick="radioAdminDelete('${s.id}')" aria-label="Eliminar ${escapeAttr(s.name)}">
             <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
           </button>
         </div>
@@ -3680,8 +3687,8 @@ async function resolveComment(id, btn) {
 
 async function deleteComment(id) {
   const ok = await showConfirm({
-    title:       'Eliminar aviso',
-    message:     '¿Seguro que quieres eliminar este aviso? No se puede deshacer.',
+    title:       'Eliminar comentario',
+    message:     '¿Seguro que quieres eliminar este comentario? No se puede deshacer.',
     confirmText: 'Eliminar',
     danger:      true,
     icon:        'delete',
@@ -3693,20 +3700,21 @@ async function deleteComment(id) {
     },
   });
   if (!ok) return;
-  showToast('Aviso eliminado');
+  showToast('Comentario eliminado');
   updateBadges(); renderAdmin();
 }
 
-// ─── Categorías de producción ─────────
+// ─── Etiquetas (Admin) ─────────
 async function addTag() {
   const input = document.getElementById('newTagInput');
-  const name = (input?.innerText || '').trim();
+  const name = (input?.innerText || '').trim().replace(/\s+/g, ' ');
   if (!name) return;
-  const newTag = { id: Date.now().toString(), name, sort_order: tags.length + 1 };
+  if (tags.some(t => normalizeText(t.name) === normalizeText(name))) { showToast(`Ya existe la etiqueta "${name}"`); return; }
+  const newTag = { id: Date.now().toString(), name, sort_order: tags.reduce((m, t) => Math.max(m, t.sort_order || 0), 0) + 1 };
   const btn = document.getElementById('addTagBtn');
   const ok = await runWithLoading(btn, '', async () => {
     const { error } = await sb.from('tags').insert(newTag);
-    if (error) { showToast('Error al añadir'); return false; }
+    if (error) { if (!handleAuthError(error)) showToast('Error al añadir'); return false; }
     return true;
   });
   if (!ok) return;
@@ -3829,7 +3837,6 @@ function renderEventsModalBody() {
   const body = document.getElementById('eventsModalBody');
   if (!body) return;
   const upcoming = getUpcomingBannerEvents();
-  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
   if (!upcoming.length) {
     body.innerHTML = `<div class="empty-state" style="padding:24px 0;"><span class="material-symbols-outlined">event_available</span>No hay días con más trabajo previstos</div>`;
     return;
@@ -3837,7 +3844,7 @@ function renderEventsModalBody() {
 
   body.innerHTML = upcoming.map(d => `
     <div class="event-banner-row ${d.high_risk ? 'high-risk' : ''}">
-      <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
+      <span class="event-banner-icon">${EVENT_ICONS[d.category] || '📅'}</span>
       <div class="event-banner-info">
         <div class="event-banner-name">${escapeHtml(eventBannerFmtDate(d.event_date))}${d.event_time ? ' · ' + escapeHtml(String(d.event_time).slice(0, 5)) : ''} — ${escapeHtml(d.title)}</div>
         ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
@@ -3962,11 +3969,10 @@ function renderDailyBriefBody(weather, weatherError) {
   }
 
   const events = getTodaysApprovedEvents();
-  const ICONS = { futbol: '⚽', concierto: '🎤', evento: '📅' };
   const eventsHtml = events.length
     ? events.map(d => `
       <div class="event-banner-row">
-        <span class="event-banner-icon">${ICONS[d.category] || '📅'}</span>
+        <span class="event-banner-icon">${EVENT_ICONS[d.category] || '📅'}</span>
         <div class="event-banner-info">
           <div class="event-banner-name">${d.event_time ? escapeHtml(String(d.event_time).slice(0, 5)) + ' — ' : ''}${escapeHtml(d.title)}</div>
           ${d.note ? `<div class="event-banner-note">${escapeHtml(d.note)}</div>` : ''}
@@ -4003,9 +4009,6 @@ function maybeShowDailyBrief() {
   showDailyBriefModal();
 }
 
-// ═══════════════════════════════════════
-//   FICHAS
-// ═══════════════════════════════════════
 // ═══════════════════════════════════════
 //   UTILIDADES (Pesos · Conversión · Pedidos)
 // ═══════════════════════════════════════
@@ -4054,18 +4057,15 @@ function updateRuleOfThree() {
   const box = document.getElementById('rotResult');
   if (isNaN(a) || isNaN(b) || isNaN(c) || a === 0) { box.style.display = 'none'; return; }
   const x = b * c / a;
-  const d = Number.isInteger(x) ? x : parseFloat(x.toFixed(3));
-  document.getElementById('rotResultVal').textContent = d;
-  document.getElementById('rotResultLbl').textContent = `${fmtNum(a)} : ${fmtNum(b)}  =  ${fmtNum(c)} : ${d}`;
+  document.getElementById('rotResultVal').textContent = fmtEs(x, 3);
+  document.getElementById('rotResultLbl').textContent = `${fmtEs(a, 3)} : ${fmtEs(b, 3)}  =  ${fmtEs(c, 3)} : ${fmtEs(x, 3)}`;
   box.style.display = '';
 }
-function fmtNum(n) { return Number.isInteger(n) ? n : parseFloat(n.toFixed(3)); }
 
 // ═══════════════════════════════════════
 //   LISTA DE PEDIDOS
 // ═══════════════════════════════════════
 let _pedIndexByKey = {};
-
 
 // Reconstruye el estado guardado (check/comentario/grupo/edición) por materia prima.
 function rebuildOrderState() {
@@ -4185,10 +4185,10 @@ function renderPedidosList() {
         } else {
           html += `
             <div class="order-row ${e.checked ? 'checked' : ''}">
-              <span class="order-check material-symbols-outlined" onclick="togglePedido('${k}')">${e.checked ? 'check_circle' : 'radio_button_unchecked'}</span>
+              <span class="order-check material-symbols-outlined" role="checkbox" aria-checked="${e.checked}" aria-label="Marcar ${escapeAttr(e.display)}" onclick="togglePedido('${k}')">${e.checked ? 'check_circle' : 'radio_button_unchecked'}</span>
               <span class="order-name">${escapeHtml(e.display)}</span>
-              <input class="order-comment" type="text" placeholder="Nota…" value="${escAttr(e.comment)}" onchange="setPedidoComment('${k}', this.value)">
-              <button class="order-move btn-icon" onclick="openGroupPicker('${k}')"><span class="material-symbols-outlined">swap_horiz</span></button>
+              <input class="order-comment" type="text" placeholder="Nota…" aria-label="Nota para ${escapeAttr(e.display)}" value="${escapeAttr(e.comment)}" onchange="setPedidoComment('${k}', this.value)">
+              <button class="order-move btn-icon" onclick="openGroupPicker('${k}')" aria-label="Cambiar grupo"><span class="material-symbols-outlined">swap_horiz</span></button>
             </div>`;
         }
       });
@@ -4269,7 +4269,7 @@ function openGroupPicker(enc) {
   modal.innerHTML = `
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <span class="modal-title">Grupo de "${escAttr(display)}"</span>
+        <span class="modal-title">Grupo de "${escapeAttr(display)}"</span>
         <button class="modal-close" onclick="closeGroupPicker()">✕</button>
       </div>
       <div>${all.map(g => `
@@ -4316,7 +4316,7 @@ async function addManualMateriaPrima() {
   orderState[key] = { ...(orderState[key] || { supplier_group: null, checked: false, comment: '' }), name: display, manual: true, hidden: false };
   await upsertOrderItem(key, display, { manual: true, hidden: false, name: display });
   renderPedidosList();
-  showToast('Materia prima añadida ✓');
+  showToast('Artículo añadido ✓');
 }
 
 async function renamePedido(enc) {
@@ -4327,7 +4327,7 @@ async function renamePedido(enc) {
     title:       'Renombrar',
     label:       'Nombre mostrado',
     value:       current,
-    placeholder: 'Nombre de la materia prima',
+    placeholder: 'Nombre del artículo',
     confirmText: 'Guardar',
     icon:        'edit',
   });
@@ -4380,9 +4380,8 @@ async function resetPedidos() {
 
 // Genera el PDF con los marcados y abre el menú de compartir (WhatsApp, etc.).
 async function sendPedidoPDF() {
-  const entries = buildPedidoEntries().entries.filter(e => e.checked && !e.hidden);
-
-  if (!entries.length) { showToast('Marca al menos una materia prima'); return; }
+  const entries = buildPedidoEntries().entries.filter(e => e.checked);
+  if (!entries.length) { showToast('Marca al menos un artículo'); return; }
   if (!window.jspdf || !window.jspdf.jsPDF) { showToast('No se pudo cargar el generador de PDF'); return; }
 
   const btn = document.getElementById('pedSendBtn');
@@ -4483,10 +4482,10 @@ function renderWeights() {
           <div style="display:flex; align-items:center; gap:8px;">
             <span class="ing-amount">${w.grams} g</span>
             ${isAdmin ? `
-              <button class="btn-icon" onclick="openWeightModal('${w.id}')">
+              <button class="btn-icon" onclick="openWeightModal('${w.id}')" aria-label="Editar ${escapeAttr(w.name)}">
                 <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
               </button>
-              <button class="btn-icon" onclick="deleteWeight('${w.id}')">
+              <button class="btn-icon" onclick="deleteWeight('${w.id}')" aria-label="Eliminar ${escapeAttr(w.name)}">
                 <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
               </button>` : ''}
           </div>
@@ -4508,12 +4507,12 @@ function renderBrines() {
               ${b.notes ? `<div class="ficha-note">${escapeHtml(b.notes)}</div>` : ''}
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="ing-amount">${b.minutes >= 60 ? (b.minutes/60)+' h' : b.minutes+' min'}</span>
+              <span class="ing-amount">${b.minutes >= 60 ? fmtEs(b.minutes / 60, 2) + ' h' : b.minutes + ' min'}</span>
               ${isAdmin ? `
-                <button class="btn-icon" onclick="openBrineModal('${b.id}')">
+                <button class="btn-icon" onclick="openBrineModal('${b.id}')" aria-label="Editar ${escapeAttr(b.product)}">
                   <span class="material-symbols-outlined" style="font-size:18px; color:var(--primary);">edit</span>
                 </button>
-                <button class="btn-icon" onclick="deleteBrine('${b.id}')">
+                <button class="btn-icon" onclick="deleteBrine('${b.id}')" aria-label="Eliminar ${escapeAttr(b.product)}">
                   <span class="material-symbols-outlined" style="font-size:18px; color:var(--danger);">delete</span>
                 </button>` : ''}
             </div>
@@ -4723,17 +4722,11 @@ function updateConverter() {
     result = to === 'g' ? gFrom : gFrom / (CUP_FRACTION[to] * gPerCup);
   }
   else { const b = CONV_TYPES[convType].toBase; result = val*b[from]/b[to]; }
-  let d;
-  if (Number.isInteger(result)) d = result;
-  else if (to === 'g' || to === 'ml') d = parseFloat(result.toFixed(1));
-  else d = parseFloat(result.toFixed(2));
+  const d = fmtEs(result, (to === 'g' || to === 'ml') ? 1 : (Math.abs(result) < 0.1 ? 4 : 2)); // 1,5 g → 0,0015 kg, no "0 kg"
   document.getElementById('convResult').textContent     = d + ' ' + to;
-  document.getElementById('convResultLabel').textContent = `${val} ${from} = ${d} ${to}`;
+  document.getElementById('convResultLabel').textContent = `${fmtEs(val, 3)} ${from} = ${d} ${to}`;
 }
 
-// ═══════════════════════════════════════
-//   UTILIDADES
-// ═══════════════════════════════════════
 // ═══════════════════════════════════════
 //   DIÁLOGO DE CONFIRMACIÓN PROPIO
 // ═══════════════════════════════════════
@@ -5068,9 +5061,6 @@ searchInput.setAttribute('contenteditable', 'true');
 searchInput.setAttribute('data-placeholder', 'Buscar...');
 searchInput.setAttribute('role', 'searchbox');
 searchInput.className = 'search-contenteditable';
-searchInput.style.cssText = 'border:none;background:none;outline:none;font-size:14px;font-family:Nunito,sans-serif;color:var(--text);flex:1;width:100%;min-height:20px;';
-// Helper para leer el texto de búsqueda
-searchInput.getValue = function() { return this.innerText.trim(); };
 searchInput.addEventListener('input', onSearch);
 document.getElementById('searchInputWrap').appendChild(searchInput);
 
@@ -5080,13 +5070,6 @@ if (versionMismatch()) setTimeout(() => showToast('Aviso: index.html y js/app.js
 renderRecipeSkeletons();
 initAuthListener();
 startApp();
-
-// Service Worker desactivado temporalmente
-// if ('serviceWorker' in navigator) {
-//   window.addEventListener('load', () => {
-//     navigator.serviceWorker.register('/rubencecheff/sw.js').catch(() => {});
-//   });
-// }
 
 // Refresco de datos en segundo plano (sustituye a la antigua recarga de la
 // página cada 15 min, que cortaba la radio). Vuelve a pedir los datos a
@@ -5125,6 +5108,7 @@ async function refreshDataSilently() {
       sb.from('radio_hidden_builtin').select('*'),
       sb.from('timer_melodies').select('*').order('sort_order'),
       sb.from('app_settings').select('*').eq('key', 'default_melody').maybeSingle(),
+      sb.from('app_settings').select('*').eq('key', 'events_window_days').maybeSingle(),
     ]);
     // Si algo falla (sin cobertura, tabla inexistente...), no se toca nada.
     if (res.slice(0, 7).some(r => r.error)) return;
@@ -5134,19 +5118,10 @@ async function refreshDataSilently() {
     // Por si mientras tanto has empezado a editar algo
     if (document.getElementById('editorPage').classList.contains('active') ||
         document.getElementById('productionEditorPage').classList.contains('active')) return;
-    const norm = it => {
-      it.ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
-      it.steps       = Array.isArray(it.steps)       ? it.steps       : [];
-      it.allergens   = Array.isArray(it.allergens)   ? it.allergens   : [];
-      it.tags        = Array.isArray(it.tags)        ? it.tags        : [];
-      if (it.name == null) it.name = '';
-      if (it.description == null) it.description = '';
-      return it;
-    };
-    recipes               = (res[0].data || []).map(norm);
-    productions           = (res[1].data || []).map(norm);
+    recipes               = (res[0].data || []).map(normalizeItem);
+    productions           = (res[1].data || []).map(normalizeItem);
     recipeProductions     = res[2].data || [];
-    comments               = res[3].data || [];
+    comments              = res[3].data || [];
     weights               = res[4].data || [];
     brines                = res[5].data || [];
     tags                  = res[6].data || [];
@@ -5163,6 +5138,8 @@ async function refreshDataSilently() {
       loadAllMelodyTones();
     }
     if (!res[12].error) melodyDefaultId = (res[12].data && res[12].data.value) || '1';
+    if (!res[13].error && res[13].data) eventsWindowDays = parseInt(res[13].data.value, 10) || 5;
+    if (isAdmin) loadBackupStamp(); // por si la copia se ha hecho desde otro dispositivo
     applyMelodyOptions();
     _lastDataRefresh = Date.now();
 

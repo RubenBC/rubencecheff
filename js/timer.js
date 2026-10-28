@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════
-   TEMPORIZADORES Y ALARMAS  (v52)
+   TEMPORIZADORES Y ALARMAS
    - Puedes tener VARIOS a la vez (timers y alarmas mezclados)
-   - Timer: 5 · 7 · 9 · 12 min o tiempo manual, con nombre opcional
+   - Timer: atajos de minutos o tiempo manual, con nombre opcional
    - Alarma a una hora concreta, con nombre opcional
    - Al terminar suena una melodía fuerte en bucle hasta pulsar "Detener"
    - Puntualidad con la pestaña en segundo plano (PC): conteo en Web Worker
@@ -197,7 +197,7 @@
 
   // Una melodía subida por el admin (a diferencia de las 3 de serie) se
   // reproduce aparte, con el mismo mecanismo sencillo y ya probado del botón
-  // "Escuchar" de Admin → Melodía (tocar las notas ya mismo y volver a
+  // "Escuchar" de Admin → Sonido (tocar las notas ya mismo y volver a
   // empezar al terminar), en vez del sistema de programar-con-antelación que
   // usan las melodías de serie. Ese sistema depende del reloj interno del
   // audio y de tenerlo todo listo con minutos de margen; para un archivo que
@@ -312,7 +312,7 @@
     if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
   }
 
-  // Escuchar una melodía de prueba (pestaña Melodía del panel de admin). Devuelve su duración en segundos.
+  // Escuchar una melodía de prueba (Admin → Sonido). Devuelve su duración en segundos.
   let previewNodes = null;
   window.timerStopPreview = function () {
     if (!previewNodes) return;
