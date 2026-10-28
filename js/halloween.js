@@ -111,6 +111,8 @@
     '<g class="hw-zname"><rect x="21" y="-14" width="48" height="11" rx="3" fill="#000" fill-opacity=".6" stroke="#ff5a44" stroke-opacity=".7" stroke-width=".8"/>' +
     '<text x="45" y="-6.3" font-size="9.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="system-ui,Arial,sans-serif">Rubén</text>' +
     '</g>' +
+    '<g><rect x="143" y="19" width="44" height="11" rx="3" fill="#000" fill-opacity=".6" stroke="#ff5a44" stroke-opacity=".7" stroke-width=".8"/>' +
+    '<text x="165" y="26.8" font-size="9.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="system-ui,Arial,sans-serif">Grisel</text></g>' +
     '<g class="hw-blood"><circle class="hw-drop" cx="128" cy="62" r="2.6" fill="#c8101c"/><circle class="hw-drop" style="animation-delay:-.3s" cx="134" cy="58" r="2" fill="#e01a28"/><circle class="hw-drop" style="animation-delay:-.6s" cx="123" cy="66" r="2.2" fill="#a00c16"/></g>' +
     '<text class="hw-aah" x="172" y="11" font-size="15" font-weight="900" fill="#fff" stroke="#b3141b" stroke-width="4" paint-order="stroke" text-anchor="middle" font-family="Impact,Arial Black,sans-serif">¡AAAH!</text></svg>';
   function chase(layer) {

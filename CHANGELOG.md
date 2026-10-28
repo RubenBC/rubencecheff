@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v128 — Grisel (Halloween)
+
+### Añadido
+- **Halloween: el hombre que huye del zombi (y acaba mordido) se llama Grisel**, con su placa de nombre como el resto.
+
+---
+
 ## v127 — Interruptor de dibujos (Halloween)
 
 ### Añadido
