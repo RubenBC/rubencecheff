@@ -1,0 +1,99 @@
+/* ═══════════════════════════════════════════════════════════════
+   🎃 MODO HALLOWEEN (fijo, temporal)
+   Para quitarlo: borra este archivo, js/halloween.js y sus dos
+   líneas en index.html (<link> y <script>). Nada más depende de él.
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --primary:           #C2410C;
+  --primary-container: #FFE1CB;
+  --bg:                #FFF5EC;
+  --surface:           #ffffff;
+  --surface2:          #FBE8DA;
+  --text:              #1C1210;
+  --text2:             #6A4D41;
+  --outline:           #B8998A;
+  --outline-light:     #EBD2C3;
+  --danger:            #B3141B;
+  --danger-light:      #FCDCD8;
+  --alert:             #8A4B00;
+  --alert-light:       #FBE3B8;
+}
+body.dark {
+  --primary:           #FF8A3D;
+  --primary-container: #3A1D0E;
+  --bg:                #0C0908;
+  --surface:           #171210;
+  --surface2:          #221A16;
+  --text:              #F3EAE4;
+  --text2:             #B39D91;
+  --outline:           #6B5348;
+  --outline-light:     #35271F;
+  --danger:            #FF7A6B;
+  --danger-light:      #4A1712;
+  --alert:             #F2B24C;
+  --alert-light:       #4A3412;
+}
+
+/* Barras de arriba y abajo: negras con filo naranja (en claro y en oscuro) */
+.topbar, .bottom-nav,
+body.dark .topbar, body.dark .bottom-nav {
+  --text: #F3EAE4; --text2: #C9B3A6; --surface2: #2A1D17; --outline: #6B5348;
+  --outline-light: #4A3328; --primary: #FF8A3D; --primary-container: #3A1D0E;
+  background: rgba(14,9,7,0.96);
+}
+.topbar { border-bottom: 3px solid #E8590C; }
+.bottom-nav { border-top: 3px solid #E8590C; }
+.topbar .badge, .topbar .notif-badge { background: #E11D2E; color: #fff; }
+
+/* Botón principal: degradado naranja → rojo */
+.btn-action, .btn-pill.filled { background: linear-gradient(135deg, #E8590C, #C2181F); color: #fff; }
+.seg-btn.active { color: var(--primary); }
+.chip.active { background: #E8590C; border-color: #E8590C; color: #fff; }
+.float-back-btn, body.dark .float-back-btn { background: rgba(14,9,7,0.88); color: #FF8A3D; }
+
+/* ─── Criaturas ─── */
+#hwLayer {
+  position: fixed; left: 0; right: 0; top: var(--hw-top, 70px); bottom: var(--hw-bottom, 64px);
+  overflow: hidden; pointer-events: none; z-index: 90; opacity: 0.85;
+}
+#hwLayer * { pointer-events: none; }
+.hw-item { position: absolute; left: 0; will-change: transform; }
+.hw-item svg { display: block; width: 100%; height: auto; overflow: visible; }
+.hw-walk-ltr { animation: hw-ltr var(--d, 60s) linear infinite; animation-delay: var(--dl, 0s); }
+.hw-walk-rtl { animation: hw-rtl var(--d, 60s) linear infinite; animation-delay: var(--dl, 0s); }
+@keyframes hw-ltr { from { transform: translateX(-180px); } to { transform: translateX(calc(100vw + 180px)); } }
+@keyframes hw-rtl { from { transform: translateX(calc(100vw + 180px)); } to { transform: translateX(-180px); } }
+.hw-flip { transform: scaleX(-1); }
+.hw-bob  { animation: hw-bob var(--b, 2.4s) ease-in-out infinite alternate; }
+@keyframes hw-bob { from { transform: translateY(calc(var(--amp, 12px) * -1)); } to { transform: translateY(var(--amp, 12px)); } }
+.hw-hop  { animation: hw-hop 0.7s ease-in-out infinite; }
+@keyframes hw-hop { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-14px) rotate(4deg); } }
+.hw-ghost { opacity: 0.72; }
+
+/* en modo oscuro las siluetas negras llevan un halo naranja para que se vean */
+body.dark #hwLayer .hw-item svg { filter: drop-shadow(0 0 2px rgba(255,150,70,0.9)) drop-shadow(0 0 6px rgba(255,110,30,0.45)); }
+
+/* alas, piernas, brazos */
+.hw-wing { transform-box: view-box; transform-origin: 64px 40px; animation: hw-flap 0.32s ease-in-out infinite alternate; }
+@keyframes hw-flap { from { transform: rotate(-28deg) scaleY(1); } to { transform: rotate(26deg) scaleY(0.82); } }
+.hw-leg-a, .hw-leg-b { transform-box: view-box; animation: hw-step 0.9s ease-in-out infinite alternate; }
+.hw-leg-a { transform-origin: var(--ox) 78px; }
+.hw-leg-b { transform-origin: var(--ox) 78px; animation-direction: alternate-reverse; }
+@keyframes hw-step { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+.hw-arms { transform-box: view-box; transform-origin: 58px 56px; animation: hw-reach 1.4s ease-in-out infinite alternate; }
+@keyframes hw-reach { from { transform: rotate(-5deg); } to { transform: rotate(7deg); } }
+.hw-cat .hw-leg-a, .hw-cat .hw-leg-b { animation-duration: 0.55s; }
+.hw-tail { transform-box: view-box; transform-origin: 28px 42px; animation: hw-wag 1.6s ease-in-out infinite alternate; }
+@keyframes hw-wag { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
+.hw-wave { transform-box: view-box; transform-origin: 70px 56px; animation: hw-wavearm 1.3s ease-in-out infinite alternate; }
+@keyframes hw-wavearm { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+
+/* araña colgando de su hilo */
+.hw-spider { top: 0; animation: hw-drop var(--d, 7s) ease-in-out infinite alternate; animation-delay: var(--dl, 0s); }
+.hw-spider::before { content: ''; position: absolute; left: 50%; bottom: 100%; width: 1.5px; height: 600px; background: rgba(180,170,190,0.8); }
+@keyframes hw-drop { from { transform: translateY(6px); } to { transform: translateY(110px); } }
+
+/* "Reducir movimiento" del móvil: todo se queda quieto */
+@media (prefers-reduced-motion: reduce) {
+  #hwLayer * { animation: none !important; }
+}

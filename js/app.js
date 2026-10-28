@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v116';
+const APP_VERSION = 'v117';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -4988,7 +4988,7 @@ function updateThemeIcon(isDark) {
   if (btn) btn.querySelector('.material-symbols-outlined').textContent = isDark ? 'light_mode' : 'dark_mode';
   // v111 — la barra de estado del móvil acompaña al tema (antes se quedaba verde oscuro en modo claro y oscuro)
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', isDark ? '#15181A' : '#174C43');
+  if (meta) { const tc = window.HW_THEME_COLORS || { light: '#174C43', dark: '#15181A' }; meta.setAttribute('content', isDark ? tc.dark : tc.light); }
 }
 
 function initTheme() {

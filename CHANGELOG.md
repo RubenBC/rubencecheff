@@ -4,6 +4,15 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v117 — Modo Halloween 🎃
+
+### Añadido
+- **Modo Halloween fijo (temporal):** colores naranja, rojo y negro en toda la app (modo claro y oscuro), barras de arriba y abajo negras con filo naranja y botones principales en degradado naranja→rojo.
+- **Criaturas por la pantalla:** murciélagos que aleteando cruzan volando, fantasmas flotando, zombis y un gato caminando, una calabaza saltarina y arañas colgando de su hilo. Dibujadas en SVG, van por encima del contenido pero sin bloquear ningún toque, y se quedan quietas si el móvil tiene activado "reducir movimiento".
+- **Para quitarlo:** borrar `css/halloween.css`, `js/halloween.js` y sus dos líneas en `index.html`.
+
+---
+
 ## v116 — Usabilidad: botones más fáciles de pulsar
 
 ### Cambiado
