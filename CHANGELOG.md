@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v124 — Nombres de zombis (Halloween)
+
+### Añadido
+- **Halloween: los zombis llevan su nombre encima, como en un videojuego** (placa oscura con barra de vida roja): Emerson, Virginia y Rubén (el que persigue y muerde). Se quita junto con el resto del modo Halloween.
+
+---
+
 ## v123 — Zombi que muerde (Halloween)
 
 ### Añadido

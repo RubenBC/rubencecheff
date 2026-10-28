@@ -108,8 +108,11 @@
   var CHASE_SVG = '<svg viewBox="0 0 190 130">' +
     '<g transform="translate(104 18) scale(.84)">' + '<g class="hw-p1">' + person(false) + '</g><g class="hw-p2">' + person(true) + '</g></g>' +
     '<g class="hw-zoff"><g class="hw-chomp">' + ZOMBIE_BODY + '</g></g>' +
+    '<g class="hw-zname"><rect x="21" y="-18" width="48" height="15" rx="3" fill="#000" fill-opacity=".6" stroke="#ff5a44" stroke-opacity=".7" stroke-width=".8"/>' +
+    '<text x="45" y="-8.5" font-size="9.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="system-ui,Arial,sans-serif">Rubén</text>' +
+    '<rect x="25" y="-5.5" width="40" height="2" rx="1" fill="#3a0f12"/><rect x="25" y="-5.5" width="30" height="2" rx="1" fill="#e11d2e"/></g>' +
     '<g class="hw-blood"><circle class="hw-drop" cx="128" cy="62" r="2.6" fill="#c8101c"/><circle class="hw-drop" style="animation-delay:-.3s" cx="134" cy="58" r="2" fill="#e01a28"/><circle class="hw-drop" style="animation-delay:-.6s" cx="123" cy="66" r="2.2" fill="#a00c16"/></g>' +
-    '<text class="hw-aah" x="164" y="11" font-size="15" font-weight="900" fill="#fff" stroke="#b3141b" stroke-width="4" paint-order="stroke" text-anchor="middle" font-family="Impact,Arial Black,sans-serif">¡AAAH!</text></svg>';
+    '<text class="hw-aah" x="172" y="11" font-size="15" font-weight="900" fill="#fff" stroke="#b3141b" stroke-width="4" paint-order="stroke" text-anchor="middle" font-family="Impact,Arial Black,sans-serif">¡AAAH!</text></svg>';
   function chase(layer) {
     var d = document.createElement('div');
     d.className = 'hw-item hw-chase';
@@ -138,6 +141,12 @@
     inner.className = (rtl ? 'hw-flip ' : '') + (opts.inner || '');
     if (opts.vars) inner.setAttribute('style', opts.vars);
     outer.removeChild(svg); inner.appendChild(svg); outer.appendChild(inner);
+    if (opts.name) { // nombre sobre la cabeza, estilo videojuego (fuera del contenedor volteado para que no salga al revés)
+      var n = document.createElement('div');
+      n.className = 'hw-name'; n.textContent = opts.name;
+      n.style.left = (rtl ? 55 : 45) + '%'; n.style.setProperty('--hp', (opts.hp || 100) + '%');
+      outer.appendChild(n);
+    }
     layer.appendChild(outer);
   }
 
@@ -165,8 +174,8 @@
     walker(L, 'ghost', 56, { top: '33%', dur: 70, delay: 15, rtl: true,  stat: 78, inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s' });
     walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s' });
     // en el suelo (encima del menú de abajo)
-    walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false });
-    walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60 });
+    walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, name: 'Emerson', hp: 100 });
+    walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60, name: 'Virginia', hp: 72 });
     walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36 });
     walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop' });
     chase(L);   // el zombi que persigue y muerde (aparece de vez en cuando)
