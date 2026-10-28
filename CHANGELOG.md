@@ -6,6 +6,9 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ## v121 — Auditoría y limpieza
 
+### Añadido
+- **Halloween: ventana del timer/alarma terrorífica al sonar.** Cuando se acaba el tiempo, el fondo pasa a ser una escena de terror: calavera que respira con ojos rojos que brillan, luna de sangre, murciélagos, árboles muertos, tumbas, niebla y sangre goteando arriba, con algún parpadeo de luz. El nombre del timer sale en blanco con brillo rojo para que se siga leyendo. Se quita junto con el resto del modo Halloween.
+
 ### Arreglado
 - **Monitor del PC: las criaturas de Halloween no se movían.** Windows suele traer activado "reducir animaciones" y la app las dejaba quietas. Ahora se mueven siempre; con esa opción activada solo se quita el destello de pantalla del rayo (el rayo aparece y se apaga suave). También se corrige que algunas criaturas empezaban su recorrido desplazadas.
 - **Modo claro con Halloween:** el nombre "RubenceChef" de la barra de arriba no se veía (texto oscuro sobre fondo negro).
