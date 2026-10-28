@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v129 — Mario, el zombi con estilo (Halloween)
+
+### Añadido
+- **Halloween: nuevo zombi "Mario"**, con gafas de sol, diadema y bufanda arcoíris, labios pintados, brillos y andar chulo. Cruza por abajo con los demás y lleva su nombre encima.
+
+---
+
 ## v128 — Grisel (Halloween)
 
 ### Añadido

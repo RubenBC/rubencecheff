@@ -74,6 +74,19 @@
 
   // 🧟🏃 Escena: un zombi persigue a una persona, la alcanza, la muerde y se la lleva convertida.
   var ZOMBIE_BODY = SVG.zombie.replace(/^<svg[^>]*>|<\/svg>$/g, '');
+  // 🌈 Mario: zombi con mucho estilo (gafas de sol, diadema y bufanda arcoíris, brillos, labios)
+  var RAINBOW = ['#e40303', '#ff8c00', '#ffed00', '#008026', '#004dff', '#750787'];
+  function stripes(f) { return RAINBOW.map(f).join(''); }
+  SVG.zombieglam = '<svg viewBox="0 0 100 130">' + ZOMBIE_BODY +
+    '<path d="M31 41 C38 45 54 45 61 40" stroke="#ff4fa3" stroke-width="2.6" fill="none" stroke-linecap="round"/>' +
+    stripes(function (c, i) { return '<path d="M25 ' + (21 + i * 1.7) + ' C32 ' + (10 + i * 1.7) + ' 58 ' + (10 + i * 1.7) + ' 65 ' + (20 + i * 1.7) + '" stroke="' + c + '" stroke-width="2" fill="none"/>'; }) +
+    '<rect x="26" y="19" width="21" height="15" rx="6" fill="#1a1024"/><rect x="46" y="18" width="23" height="16" rx="6" fill="#1a1024"/><path d="M46 24 h1.6" stroke="#1a1024" stroke-width="3"/>' +
+    '<path d="M29 22 l8 0 M49 21 l9 0" stroke="#ff7ac8" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M30 28 l4 -3 M51 28 l4 -3" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".8"/>' +
+    '<path d="M26 22 L21 20 M69 22 L74 21" stroke="#1a1024" stroke-width="2"/>' +
+    stripes(function (c, i) { return '<path d="M33 ' + (46 + i * 1.5) + ' C40 ' + (52 + i * 1.5) + ' 52 ' + (52 + i * 1.5) + ' 58 ' + (45 + i * 1.5) + '" stroke="' + c + '" stroke-width="2" fill="none"/>'; }) +
+    stripes(function (c, i) { return '<rect x="' + (52 + i * 2) + '" y="55" width="2" height="26" fill="' + c + '"/>'; }) +
+    '<g fill="#fff6b0"><path class="hw-twinkle" d="M12 22 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z"/><path class="hw-twinkle" style="animation-delay:-.4s" d="M86 10 l1.6 4 l4 1.6 l-4 1.6 l-1.6 4 l-1.6 -4 l-4 -1.6 l4 -1.6 z"/><path class="hw-twinkle" style="animation-delay:-.7s" d="M90 76 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z"/><path class="hw-twinkle" style="animation-delay:-.2s" d="M8 86 l1.6 4 l4 1.6 l-4 1.6 l-1.6 4 l-1.6 -4 l-4 -1.6 l4 -1.6 z"/></g></svg>';
+
   function person(z) {
     var skin = z ? '#8fb87a' : '#f3c9a3', line = z ? '#5c8049' : '#b98a62', shirt = z ? '#b8851c' : '#f0a81e', shirtL = z ? '#8a6414' : '#c98410';
     var s = '<g class="' + (z ? 'hw-pz' : 'hw-pr') + '">' +
@@ -180,6 +193,7 @@
     // en el suelo (encima del menú de abajo)
     walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, name: 'Emerson' });
     walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60, name: 'Virginia' });
+    walker(L, 'zombieglam', 76, { bottom: '2px', dur: 74, delay: 44, rtl: false, inner: 'hw-bob', vars: '--amp:2px;--b:0.45s', name: 'Mario', nx: 45 });
     walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36, name: 'Elena', nx: 22, ny: -15 });
     walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop', name: 'Carmen', nx: 50, ny: -35 });
     walker(L, 'pumpkin',40,  { bottom: '2px', dur: 66, delay: 41, rtl: true,  stat: 30, inner: 'hw-hop', name: 'Luis', nx: 50, ny: -33 });
