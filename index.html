@@ -16,8 +16,8 @@
   <title>RubenceChef</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=118">
-  <link rel="stylesheet" href="css/halloween.css?v=118"> <!-- HALLOWEEN: quitar esta línea, la de js/halloween.js y los 2 archivos -->
+  <link rel="stylesheet" href="css/styles.css?v=119">
+  <link rel="stylesheet" href="css/halloween.css?v=119"> <!-- HALLOWEEN: quitar esta línea, la de js/halloween.js y los 2 archivos -->
 </head>
 <body>
 <!-- ACCESO DEL EQUIPO: sin sesión iniciada no se carga ningún dato -->
@@ -71,9 +71,6 @@
         <span class="events-btn-label">Próximos eventos</span>
         <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
         <span id="eventsBadge" class="events-badge" style="display:none;"></span>
-      </button>
-      <button class="btn-pill ghost" id="importaBtn" onclick="openImportaModal()" style="padding:7px 10px;" aria-label="Cosas que me importan una mierda" title="Cosas que me importan una mierda">
-        <span class="material-symbols-outlined" style="font-size:16px;">delete_sweep</span>
       </button>
       <button class="btn-pill ghost" id="refreshBtn" onclick="forceReload()" style="padding:7px 10px;" aria-label="Actualizar la app" title="Actualizar la app">
         <span class="material-symbols-outlined" style="font-size:16px;">refresh</span>
@@ -453,21 +450,6 @@
   </div>
 </div>
 
-<!-- MODAL COSAS QUE ME IMPORTAN UNA MIERDA (broma: lista manual, se guarda en este dispositivo) -->
-<div class="modal-overlay" id="importaModal" style="display:none;" onclick="closeModal('importaModal')">
-  <div class="modal-sheet" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <span class="modal-title">Cosas que me importan una mierda</span>
-      <button class="modal-close" onclick="closeModal('importaModal')" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="importa-add">
-      <input type="text" class="form-input" id="importaInput" maxlength="120" placeholder="Anota algo que no te importa…" aria-label="Anotar algo que no te importa" onkeydown="if(event.key==='Enter'){event.preventDefault();addImporta();}">
-      <button class="btn-pill filled" onclick="addImporta()">Añadir</button>
-    </div>
-    <div id="importaList"></div>
-  </div>
-</div>
-
 <!-- MODAL RESUMEN DEL DÍA (cada día a las 07:30: fecha, tiempo de Madrid y eventos de hoy) -->
 <div class="modal-overlay" id="dailyBriefModal" style="display:none;" onclick="closeModal('dailyBriefModal')">
   <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -570,10 +552,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
-<script src="js/app.js?v=118"></script>
-<script src="js/timer.js?v=118"></script>
-<script src="js/radio.js?v=118"></script>
-<script src="js/midi.js?v=118"></script>
-<script src="js/halloween.js?v=118"></script> <!-- HALLOWEEN -->
+<script src="js/app.js?v=119"></script>
+<script src="js/timer.js?v=119"></script>
+<script src="js/radio.js?v=119"></script>
+<script src="js/midi.js?v=119"></script>
+<script src="js/halloween.js?v=119"></script> <!-- HALLOWEEN -->
 </body>
 </html>

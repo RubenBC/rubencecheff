@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v119 — Quitada la lista de broma
+
+### Eliminado
+- Se quita por completo "Cosas que me importan una mierda": el botón de la barra de arriba, su ventana y todo su código.
+
+---
+
 ## v118 — Rayos en Halloween
 
 ### Añadido

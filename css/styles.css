@@ -1309,11 +1309,6 @@ body.dark .update-banner { color: #002020; }
 .update-banner-icon { flex-shrink: 0; font-size: 18px; }
 .update-banner-text { flex: 1; min-width: 0; }
 
-/* Cosas que me importan una mierda (broma) */
-.importa-add { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-.importa-add .form-input { flex: 1; min-width: 0; }
-.importa-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--outline-light); border-radius: 10px; margin-bottom: 7px; }
-.importa-text { font-size: 14px; font-weight: 600; word-break: break-word; }
 
 /* Aviso semanal de copia de seguridad (lunes 08:30) */
 .backup-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; background: #C62828; color: #fff; border-bottom: 3px solid #8E1B1B; position: relative; z-index: 101; animation: backupPulse 2.4s ease-in-out infinite; }
