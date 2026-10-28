@@ -144,7 +144,7 @@
     if (opts.name) { // nombre sobre la cabeza, estilo videojuego (fuera del contenedor volteado para que no salga al revés)
       var n = document.createElement('div');
       n.className = 'hw-name'; n.textContent = opts.name;
-      n.style.left = (rtl ? 55 : 45) + '%'; n.style.setProperty('--hp', (opts.hp || 100) + '%');
+      n.style.left = (opts.nx != null ? opts.nx : (rtl ? 55 : 45)) + '%'; if (opts.ny != null) n.style.top = opts.ny + 'px'; n.style.setProperty('--hp', (opts.hp || 100) + '%');
       outer.appendChild(n);
     }
     layer.appendChild(outer);
@@ -171,13 +171,15 @@
     walker(L, 'bat', 46, { top: '24%', dur: 34, delay: 20, rtl: true,  stat: 20, inner: 'hw-bob', vars: '--amp:18px;--b:2.4s' });
     walker(L, 'bat', 66, { top: '42%', dur: 40, delay: 9,  rtl: false, inner: 'hw-bob', vars: '--amp:22px;--b:2.9s' });
     // fantasmas
-    walker(L, 'ghost', 56, { top: '33%', dur: 70, delay: 15, rtl: true,  stat: 78, inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s' });
-    walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s' });
+    walker(L, 'ghost', 56, { top: '33%', dur: 70, delay: 15, rtl: true,  stat: 78, inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s', name: 'Lucho', nx: 50, ny: -42, hp: 100 });
+    walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s', name: 'Alejandro', nx: 50, ny: -38, hp: 85 });
+    walker(L, 'ghost', 52, { top: '48%', dur: 78, delay: 33, rtl: true,  stat: 40, inner: 'hw-bob hw-ghost', vars: '--amp:14px;--b:2.9s', name: 'Alfredo', nx: 50, ny: -40, hp: 60 });
     // en el suelo (encima del menú de abajo)
     walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, name: 'Emerson', hp: 100 });
     walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60, name: 'Virginia', hp: 72 });
     walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36 });
-    walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop' });
+    walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop', name: 'Carmen', nx: 50, ny: -40, hp: 100 });
+    walker(L, 'pumpkin',40,  { bottom: '2px', dur: 66, delay: 41, rtl: true,  stat: 30, inner: 'hw-hop', name: 'Luis', nx: 50, ny: -38, hp: 90 });
     chase(L);   // el zombi que persigue y muerde (aparece de vez en cuando)
     // arañas colgando
     var s1 = mk('spider', 'hw-spider', 30, 'left:12%;--d:6.5s;--dl:-1s;'); L.appendChild(s1);

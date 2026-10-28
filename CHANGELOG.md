@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v125 — Nombres de fantasmas y calabazas (Halloween)
+
+### Añadido
+- **Halloween: nombres sobre fantasmas y calabazas**, igual que los zombis. Fantasmas: Lucho, Alejandro y Alfredo (hay un fantasma más). Calabazas: Carmen y Luis (hay una calabaza más).
+
+---
+
 ## v124 — Nombres de zombis (Halloween)
 
 ### Añadido
