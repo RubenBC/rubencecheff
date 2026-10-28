@@ -9,6 +9,10 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 ### Añadido
 - **Halloween: ventana del timer/alarma terrorífica al sonar.** Cuando se acaba el tiempo, el fondo pasa a ser una escena de terror: calavera que respira con ojos rojos que brillan, luna de sangre, murciélagos, árboles muertos, tumbas, niebla y sangre goteando arriba, con algún parpadeo de luz. El nombre del timer sale en blanco con brillo rojo para que se siga leyendo. Se quita junto con el resto del modo Halloween.
 
+---
+
+## v121 — Auditoría y limpieza
+
 ### Arreglado
 - **Monitor del PC: las criaturas de Halloween no se movían.** Windows suele traer activado "reducir animaciones" y la app las dejaba quietas. Ahora se mueven siempre; con esa opción activada solo se quita el destello de pantalla del rayo (el rayo aparece y se apaga suave). También se corrige que algunas criaturas empezaban su recorrido desplazadas.
 - **Modo claro con Halloween:** el nombre "RubenceChef" de la barra de arriba no se veía (texto oscuro sobre fondo negro).
@@ -20,10 +24,6 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 - **Buscador:** usaba otra tipografía distinta a la del resto de la app.
 - **Etiquetas:** ya no se puede crear dos veces la misma.
 - El refresco automático en segundo plano ahora también recoge el ajuste de "días de antelación" de los avisos y la fecha de la última copia hecha desde otro dispositivo.
-
----
-
-## v121 — Auditoría y limpieza
 
 ### Cambiado
 - Textos unificados: "Plato" en vez de "Receta" (editor, avisos y estadística de Admin) y "Artículo" en vez de "Materia prima" en Pedidos.
