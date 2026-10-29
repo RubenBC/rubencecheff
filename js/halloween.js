@@ -85,7 +85,6 @@
 
   function build() {
     addRingBg();
-    addToggle();
     if (document.getElementById('hwLayer')) return;
     var L = document.createElement('div');
     L.id = 'hwLayer'; L.setAttribute('aria-hidden', 'true');
@@ -104,35 +103,10 @@
     document.body.appendChild(L);
     place();
   }
-  // 👻 Interruptor de los dibujos (solo los dibujos; los colores se quedan). Va junto a "Próximos eventos".
-  var HW_KEY = 'rubencechef-hw-draw';
-  function hwOff() { try { return localStorage.getItem(HW_KEY) === 'off'; } catch (e) { return false; } }
-  function applyDraw() {
-    var off = hwOff(), b = document.getElementById('hwToggle');
-    document.body.classList.toggle('hw-off', off);
-    if (b) {
-      b.setAttribute('aria-pressed', off ? 'false' : 'true');
-      b.title = off ? 'Mostrar los dibujos de Halloween' : 'Ocultar los dibujos de Halloween';
-      b.setAttribute('aria-label', b.title);
-    }
-  }
-  function addToggle() {
-    if (document.getElementById('hwToggle')) return;
-    var ev = document.getElementById('eventsBtn');
-    if (!ev) return;
-    var b = document.createElement('button');
-    b.id = 'hwToggle'; b.type = 'button'; b.className = 'btn-pill ghost hw-toggle';
-    b.style.padding = '7px 10px';
-    b.innerHTML = '<span aria-hidden="true">👻</span>';
-    b.onclick = function () { try { localStorage.setItem(HW_KEY, hwOff() ? 'on' : 'off'); } catch (e) {} applyDraw(); };
-    ev.insertAdjacentElement('afterend', b);
-    applyDraw();
-  }
-
   // ⚡ Rayo de vez en cuando (cada 15-40 s): destello suave + rayo dibujado (sin destello si el dispositivo pide menos movimiento: ver CSS).
   function lightning() {
     var L = document.getElementById('hwLayer');
-    if (L && !document.hidden && !document.body.classList.contains('hw-off')) {
+    if (L && !document.hidden) {
       var x = 8 + Math.random() * 80, flip = Math.random() < 0.5 ? -1 : 1;
       var bolt = document.createElement('div');
       bolt.className = 'hw-bolt';

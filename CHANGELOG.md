@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v131 — Quitado el botón 👻
+
+### Arreglado
+- **Halloween: eliminado por completo el botón 👻 de los dibujos.** En la v130 se quedó sin función (por un error mío al limpiar, sus reglas se borraron pero el botón seguía ahí). Ya no hay botón ni código suyo.
+
+---
+
 ## v130 — Halloween más sobrio
 
 ### Cambiado
