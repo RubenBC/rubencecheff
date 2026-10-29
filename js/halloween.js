@@ -27,24 +27,6 @@
       '<circle cx="31" cy="37" r="1.8" fill="#fff"/><circle cx="53" cy="37" r="1.8" fill="#fff"/>' +
       '<ellipse cx="40" cy="62" rx="6.5" ry="9" fill="#1a1a2e"/><ellipse cx="22" cy="53" rx="4.5" ry="2.8" fill="#ffb3c7" opacity=".7"/><ellipse cx="58" cy="53" rx="4.5" ry="2.8" fill="#ffb3c7" opacity=".7"/></svg>',
 
-    zombie: '<svg viewBox="0 0 100 130">' +
-      '<g class="hw-leg-a" style="--ox:41px"><rect x="35" y="78" width="13" height="34" rx="4" fill="#3b4a6b"/><path d="M35 100 l5 4 l4 -5 l4 6 v6 h-13 z" fill="#2b3550"/><path d="M32 112 h20 a3 3 0 0 1 3 4 v4 h-23 z" fill="#2a1f1a"/></g>' +
-      '<g class="hw-leg-b" style="--ox:54px"><rect x="48" y="78" width="13" height="34" rx="4" fill="#47577a"/><path d="M48 96 l4 5 l4 -4 l5 5 v-6 z" fill="#2b3550"/><path d="M45 112 h20 a3 3 0 0 1 3 4 v4 h-23 z" fill="#33261f"/></g>' +
-      '<path d="M30 50 L64 50 L68 84 L60 79 L55 86 L48 80 L41 86 L35 79 L27 84 Z" fill="#6e3a3a" stroke="#4a2424" stroke-width="1.5"/>' +
-      '<path d="M40 50 L44 64 L38 70 M54 56 L50 70" stroke="#4a2424" stroke-width="1.6" fill="none"/><path d="M42 66 L48 60 L52 68 L46 74 Z" fill="#a8b78a" opacity=".85"/>' +
-      '<g class="hw-arms"><rect x="56" y="62" width="34" height="9" rx="4.5" fill="#6f9460"/><rect x="85" y="59" width="9" height="15" rx="4" fill="#6f9460"/><path d="M89 59 v-6 M92 59 v-5 M94 63 v-4" stroke="#6f9460" stroke-width="2.5" stroke-linecap="round"/>' +
-      '<rect x="56" y="52" width="36" height="10" rx="5" fill="#8fb87a"/><rect x="58" y="51" width="10" height="12" rx="3" fill="#6e3a3a"/><rect x="87" y="50" width="9" height="15" rx="4" fill="#8fb87a"/><path d="M91 50 v-6 M94 50 v-5 M96 54 v-4" stroke="#8fb87a" stroke-width="2.5" stroke-linecap="round"/></g>' +
-      '<rect x="40" y="44" width="10" height="10" fill="#7fa66a"/>' +
-      '<circle cx="45" cy="28" r="21" fill="#8fb87a" stroke="#5c8049" stroke-width="1.5"/>' +
-      '<path d="M26 18 L30 6 L35 14 L40 4 L45 13 L51 3 L55 14 L61 7 L63 18 C55 12 36 12 26 18 Z" fill="#2c2420"/>' +
-      '<path d="M33 14 l6 4 M52 13 l-5 5" stroke="#5c8049" stroke-width="1.5"/>' +
-      '<circle cx="37" cy="27" r="6.5" fill="#1d2418"/><circle cx="37" cy="27" r="3" fill="#e8e8c8"/><circle cx="37.6" cy="27" r="1.2" fill="#222"/>' +
-      '<circle cx="55" cy="26" r="7.5" fill="#f1f1d8" stroke="#1d2418" stroke-width="2"/><circle cx="56.5" cy="27.5" r="2.4" fill="#b02020"/><circle cx="56.5" cy="27.5" r="1" fill="#000"/>' +
-      '<path d="M45 30 l-2 8 h4 z" fill="#6f9460"/>' +
-      '<path d="M30 40 C38 46 54 46 62 39 C60 48 52 52 46 52 C38 52 31 48 30 40 Z" fill="#2a1414"/>' +
-      '<path d="M35 42 v4 M40 44 v5 M46 44 v5 M52 43 v5 M57 41 v4" stroke="#f0ecd0" stroke-width="2.4"/>' +
-      '<path d="M44 12 v7 M41 14 h6 M41 17 h6" stroke="#3d5a2e" stroke-width="1.4" fill="none"/><path d="M60 32 l6 2 M61 36 l5 0" stroke="#7b2a2a" stroke-width="1.4"/></svg>',
-
     cat: '<svg viewBox="0 0 120 80">' +
       '<g class="hw-tail"><path d="M28 46 C8 44 6 22 20 14 C26 11 30 16 25 20 C18 26 22 38 32 42" fill="none" stroke="#14101a" stroke-width="7" stroke-linecap="round"/></g>' +
       '<g class="hw-cat">' +
@@ -58,84 +40,15 @@
       '<ellipse cx="90" cy="32" rx="3.6" ry="4.2" fill="#f7d21e"/><ellipse cx="100" cy="32" rx="3.6" ry="4.2" fill="#f7d21e"/><ellipse cx="90" cy="32" rx="1" ry="3.6" fill="#000"/><ellipse cx="100" cy="32" rx="1" ry="3.6" fill="#000"/>' +
       '<path d="M94 38 l2 2 l2 -2 z" fill="#d85a7a"/><path d="M106 36 l12 -3 M106 39 l12 2 M82 36 l-10 -3 M82 39 l-10 2" stroke="#8d86a0" stroke-width="1" fill="none"/></svg>',
 
-    pumpkin: '<svg viewBox="0 0 80 80"><defs><radialGradient id="hwp" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#ffa43c"/><stop offset="1" stop-color="#d9480f"/></radialGradient></defs>' +
-      '<ellipse cx="40" cy="47" rx="34" ry="28" fill="url(#hwp)" stroke="#9a3412" stroke-width="2"/>' +
-      '<path d="M26 20 C14 34 14 60 26 73 M54 20 C66 34 66 60 54 73 M40 19 C36 36 36 58 40 75" fill="none" stroke="#b83e0c" stroke-width="2" opacity=".7"/>' +
-      '<path d="M37 21 C37 12 40 8 46 5 C46 10 44 15 43 21 Z" fill="#4d6b1c" stroke="#33470f" stroke-width="1.5"/>' +
-      '<path d="M22 40 L32 40 L27 30 Z M48 40 L58 40 L53 30 Z" fill="#ffe14d"/>' +
-      '<path d="M40 46 L36 52 L44 52 Z" fill="#ffe14d"/>' +
-      '<path d="M20 56 L26 52 L31 60 L36 54 L40 61 L44 54 L49 60 L54 52 L60 56 C56 68 24 68 20 56 Z" fill="#ffe14d" stroke="#7a2a05" stroke-width="1.2"/></svg>',
-
-    spider: '<svg viewBox="0 0 60 56">' +
-      '<g stroke="#15101b" stroke-width="2.4" fill="none" stroke-linecap="round"><path d="M24 30 L8 18 L2 28 M24 33 L6 34 L2 46 M25 37 L10 48 L8 55 M27 40 L22 52 L24 56"/><path d="M36 30 L52 18 L58 28 M36 33 L54 34 L58 46 M35 37 L50 48 L52 55 M33 40 L38 52 L36 56"/></g>' +
-      '<ellipse cx="30" cy="38" rx="11" ry="14" fill="#15101b"/><path d="M30 31 l-3.5 7 l3.5 7 l3.5 -7 z" fill="#c8202f"/>' +
-      '<circle cx="30" cy="22" r="8" fill="#1e1827"/><circle cx="26.5" cy="20.5" r="2.2" fill="#ff3b30"/><circle cx="33.5" cy="20.5" r="2.2" fill="#ff3b30"/><circle cx="30" cy="24" r="1.2" fill="#ff3b30"/></svg>'
+    skull: '<svg viewBox="0 0 70 76">' +
+      '<path d="M35 3 C16 3 6 17 8 33 C9 41 14 45 17 49 L17 57 L53 57 L53 49 C56 45 61 41 62 33 C64 17 54 3 35 3 Z" fill="#efe8d6" stroke="#9a9078" stroke-width="2"/>' +
+      '<path d="M45 5 l-3 10 l5 6 M14 22 l6 3" stroke="#9a9078" stroke-width="1.4" fill="none"/>' +
+      '<ellipse cx="24" cy="31" rx="8" ry="9.5" fill="#14100c"/><ellipse cx="46" cy="31" rx="8" ry="9.5" fill="#14100c"/>' +
+      '<circle class="hw-glow" cx="25" cy="33" r="2.8" fill="#ff6a1a"/><circle class="hw-glow" cx="45" cy="33" r="2.8" fill="#ff6a1a"/>' +
+      '<path d="M35 39 l-4.5 9 h9 z" fill="#14100c"/>' +
+      '<path d="M20 57 v-5 M26 57 v-6 M32 57 v-6 M38 57 v-6 M44 57 v-6 M50 57 v-5" stroke="#9a9078" stroke-width="1.4"/>' +
+      '<g class="hw-jaw"><path d="M19 58 h32 v6 a5 5 0 0 1 -5 5 h-22 a5 5 0 0 1 -5 -5 z" fill="#efe8d6" stroke="#9a9078" stroke-width="2"/><path d="M26 59 v8 M35 59 v9 M44 59 v8" stroke="#9a9078" stroke-width="1.4"/></g></svg>'
   };
-
-  // 🧟🏃 Escena: un zombi persigue a una persona, la alcanza, la muerde y se la lleva convertida.
-  var ZOMBIE_BODY = SVG.zombie.replace(/^<svg[^>]*>|<\/svg>$/g, '');
-  // 🌈 Mario: zombi con mucho estilo (gafas de sol, diadema y bufanda arcoíris, brillos, labios)
-  var RAINBOW = ['#e40303', '#ff8c00', '#ffed00', '#008026', '#004dff', '#750787'];
-  function stripes(f) { return RAINBOW.map(f).join(''); }
-  SVG.zombieglam = '<svg viewBox="0 0 100 130">' + ZOMBIE_BODY +
-    '<path d="M31 41 C38 45 54 45 61 40" stroke="#ff4fa3" stroke-width="2.6" fill="none" stroke-linecap="round"/>' +
-    stripes(function (c, i) { return '<path d="M25 ' + (21 + i * 1.7) + ' C32 ' + (10 + i * 1.7) + ' 58 ' + (10 + i * 1.7) + ' 65 ' + (20 + i * 1.7) + '" stroke="' + c + '" stroke-width="2" fill="none"/>'; }) +
-    '<rect x="26" y="19" width="21" height="15" rx="6" fill="#1a1024"/><rect x="46" y="18" width="23" height="16" rx="6" fill="#1a1024"/><path d="M46 24 h1.6" stroke="#1a1024" stroke-width="3"/>' +
-    '<path d="M29 22 l8 0 M49 21 l9 0" stroke="#ff7ac8" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M30 28 l4 -3 M51 28 l4 -3" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".8"/>' +
-    '<path d="M26 22 L21 20 M69 22 L74 21" stroke="#1a1024" stroke-width="2"/>' +
-    stripes(function (c, i) { return '<path d="M33 ' + (46 + i * 1.5) + ' C40 ' + (52 + i * 1.5) + ' 52 ' + (52 + i * 1.5) + ' 58 ' + (45 + i * 1.5) + '" stroke="' + c + '" stroke-width="2" fill="none"/>'; }) +
-    stripes(function (c, i) { return '<rect x="' + (52 + i * 2) + '" y="55" width="2" height="26" fill="' + c + '"/>'; }) +
-    '<g fill="#fff6b0"><path class="hw-twinkle" d="M12 22 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z"/><path class="hw-twinkle" style="animation-delay:-.4s" d="M86 10 l1.6 4 l4 1.6 l-4 1.6 l-1.6 4 l-1.6 -4 l-4 -1.6 l4 -1.6 z"/><path class="hw-twinkle" style="animation-delay:-.7s" d="M90 76 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z"/><path class="hw-twinkle" style="animation-delay:-.2s" d="M8 86 l1.6 4 l4 1.6 l-4 1.6 l-1.6 4 l-1.6 -4 l-4 -1.6 l4 -1.6 z"/></g></svg>';
-
-  function person(z) {
-    var skin = z ? '#8fb87a' : '#f3c9a3', line = z ? '#5c8049' : '#b98a62', shirt = z ? '#b8851c' : '#f0a81e', shirtL = z ? '#8a6414' : '#c98410';
-    var s = '<g class="' + (z ? 'hw-pz' : 'hw-pr') + '">' +
-      '<g class="hw-leg-a" style="--ox:27px"><rect x="22" y="78" width="11" height="34" rx="4" fill="#2f4f8f"/><rect x="19" y="111" width="17" height="9" rx="3.5" fill="#f2f2f2" stroke="#999" stroke-width="1"/></g>' +
-      '<g class="hw-leg-b" style="--ox:40px"><rect x="35" y="78" width="11" height="34" rx="4" fill="#3b5ea8"/><rect x="32" y="111" width="17" height="9" rx="3.5" fill="#fff" stroke="#999" stroke-width="1"/></g>' +
-      '<path d="M19 50 Q35 43 51 50 L53 83 L17 83 Z" fill="' + shirt + '" stroke="' + shirtL + '" stroke-width="1.5"/>' +
-      (z ? '<path d="M20 70 l5 5 l4 -4 l5 6 M44 60 l-4 8 l6 3" stroke="' + shirtL + '" stroke-width="1.6" fill="none"/>'
-         : '<path d="M30 52 v10 M40 52 v10" stroke="' + shirtL + '" stroke-width="1.6"/>');
-    if (z) {
-      s += '<g class="hw-arms" style="transform-origin:44px 55px"><rect x="44" y="56" width="25" height="8" rx="4" fill="' + skin + '"/><rect x="63" y="54" width="8" height="13" rx="3.5" fill="' + skin + '"/>' +
-           '<rect x="44" y="47" width="27" height="8" rx="4" fill="#9fc58a"/><rect x="65" y="45" width="8" height="13" rx="3.5" fill="#9fc58a"/></g>';
-    } else {
-      s += '<g class="hw-flail"><path d="M42 54 L58 28" stroke="' + shirt + '" stroke-width="8" stroke-linecap="round"/><circle cx="59.5" cy="25.5" r="4.6" fill="' + skin + '"/>' +
-           '<path d="M38 54 L48 25" stroke="' + shirtL + '" stroke-width="8" stroke-linecap="round"/><circle cx="49.5" cy="22" r="4.6" fill="' + skin + '"/></g>';
-    }
-    s += '<rect x="31" y="43" width="8" height="9" fill="' + skin + '"/>' +
-      '<circle cx="35" cy="32" r="15" fill="' + skin + '" stroke="' + line + '" stroke-width="1.4"/>' +
-      '<circle cx="26" cy="34" r="3.4" fill="' + skin + '" stroke="' + line + '" stroke-width="1"/>' +
-      '<path d="M19 32 C15 12 34 6 46 13 C51 16 51 22 49 25 C43 19 32 19 25 27 L21 39 Z" fill="' + (z ? '#2c2420' : '#3a2616') + '"/>';
-    if (z) {
-      s += '<circle cx="42" cy="31" r="5" fill="#f1f1d8" stroke="#1d2418" stroke-width="1.4"/><circle cx="43.4" cy="32" r="1.8" fill="#b02020"/>' +
-           '<path d="M38 24 L47 27" stroke="#2c2420" stroke-width="1.8"/><path d="M38 41 C42 44 47 43 50 40 C49 46 44 47 40 46 Z" fill="#2a1414"/><path d="M41 42 v3 M44 43 v3 M47 42 v3" stroke="#f0ecd0" stroke-width="1.6"/>' +
-           '<path d="M27 46 l4 3 l3 -3 M30 49 l-1 5" stroke="#7b2a2a" stroke-width="2" fill="none"/>';
-    } else {
-      s += '<circle cx="42" cy="31" r="4.8" fill="#fff" stroke="#444" stroke-width=".9"/><circle cx="43.4" cy="31.2" r="1.8" fill="#222"/>' +
-           '<path d="M37 22 L47 26" stroke="#3a2616" stroke-width="1.9" stroke-linecap="round"/>' +
-           '<ellipse cx="45" cy="41" rx="3.3" ry="4.8" fill="#5a1414"/><path d="M49 34 l3 4 l-3 1" fill="none" stroke="' + line + '" stroke-width="1.2"/>' +
-           '<path class="hw-sweat" d="M15 18 q-3 5 0 7 q3 -2 0 -7z" fill="#6ec6ff"/><path class="hw-sweat" style="animation-delay:-.4s" d="M53 12 q-3 5 0 7 q3 -2 0 -7z" fill="#6ec6ff"/>';
-    }
-    return s + '</g>';
-  }
-  var CHASE_SVG = '<svg viewBox="0 0 190 130">' +
-    '<g transform="translate(104 18) scale(.84)">' + '<g class="hw-p1">' + person(false) + '</g><g class="hw-p2">' + person(true) + '</g></g>' +
-    '<g class="hw-zoff"><g class="hw-chomp">' + ZOMBIE_BODY + '</g></g>' +
-    '<g class="hw-zname"><rect x="21" y="-14" width="48" height="11" rx="3" fill="#000" fill-opacity=".6" stroke="#ff5a44" stroke-opacity=".7" stroke-width=".8"/>' +
-    '<text x="45" y="-6.3" font-size="9.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="system-ui,Arial,sans-serif">Rubén</text>' +
-    '</g>' +
-    '<g><rect x="143" y="19" width="44" height="11" rx="3" fill="#000" fill-opacity=".6" stroke="#ff5a44" stroke-opacity=".7" stroke-width=".8"/>' +
-    '<text x="165" y="26.8" font-size="9.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="system-ui,Arial,sans-serif">Grisel</text></g>' +
-    '<g class="hw-blood"><circle class="hw-drop" cx="128" cy="62" r="2.6" fill="#c8101c"/><circle class="hw-drop" style="animation-delay:-.3s" cx="134" cy="58" r="2" fill="#e01a28"/><circle class="hw-drop" style="animation-delay:-.6s" cx="123" cy="66" r="2.2" fill="#a00c16"/></g>' +
-    '<text class="hw-aah" x="172" y="11" font-size="15" font-weight="900" fill="#fff" stroke="#b3141b" stroke-width="4" paint-order="stroke" text-anchor="middle" font-family="Impact,Arial Black,sans-serif">¡AAAH!</text></svg>';
-  function chase(layer) {
-    var d = document.createElement('div');
-    d.className = 'hw-item hw-chase';
-    d.style.width = '162px'; d.style.bottom = '2px';
-    d.setAttribute('style', d.getAttribute('style') + ';--cd:120s;--dl:-112s;');
-    d.innerHTML = CHASE_SVG;
-    layer.appendChild(d);
-  }
 
   function mk(kind, cls, w, style) {
     var d = document.createElement('div');
@@ -156,12 +69,6 @@
     inner.className = (rtl ? 'hw-flip ' : '') + (opts.inner || '');
     if (opts.vars) inner.setAttribute('style', opts.vars);
     outer.removeChild(svg); inner.appendChild(svg); outer.appendChild(inner);
-    if (opts.name) { // nombre sobre la cabeza, estilo videojuego (fuera del contenedor volteado para que no salga al revés)
-      var n = document.createElement('div');
-      n.className = 'hw-name'; n.textContent = opts.name;
-      n.style.left = (opts.nx != null ? opts.nx : (rtl ? 55 : 45)) + '%'; if (opts.ny != null) n.style.top = opts.ny + 'px';
-      outer.appendChild(n);
-    }
     layer.appendChild(outer);
   }
 
@@ -183,24 +90,17 @@
     var L = document.createElement('div');
     L.id = 'hwLayer'; L.setAttribute('aria-hidden', 'true');
     // murciélagos
-    walker(L, 'bat', 58, { top: '6%',  dur: 26, delay: 4,  rtl: false, inner: 'hw-bob', vars: '--amp:14px;--b:1.9s' });
-    walker(L, 'bat', 46, { top: '24%', dur: 34, delay: 20, rtl: true,  stat: 20, inner: 'hw-bob', vars: '--amp:18px;--b:2.4s' });
-    walker(L, 'bat', 66, { top: '42%', dur: 40, delay: 9,  rtl: false, inner: 'hw-bob', vars: '--amp:22px;--b:2.9s' });
+    walker(L, 'bat', 54, { top: '8%',  dur: 28, delay: 4,  rtl: false, inner: 'hw-bob', vars: '--amp:14px;--b:1.9s' });
+    walker(L, 'bat', 46, { top: '30%', dur: 38, delay: 20, rtl: true,  inner: 'hw-bob', vars: '--amp:18px;--b:2.4s' });
     // fantasmas
-    walker(L, 'ghost', 56, { top: '33%', dur: 70, delay: 15, rtl: true,  stat: 78, inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s', name: 'Lucho', nx: 50, ny: -37 });
-    walker(L, 'ghost', 46, { top: '58%', dur: 85, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s', name: 'Alejandro', nx: 50, ny: -33 });
-    walker(L, 'ghost', 52, { top: '48%', dur: 78, delay: 33, rtl: true,  stat: 40, inner: 'hw-bob hw-ghost', vars: '--amp:14px;--b:2.9s', name: 'Alfredo', nx: 50, ny: -35 });
-    // en el suelo (encima del menú de abajo)
-    walker(L, 'zombie', 78,  { bottom: '2px', dur: 80, delay: 10, rtl: false, name: 'Emerson' });
-    walker(L, 'zombie', 68,  { bottom: '2px', dur: 95, delay: 62, rtl: true,  stat: 60, name: 'Virginia' });
-    walker(L, 'zombieglam', 76, { bottom: '2px', dur: 74, delay: 44, rtl: false, inner: 'hw-bob', vars: '--amp:2px;--b:0.45s', name: 'Mario', nx: 45 });
-    walker(L, 'cat',    64,  { bottom: '2px', dur: 46, delay: 30, rtl: true,  stat: 36, name: 'Elena', nx: 22, ny: -15 });
-    walker(L, 'pumpkin',46,  { bottom: '2px', dur: 58, delay: 3,  rtl: false, inner: 'hw-hop', name: 'Carmen', nx: 50, ny: -35 });
-    walker(L, 'pumpkin',40,  { bottom: '2px', dur: 66, delay: 41, rtl: true,  stat: 30, inner: 'hw-hop', name: 'Luis', nx: 50, ny: -33 });
-    chase(L);   // el zombi que persigue y muerde (aparece de vez en cuando)
-    // arañas colgando
-    var s1 = mk('spider', 'hw-spider', 30, 'left:12%;--d:6.5s;--dl:-1s;'); L.appendChild(s1);
-    var s2 = mk('spider', 'hw-spider', 24, 'left:86%;--d:8.5s;--dl:-4s;'); L.appendChild(s2);
+    walker(L, 'ghost', 54, { top: '38%', dur: 75, delay: 15, rtl: true,  inner: 'hw-bob hw-ghost', vars: '--amp:16px;--b:3.2s' });
+    walker(L, 'ghost', 46, { top: '60%', dur: 88, delay: 50, rtl: false, inner: 'hw-bob hw-ghost', vars: '--amp:12px;--b:2.7s' });
+    // calaveras flotando
+    walker(L, 'skull', 40, { top: '20%', dur: 84, delay: 36, rtl: false, inner: 'hw-bob', vars: '--amp:10px;--b:2.2s' });
+    walker(L, 'skull', 34, { top: '50%', dur: 98, delay: 66, rtl: true,  inner: 'hw-bob', vars: '--amp:8px;--b:2.6s' });
+    // gatos negros por el suelo (encima del menú de abajo)
+    walker(L, 'cat', 62, { bottom: '2px', dur: 48, delay: 30, rtl: true });
+    walker(L, 'cat', 54, { bottom: '2px', dur: 66, delay: 8,  rtl: false });
     document.body.appendChild(L);
     place();
   }

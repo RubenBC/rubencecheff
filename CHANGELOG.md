@@ -4,6 +4,16 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v130 — Halloween más sobrio
+
+### Cambiado
+- **Halloween: quitados los nombres, los zombis (incluida la escena de la mordedura), las calabazas y las arañas.** Quedan solo murciélagos, fantasmas, gatos negros y calaveras, en poca cantidad para que no ocupen la pantalla (8 en total, pequeños y por separado).
+
+### Añadido
+- **Calaveras flotando** con los ojos encendidos y la mandíbula que castañetea; segundo gato negro.
+
+---
+
 ## v129 — Mario, el zombi con estilo (Halloween)
 
 ### Añadido
