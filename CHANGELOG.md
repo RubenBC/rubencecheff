@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v133 — Criaturas de Navidad
+
+### Añadido
+- **Navidad: trineo de Papá Noel y más criaturas**, como los fantasmas y los gatos de Halloween: un **trineo con dos renos** (el de delante con la nariz roja encendida) que cruza el cielo cada poco con una estela de brillos, un **reno** que camina, un **muñeco de nieve** con sombrero y bufanda que se bambolea y un **hombre de jengibre** que corre por abajo.
+
+---
+
 ## v132 — Modos de temporada: Halloween y Navidad desde Admin
 
 ### Añadido
