@@ -4,6 +4,22 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v132 — Modos de temporada: Halloween y Navidad desde Admin
+
+### Añadido
+- **Interruptores de Halloween y Navidad en Admin → Sistema → "Modo de temporada".** Solo puede haber uno activo (al encender uno se apaga el otro) y se guarda en Supabase (`app_settings`, clave `seasonal_mode`), así que se activa y se desactiva **en todos los dispositivos**. Los demás móviles y el monitor lo recogen solos: al abrir la app, al volver a ella, cada 2 minutos y al instante si Realtime está activado para `app_settings`. No hace falta ningún SQL: usa la misma tabla que el resto de ajustes.
+- **Modo Navidad completo:**
+  - Colores rojo, verde y dorado: barras de arriba y abajo en verde abeto con filo dorado, botones rojos, fichas activas en verde; versión clara y oscura.
+  - **Guirnalda de luces** que parpadean bajo la barra de arriba, con unas bolas colgando que se balancean, y nieve acumulada sobre el menú de abajo.
+  - **Nevada** con copos de cuatro formas (redondos, estrella, cristal con ramitas y hexágono) y tamaños distintos; entre 28 y 70 según el tamaño de la pantalla, sin tapar nada ni bloquear toques. **Se mueve también en el monitor de Windows** aunque tenga activado "reducir animaciones".
+  - **Alarma del timer: Papá Noel sangriento** de fondo cuando se acaba el tiempo, con un cuchillo ensangrentado que se balancea, manchas de sangre por el traje y la barba, ojos rojos que brillan, gotas que caen y algún parpadeo de luz. El nombre del timer y la cuenta salen en blanco con brillo rojo.
+
+### Cambiado
+- **Halloween ya no es fijo**: pasa a ser uno de los dos modos y se activa o desactiva desde el mismo sitio. Mientras no elijas nada sigue puesto como hasta ahora; en cuanto toques cualquiera de los interruptores se guarda tu elección.
+- Cada modo se carga solo cuando está activo y se descarga por completo al apagarlo (dibujos, colores, color de la barra de estado del móvil y fondo de la alarma).
+
+---
+
 ## v131 — Quitado el botón 👻
 
 ### Arreglado

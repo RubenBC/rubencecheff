@@ -1,11 +1,9 @@
-/* 🎃 MODO HALLOWEEN (fijo, temporal) — ver css/halloween.css para cómo quitarlo.
-   Dibuja criaturas (SVG propio, sin imágenes) que cruzan la pantalla sin bloquear toques. */
+/* 🎃 MODO HALLOWEEN — lo activa o desactiva el admin (Admin → Sistema → Modo de temporada).
+   Se carga solo cuando está activo (app.js: applySeason). Dibuja criaturas (SVG propio, sin imágenes)
+   que cruzan la pantalla sin bloquear toques. Expone window.SeasonHalloween = { start, stop }. */
 (function () {
   'use strict';
-  // Color de la barra de estado del móvil (app.js lo lee si existe)
-  window.HW_THEME_COLORS = { light: '#0E0907', dark: '#0C0908' };
-  var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', document.body && document.body.classList.contains('dark') ? window.HW_THEME_COLORS.dark : window.HW_THEME_COLORS.light);
+  var COLORS = { light: '#0E0907', dark: '#0C0908' }; // barra de estado del móvil
 
   var SVG = {
     bat: '<svg viewBox="0 0 140 80">' +
@@ -83,6 +81,8 @@
     sheet.insertBefore(bg, sheet.firstChild);
   }
 
+  var running = false, lightningTimer = null, placeTimers = [], ro = null;
+
   function build() {
     addRingBg();
     if (document.getElementById('hwLayer')) return;
@@ -118,9 +118,8 @@
       L.appendChild(flash); L.appendChild(bolt);
       setTimeout(function () { flash.remove(); bolt.remove(); }, 1300);
     }
-    setTimeout(lightning, 15000 + Math.random() * 25000);
+    lightningTimer = setTimeout(lightning, 15000 + Math.random() * 25000);
   }
-  setTimeout(lightning, 6000);
 
   // El área libre va entre la barra de arriba y el menú de abajo
   function place() {
@@ -130,9 +129,31 @@
     if (tb) root.setProperty('--hw-top', Math.round(tb.getBoundingClientRect().bottom) + 'px');
     if (nav) root.setProperty('--hw-bottom', Math.round(nav.getBoundingClientRect().height) + 'px');
   }
-  window.addEventListener('resize', place);
-  [300, 1200, 3000].forEach(function (t) { setTimeout(place, t); });
-  if (window.ResizeObserver) { var ro = new ResizeObserver(place); setTimeout(function () { var a = document.getElementById('mainTopbar'), b = document.querySelector('.bottom-nav'); if (a) ro.observe(a); if (b) ro.observe(b); }, 100); }
-  window.addEventListener('load', place);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+
+  function start() {
+    if (running) return;
+    running = true;
+    window.MODE_THEME_COLORS = COLORS;
+    build();
+    window.addEventListener('resize', place);
+    [300, 1200, 3000].forEach(function (t) { placeTimers.push(setTimeout(place, t)); });
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(place);
+      var a = document.getElementById('mainTopbar'), b = document.querySelector('.bottom-nav');
+      if (a) ro.observe(a); if (b) ro.observe(b);
+    }
+    lightningTimer = setTimeout(lightning, 6000);
+  }
+  function stop() {
+    if (!running) return;
+    running = false;
+    clearTimeout(lightningTimer); placeTimers.forEach(clearTimeout); placeTimers = [];
+    window.removeEventListener('resize', place);
+    if (ro) { ro.disconnect(); ro = null; }
+    var L = document.getElementById('hwLayer'); if (L) L.remove();
+    var bg = document.querySelector('.hw-ring-bg'); if (bg) bg.remove();
+    var root = document.documentElement.style; root.removeProperty('--hw-top'); root.removeProperty('--hw-bottom');
+    if (window.MODE_THEME_COLORS === COLORS) window.MODE_THEME_COLORS = null;
+  }
+  window.SeasonHalloween = { start: start, stop: stop };
 })();

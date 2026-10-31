@@ -12,7 +12,11 @@ js/app.js                       → lógica principal y datos (Supabase)
 js/timer.js                     → temporizadores y alarmas
 js/radio.js                     → radio en directo
 js/midi.js                      → lector de melodías MIDI para los timers
-css/halloween.css + js/halloween.js → modo Halloween temporal (se quita borrando ambos y sus 2 líneas en index.html)
+css/halloween.css + js/halloween.js → modo Halloween
+css/navidad.css + js/navidad.js     → modo Navidad
+                                  (los modos los activa el admin en Admin → Sistema; el elegido se guarda en
+                                  `app_settings` (clave `seasonal_mode`) y vale para todos los dispositivos. Cada modo
+                                  se carga solo cuando está activo; se puede quitar borrando su css + js y su entrada en `SEASONS` de app.js)
 herramientas/recortar-midi.html → herramienta aparte para recortar melodías
 icon*.png                       → iconos de la app
 CHANGELOG.md                    → historial de versiones

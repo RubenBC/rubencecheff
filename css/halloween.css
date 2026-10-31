@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
-   🎃 MODO HALLOWEEN (fijo, temporal)
-   Para quitarlo: borra este archivo, js/halloween.js y sus dos
-   líneas en index.html (<link> y <script>). Nada más depende de él.
+   🎃 MODO HALLOWEEN
+   Se carga solo cuando el admin lo activa (Admin → Sistema → Modo de
+   temporada) y se quita al desactivarlo (app.js: applySeason).
 ═══════════════════════════════════════════════════════════════ */
 :root {
   --primary:           #C2410C;
