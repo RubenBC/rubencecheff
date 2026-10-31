@@ -12,6 +12,7 @@ Todas las versiones notables de la app, de más reciente a más antigua.
   - Colores rojo, verde y dorado: barras de arriba y abajo en verde abeto con filo dorado, botones rojos, fichas activas en verde; versión clara y oscura.
   - **Guirnalda de luces** que parpadean bajo la barra de arriba, con unas bolas colgando que se balancean, y nieve acumulada sobre el menú de abajo.
   - **Nevada** con copos de cuatro formas (redondos, estrella, cristal con ramitas y hexágono) y tamaños distintos; entre 28 y 70 según el tamaño de la pantalla, sin tapar nada ni bloquear toques. **Se mueve también en el monitor de Windows** aunque tenga activado "reducir animaciones".
+  - **Criaturas navideñas**, como los fantasmas y los gatos de Halloween: un **trineo de Papá Noel con dos renos** (el de delante con la nariz roja encendida) que cruza el cielo cada poco con una estela de brillos, un **reno** que camina, un **muñeco de nieve** con sombrero y bufanda que se bambolea y un **hombre de jengibre** que corre por abajo.
   - **Alarma del timer: Papá Noel sangriento** de fondo cuando se acaba el tiempo, con un cuchillo ensangrentado que se balancea, manchas de sangre por el traje y la barba, ojos rojos que brillan, gotas que caen y algún parpadeo de luz. El nombre del timer y la cuenta salen en blanco con brillo rojo.
 
 ### Cambiado

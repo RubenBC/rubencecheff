@@ -150,6 +150,84 @@
     }
   }
 
+  // ── Criaturas navideñas: trineo volando + reno, muñeco de nieve y hombre de jengibre por el suelo ──
+  function reindeer(x, y, k, nose) {
+    return '<g transform="translate(' + x + ' ' + y + ') scale(' + k + ')">' +
+      '<g stroke="#6f4620" stroke-width="4" stroke-linecap="round" fill="none"><path d="M-14 8 L-28 20 L-20 24"/><path d="M-8 9 L-16 26 L-8 28"/><path d="M12 8 L28 12 L33 20"/><path d="M18 7 L32 2 L40 8"/></g>' +
+      '<ellipse cx="0" cy="0" rx="22" ry="11" fill="#9a6a3a"/><ellipse cx="2" cy="5" rx="14" ry="5" fill="#c9a06a" opacity=".6"/><circle cx="-22" cy="-3" r="3.4" fill="#f4efe6"/>' +
+      '<path d="M14 -4 C20 -14 24 -20 28 -24 L36 -20 C32 -12 26 -2 20 6 Z" fill="#9a6a3a"/>' +
+      '<ellipse cx="34" cy="-24" rx="9" ry="6.5" transform="rotate(20 34 -24)" fill="#a8763f"/><ellipse cx="42" cy="-21" rx="5" ry="4" fill="#c9a06a"/>' +
+      '<circle cx="46" cy="-20" r="3.2" fill="' + (nose ? '#ff2a2a' : '#4a2f16') + '"' + (nose ? ' class="xm-nose"' : '') + '/><circle cx="34" cy="-26" r="1.4" fill="#1a1008"/>' +
+      '<ellipse cx="28" cy="-30" rx="2.4" ry="5" transform="rotate(-30 28 -30)" fill="#7a4f26"/>' +
+      '<path d="M31 -30 L28 -44 M28 -38 L22 -42 M28 -44 L32 -50 M35 -30 L38 -44 M38 -38 L44 -42" stroke="#e3d3b0" stroke-width="2" stroke-linecap="round" fill="none"/>' +
+      '<path d="M8 -9 L8 10" stroke="#d4a93a" stroke-width="2.4"/></g>';
+  }
+  var STAR = 'M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6 Z';
+  var XSVG = {
+    sleigh: '<svg viewBox="0 0 270 100">' +
+      '<g fill="#ffe08a"><path class="xm-tw" transform="translate(-10 44)" d="' + STAR + '"/><path class="xm-tw" style="animation-delay:-.3s" transform="translate(-32 60) scale(.7)" d="' + STAR + '"/><path class="xm-tw" style="animation-delay:-.6s" transform="translate(-4 68) scale(.8)" d="' + STAR + '"/><path class="xm-tw" style="animation-delay:-.9s" transform="translate(-26 30) scale(.6)" d="' + STAR + '"/></g>' +
+      '<path d="M132 56 L152 50 L178 46 M196 44 L212 40" stroke="#d4a93a" stroke-width="2" fill="none"/>' +
+      reindeer(172, 58, 0.9, false) + reindeer(236, 52, 1, true) +
+      '<path d="M18 52 C4 36 18 14 38 20 C48 24 50 40 48 52 Z" fill="#8a5a2b" stroke="#4e2f10" stroke-width="2"/><path d="M30 21 l-4 -7 h15 l-4 7" fill="#c0242f"/>' +
+      '<rect x="52" y="34" width="17" height="16" fill="#2f7d4a" stroke="#1d5a33" stroke-width="1.5"/><path d="M60.5 34 V50 M52 42 H69" stroke="#ffd23f" stroke-width="2.2"/>' +
+      '<path d="M72 54 C72 38 84 32 94 34 C104 36 108 46 106 54 Z" fill="#c0242f" stroke="#7a0f18" stroke-width="1.5"/>' +
+      '<path d="M101 42 L114 28" stroke="#c0242f" stroke-width="6" stroke-linecap="round"/><circle cx="115" cy="26.5" r="4" fill="#f7f3ea"/>' +
+      '<circle cx="90" cy="26" r="9" fill="#f0bf9b" stroke="#a8704f" stroke-width="1"/><path d="M81 28 C81 42 99 42 99 28 C94 33 86 33 81 28 Z" fill="#f7f3ea" stroke="#cfc8bb" stroke-width="1"/>' +
+      '<circle cx="87" cy="25" r="1.2" fill="#222"/><circle cx="93" cy="25" r="1.2" fill="#222"/><circle cx="90" cy="28" r="2" fill="#e6786c"/>' +
+      '<path d="M80 22 C80 8 98 8 100 20 C104 14 112 17 109 24 C106 20 102 21 100 24 Z" fill="#c0242f" stroke="#7a0f18" stroke-width="1"/><rect x="80" y="19" width="19" height="5" rx="2.5" fill="#f7f3ea"/><circle cx="109" cy="22" r="3.6" fill="#f7f3ea"/>' +
+      '<path d="M14 52 L116 52 C124 52 130 46 134 36 L139 40 C137 60 124 78 100 78 L38 78 C22 78 14 68 14 52 Z" fill="#c0242f" stroke="#7a0f18" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M18 60 H122" stroke="#d4a93a" stroke-width="3"/><path d="M134 36 C142 28 150 32 146 40" stroke="#d4a93a" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+      '<path d="M6 90 C30 98 112 98 132 88 C144 83 148 74 141 70 M40 78 V92 M100 78 V92" stroke="#d4a93a" stroke-width="3.6" fill="none" stroke-linecap="round"/></svg>',
+
+    rudolph: '<svg viewBox="0 0 120 92">' +
+      '<g class="xm-leg-a" style="--ox:42px;--oy:54px"><rect x="39" y="52" width="7" height="30" rx="3.5" fill="#7a4f26"/><rect x="38" y="80" width="9" height="6" rx="2" fill="#2a1a0c"/></g>' +
+      '<g class="xm-leg-b" style="--ox:52px;--oy:54px"><rect x="49" y="52" width="7" height="30" rx="3.5" fill="#8a5b2e"/><rect x="48" y="80" width="9" height="6" rx="2" fill="#2a1a0c"/></g>' +
+      '<g class="xm-leg-b" style="--ox:76px;--oy:54px"><rect x="73" y="52" width="7" height="30" rx="3.5" fill="#7a4f26"/><rect x="72" y="80" width="9" height="6" rx="2" fill="#2a1a0c"/></g>' +
+      '<g class="xm-leg-a" style="--ox:86px;--oy:54px"><rect x="83" y="52" width="7" height="30" rx="3.5" fill="#8a5b2e"/><rect x="82" y="80" width="9" height="6" rx="2" fill="#2a1a0c"/></g>' +
+      '<ellipse cx="62" cy="46" rx="32" ry="16" fill="#9a6a3a"/><ellipse cx="64" cy="53" rx="22" ry="7" fill="#c9a06a" opacity=".6"/><circle cx="30" cy="42" r="4.4" fill="#f4efe6"/>' +
+      '<path d="M84 38 C90 28 94 20 98 14 L108 18 C104 28 98 38 92 50 Z" fill="#9a6a3a"/>' +
+      '<ellipse cx="103" cy="14" rx="11" ry="8" transform="rotate(18 103 14)" fill="#a8763f"/><ellipse cx="112" cy="18" rx="6" ry="4.6" fill="#c9a06a"/>' +
+      '<circle cx="116" cy="19" r="4" fill="#ff2a2a" class="xm-nose"/><circle cx="103" cy="11" r="1.7" fill="#1a1008"/>' +
+      '<ellipse cx="96" cy="6" rx="3" ry="6" transform="rotate(-30 96 6)" fill="#7a4f26"/>' +
+      '<path d="M100 4 L96 -10 M97 -3 L90 -7 M96 -10 L100 -16 M105 3 L109 -9 M108 -3 L115 -6" stroke="#e3d3b0" stroke-width="2.4" stroke-linecap="round" fill="none"/>' +
+      '<path d="M82 36 L82 56" stroke="#d62839" stroke-width="3"/><circle cx="82" cy="58" r="3" fill="#ffd23f"/></svg>',
+
+    snowman: '<svg viewBox="0 0 60 94">' +
+      '<path d="M14 54 L1 44 M1 44 L-1 37 M1 44 L-3 45 M46 54 L59 46 M59 46 L62 40 M59 46 L63 48" stroke="#6b4423" stroke-width="2.6" stroke-linecap="round" fill="none"/>' +
+      '<circle cx="30" cy="75" r="18" fill="#fff" stroke="#9fb4c8" stroke-width="2"/><circle cx="30" cy="52" r="15" fill="#fff" stroke="#9fb4c8" stroke-width="2"/><circle cx="30" cy="29" r="12" fill="#fff" stroke="#9fb4c8" stroke-width="2"/>' +
+      '<rect x="17" y="17" width="26" height="4.5" rx="2" fill="#1d1a1a"/><rect x="22" y="4" width="16" height="15" fill="#1d1a1a"/><rect x="22" y="13" width="16" height="3.4" fill="#d62839"/>' +
+      '<circle cx="26" cy="27" r="1.7" fill="#1d1a1a"/><circle cx="34" cy="27" r="1.7" fill="#1d1a1a"/><path d="M30 30 L45 32.5 L30 35 Z" fill="#f28c28"/>' +
+      '<path d="M24 36 C27 40 33 40 36 36" stroke="#1d1a1a" stroke-width="1.4" fill="none" stroke-dasharray="1.6 2.2" stroke-linecap="round"/>' +
+      '<path d="M17 41 C25 47 35 47 43 41 L43 46 C35 52 25 52 17 46 Z" fill="#d62839"/><path d="M37 46 L42 62 L35 60 Z" fill="#b01c2c"/>' +
+      '<circle cx="30" cy="56" r="1.9" fill="#1d1a1a"/><circle cx="30" cy="64" r="1.9" fill="#1d1a1a"/><circle cx="30" cy="76" r="2" fill="#1d1a1a"/><circle cx="30" cy="84" r="2" fill="#1d1a1a"/></svg>',
+
+    ginger: '<svg viewBox="0 0 58 78">' +
+      '<g class="xm-leg-a" style="--ox:22px;--oy:48px"><rect x="17" y="46" width="11" height="26" rx="5.5" fill="#b8743a" stroke="#8a5224" stroke-width="1.2"/><path d="M18 66 H27" stroke="#fff" stroke-width="2"/></g>' +
+      '<g class="xm-leg-b" style="--ox:36px;--oy:48px"><rect x="30" y="46" width="11" height="26" rx="5.5" fill="#c8823f" stroke="#8a5224" stroke-width="1.2"/><path d="M31 66 H40" stroke="#fff" stroke-width="2"/></g>' +
+      '<g class="xm-arm-a"><rect x="2" y="27" width="16" height="10" rx="5" fill="#b8743a" stroke="#8a5224" stroke-width="1.2"/><path d="M4 35 l3 -3 l3 3 l3 -3" stroke="#fff" stroke-width="1.6" fill="none"/></g>' +
+      '<g class="xm-arm-b"><rect x="40" y="27" width="16" height="10" rx="5" fill="#c8823f" stroke="#8a5224" stroke-width="1.2"/><path d="M43 35 l3 -3 l3 3 l3 -3" stroke="#fff" stroke-width="1.6" fill="none"/></g>' +
+      '<rect x="14" y="26" width="30" height="26" rx="10" fill="#c8823f" stroke="#8a5224" stroke-width="1.5"/>' +
+      '<circle cx="29" cy="16" r="13.5" fill="#c8823f" stroke="#8a5224" stroke-width="1.5"/>' +
+      '<circle cx="24" cy="14" r="1.8" fill="#fff"/><circle cx="34" cy="14" r="1.8" fill="#fff"/><path d="M23 20 C26 25 32 25 35 20" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="20" cy="19" r="2" fill="#f19aa8" opacity=".8"/><circle cx="38" cy="19" r="2" fill="#f19aa8" opacity=".8"/>' +
+      '<circle cx="29" cy="34" r="2.3" fill="#d62839"/><circle cx="29" cy="42" r="2.3" fill="#2f9e5a"/><circle cx="29" cy="49" r="1.9" fill="#d62839"/><path d="M17 31 H41" stroke="#fff" stroke-width="1.4" stroke-dasharray="2 2.2"/></svg>'
+  };
+  function critter(kind, w, o) {
+    var outer = document.createElement('div'), rtl = !!o.rtl;
+    outer.className = 'xm-item ' + (o.cls || 'xm-walk-' + (rtl ? 'rtl' : 'ltr'));
+    outer.style.width = w + 'px';
+    outer.style.cssText += ';' + (o.bottom != null ? 'bottom:' + o.bottom + ';' : 'top:' + o.top + ';') + (o.vars || '');
+    var inner = document.createElement('div');
+    inner.className = (rtl ? 'xm-flip ' : '') + (o.inner || '');
+    inner.innerHTML = XSVG[kind];
+    outer.appendChild(inner); layer.appendChild(outer);
+  }
+  function addCritters() {
+    critter('sleigh', 178, { cls: 'xm-sleigh', top: '7%', inner: 'xm-sleigh-in', vars: '--cd:100s;--dl:-94s;' });
+    critter('rudolph', 84, { bottom: '2px', rtl: true,  vars: '--d:74s;--dl:-12s;' });
+    critter('snowman', 46, { bottom: '2px', rtl: false, inner: 'xm-waddle', vars: '--d:96s;--dl:-44s;' });
+    critter('ginger',  42, { bottom: '2px', rtl: false, vars: '--d:52s;--dl:-6s;' });
+  }
+
   // ── Guirnalda de luces y bolas colgando (bajo la barra de arriba) ──
   function buildLights() {
     var w = window.innerWidth, sw = 66, d = 11, n = Math.ceil(w / sw) + 1, i, k;
@@ -204,6 +282,7 @@
     addRingBg();
     layer = document.createElement('div'); layer.id = 'xmLayer'; layer.setAttribute('aria-hidden', 'true');
     canvas = document.createElement('canvas'); layer.appendChild(canvas); ctx = canvas.getContext('2d');
+    addCritters();
     lights = document.createElement('div'); lights.id = 'xmLights'; lights.setAttribute('aria-hidden', 'true');
     drift = document.createElement('div'); drift.id = 'xmDrift'; drift.setAttribute('aria-hidden', 'true');
     document.body.appendChild(layer); document.body.appendChild(lights); document.body.appendChild(drift);

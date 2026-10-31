@@ -79,6 +79,33 @@ body.dark .topbar, body.dark .bottom-nav {
 .xm-swing { transform-box: view-box; animation: xm-swing 3.6s ease-in-out infinite alternate; }
 @keyframes xm-swing { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
 
+/* ─── Criaturas navideñas ─── */
+.xm-item { position: absolute; left: 0; will-change: transform; }
+.xm-item svg { display: block; width: 100%; height: auto; overflow: visible; }
+.xm-walk-ltr { animation: xm-ltr var(--d, 60s) linear infinite; animation-delay: var(--dl, 0s); }
+.xm-walk-rtl { animation: xm-rtl var(--d, 60s) linear infinite; animation-delay: var(--dl, 0s); }
+@keyframes xm-ltr { from { transform: translateX(-200px); } to { transform: translateX(calc(100vw + 200px)); } }
+@keyframes xm-rtl { from { transform: translateX(calc(100vw + 200px)); } to { transform: translateX(-200px); } }
+.xm-flip { transform: scaleX(-1); }
+/* trineo: cruza el cielo (25 s) y espera; así sale "de vez en cuando" */
+.xm-sleigh { animation: xm-fly var(--cd, 100s) linear infinite; animation-delay: var(--dl, 0s); }
+@keyframes xm-fly { 0% { transform: translateX(-320px); } 26% { transform: translateX(calc(100vw + 320px)); } 100% { transform: translateX(calc(100vw + 320px)); } }
+.xm-sleigh-in { animation: xm-bob 1.7s ease-in-out infinite alternate; }
+@keyframes xm-bob { from { transform: translateY(-9px) rotate(-2.5deg); } to { transform: translateY(9px) rotate(2.5deg); } }
+.xm-waddle { transform-origin: 50% 100%; animation: xm-waddle 0.9s ease-in-out infinite alternate; }
+@keyframes xm-waddle { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+.xm-leg-a, .xm-leg-b { transform-box: view-box; transform-origin: var(--ox) var(--oy, 50px); animation: xm-step 0.8s ease-in-out infinite alternate; }
+.xm-leg-b { animation-direction: alternate-reverse; }
+@keyframes xm-step { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+.xm-arm-a, .xm-arm-b { transform-box: view-box; transform-origin: 14px 32px; animation: xm-armswing 0.5s ease-in-out infinite alternate; }
+.xm-arm-b { transform-origin: 44px 32px; animation-direction: alternate-reverse; }
+@keyframes xm-armswing { from { transform: rotate(-26deg); } to { transform: rotate(26deg); } }
+.xm-nose { animation: xm-nose 0.9s ease-in-out infinite alternate; filter: drop-shadow(0 0 4px #ff3030); }
+@keyframes xm-nose { from { opacity: .55; } to { opacity: 1; } }
+.xm-tw { transform-box: fill-box; transform-origin: center; animation: xm-tw 0.8s ease-in-out infinite alternate; }
+@keyframes xm-tw { from { opacity: .25; transform: scale(.4); } to { opacity: 1; transform: scale(1.2); } }
+body.dark #xmLayer .xm-item svg { filter: drop-shadow(0 0 2px rgba(255,255,255,0.35)); }
+
 /* ─── 🎅 Ventana del timer/alarma al sonar: Papá Noel sangriento ─── */
 .xm-ring-bg { display: none; position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 20%, #5a0a12 0%, #1a0508 45%, #050101 100%); }
 .xm-ring-bg svg { width: 100%; height: 100%; display: block; }
