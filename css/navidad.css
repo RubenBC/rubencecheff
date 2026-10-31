@@ -1,0 +1,110 @@
+/* ═══════════════════════════════════════════════════════════════
+   🎄 MODO NAVIDAD
+   Se carga solo cuando el admin lo activa (Admin → Sistema → Modo de
+   temporada) y se quita al desactivarlo (app.js: applySeason).
+   Rojo, verde y dorado; guirnalda de luces, bolas colgando y nieve.
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --primary:           #1E6B46;
+  --primary-container: #DDEFE4;
+  --bg:                #FFF9F3;
+  --surface:           #ffffff;
+  --surface2:          #F8ECE2;
+  --text:              #1E1512;
+  --text2:             #655047;
+  --outline:           #BFA89B;
+  --outline-light:     #EAD8CC;
+  --danger:            #B3141B;
+  --danger-light:      #FCDCD8;
+  --alert:             #7A5300;
+  --alert-light:       #FBEBC4;
+}
+body.dark {
+  --primary:           #6FD39B;
+  --primary-container: #14301F;
+  --bg:                #0B1410;
+  --surface:           #121D18;
+  --surface2:          #1A2822;
+  --text:              #F2EEE6;
+  --text2:             #A9B8AF;
+  --outline:           #4C6256;
+  --outline-light:     #263830;
+  --danger:            #FF8A80;
+  --danger-light:      #4A1712;
+  --alert:             #F2C45C;
+  --alert-light:       #4A3A12;
+}
+
+/* Barras de arriba y abajo: verde abeto con filo dorado (en claro y en oscuro) */
+.topbar, .bottom-nav,
+body.dark .topbar, body.dark .bottom-nav {
+  --text: #FFF8E7; --text2: #CFE0D4; --surface2: #1B5239; --outline: #4F8A6A;
+  --outline-light: #2E6A4C; --primary: #FFD66B; --primary-container: #1B5239;
+  background: rgba(10,46,33,0.97);
+  color: var(--text);
+}
+.topbar { border-bottom: 3px solid #D4A93A; }
+.bottom-nav { border-top: 3px solid #D4A93A; }
+.topbar .badge, .topbar .notif-badge { background: #D62839; color: #fff; }
+
+/* Botones: rojo Navidad con un toque dorado */
+.btn-action, .btn-pill.filled { background: linear-gradient(135deg, #D62839, #9E1424); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,214,107,0.55); }
+.seg-btn.active { color: var(--primary); }
+.chip.active { background: #1E6B46; border-color: #D4A93A; color: #fff; }
+.float-back-btn, body.dark .float-back-btn { background: rgba(10,46,33,0.9); color: #FFD66B; }
+
+/* ─── Decoración ─── */
+/* nieve: canvas entre la barra de arriba y el menú de abajo */
+#xmLayer {
+  position: fixed; left: 0; right: 0; top: var(--xm-top, 70px); bottom: var(--xm-bottom, 64px);
+  overflow: hidden; pointer-events: none; z-index: 90;
+}
+#xmLayer canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#xmLights, #xmDrift { position: fixed; left: 0; right: 0; pointer-events: none; z-index: 91; }
+#xmLights { top: var(--xm-top, 70px); height: 60px; }
+#xmLights svg { width: 100%; height: 60px; display: block; overflow: visible; }
+/* nieve acumulada sobre el menú de abajo */
+#xmDrift { bottom: var(--xm-bottom, 64px); left: var(--xm-nl, 0px); right: auto; width: var(--xm-nw, 100%); height: 13px;
+  background:
+    radial-gradient(circle at 11px 13px, #fff 9px, transparent 9.6px) 0 0 / 22px 13px repeat-x,
+    radial-gradient(circle at 5px 13px, #eaf3ff 6px, transparent 6.6px) 0 3px / 31px 13px repeat-x;
+  filter: drop-shadow(0 -1px 1px rgba(60,90,120,0.35)); }
+
+/* bombillas parpadeando, cada color a su ritmo */
+.xm-bulb { animation: xm-blink 1.6s ease-in-out infinite alternate; }
+.xm-bulb.c1 { animation-delay: -0.4s; } .xm-bulb.c2 { animation-delay: -0.8s; animation-duration: 2s; } .xm-bulb.c3 { animation-delay: -1.2s; animation-duration: 1.3s; }
+@keyframes xm-blink { from { opacity: 0.5; } to { opacity: 1; } }
+.xm-bulb ellipse { filter: drop-shadow(0 0 3px currentColor); }
+/* bolas colgando que se balancean */
+.xm-swing { transform-box: view-box; animation: xm-swing 3.6s ease-in-out infinite alternate; }
+@keyframes xm-swing { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+
+/* ─── 🎅 Ventana del timer/alarma al sonar: Papá Noel sangriento ─── */
+.xm-ring-bg { display: none; position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 20%, #5a0a12 0%, #1a0508 45%, #050101 100%); }
+.xm-ring-bg svg { width: 100%; height: 100%; display: block; }
+.timer-sheet.ringing { position: relative; background: #050101 !important; }
+.timer-sheet.ringing .xm-ring-bg { display: block; animation: xmr-flicker 5s steps(1) infinite; }
+.timer-sheet.ringing > :not(.xm-ring-bg) { position: relative; z-index: 1; }
+.timer-sheet.ringing .timer-title,
+.timer-sheet.ringing .timer-display,
+.timer-sheet.ringing .timer-sub.big { color: #fff !important; text-shadow: 0 0 10px #ff1a1a, 0 0 22px #b00000, 0 2px 4px #000; }
+.timer-sheet.ringing .timer-display { -webkit-text-stroke: 2px #000; paint-order: stroke fill; }
+.timer-sheet.ringing .timer-btn.stop { background: #b3141b; color: #fff; box-shadow: 0 0 18px rgba(255,30,30,.7); }
+.xmr-santa { transform-box: view-box; transform-origin: 200px 600px; animation: xmr-breathe 3s ease-in-out infinite alternate; }
+@keyframes xmr-breathe { from { transform: scale(1); } to { transform: scale(1.035); } }
+.xmr-knife { transform-box: view-box; transform-origin: 78px 330px; animation: xmr-knife 2.2s ease-in-out infinite alternate; }
+@keyframes xmr-knife { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+.xmr-eye { animation: xmr-eye 1s ease-in-out infinite alternate; }
+@keyframes xmr-eye { from { opacity: .45; } to { opacity: 1; } }
+.xmr-drip { animation: xmr-drip 1.8s ease-in infinite; }
+.xmr-drip.d2 { animation-delay: -.6s; animation-duration: 2.2s; } .xmr-drip.d3 { animation-delay: -1.2s; animation-duration: 1.6s; }
+@keyframes xmr-drip { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 100% { transform: translateY(60px); opacity: 0; } }
+.xmr-snow { animation: xmr-snow 7s linear infinite; }
+@keyframes xmr-snow { from { transform: translateY(-20px); } to { transform: translateY(40px); } }
+@keyframes xmr-flicker { 0%, 88%, 92%, 100% { filter: none; } 89%, 91% { filter: brightness(1.7) contrast(1.15); } 90% { filter: brightness(.55); } }
+
+/* "Reducir movimiento": la nieve y las luces se siguen moviendo (muchos PC con Windows lo traen
+   activado y por eso no se movía nada); solo se quita el parpadeo fuerte de la alarma. */
+@media (prefers-reduced-motion: reduce) {
+  .timer-sheet.ringing .xm-ring-bg { animation: none; }
+}

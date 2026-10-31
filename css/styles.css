@@ -1303,3 +1303,15 @@ body.dark .update-banner { color: #002020; }
 .cl-body li { margin: 3px 0; }
 .cl-body code { background: var(--surface2); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
 
+
+/* v132 — Modo de temporada (Admin → Sistema): fila con icono, texto e interruptor */
+.season-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--outline-light); margin-top: 10px; }
+.season-row:first-of-type { margin-top: 12px; }
+.season-ico { font-size: 28px; line-height: 1; flex-shrink: 0; width: 36px; text-align: center; }
+.season-txt { flex: 1; min-width: 0; }
+.season-name { font-weight: 800; font-size: 15px; }
+.season-desc { font-size: 12.5px; color: var(--text2); margin-top: 2px; line-height: 1.35; }
+.sw { position: relative; flex-shrink: 0; width: 52px; height: 32px; border-radius: 16px; border: 2px solid var(--outline); background: var(--surface2); cursor: pointer; padding: 0; transition: background .15s, border-color .15s; }
+.sw span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--outline); transition: transform .15s, background .15s; }
+.sw.on { background: var(--primary); border-color: var(--primary); }
+.sw.on span { transform: translateX(20px); background: #fff; }

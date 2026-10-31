@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v131';
+const APP_VERSION = 'v132';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -260,6 +260,11 @@ function setupForceReloadListener() {
         if (isSafeToAutoReload()) reloadKeepingView();
         else showUpdateBanner('El admin ha publicado cambios nuevos.');
       })
+      // modo de temporada: cambia al instante en todos los dispositivos
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.' + SEASON_KEY }, payload => {
+        const v = payload && payload.new && payload.new.value;
+        if (v != null && payload.eventType !== 'DELETE') applySeason(v); else syncSeasonMode();
+      })
       .subscribe();
   } catch (e) { console.warn('No se pudo activar el aviso en tiempo real:', e?.message || e); }
 }
@@ -279,6 +284,112 @@ async function forceReloadAllDevices() {
     if (!handleAuthError(e)) showToast('No se pudo enviar el aviso');
   }
 }
+
+// ═══════════════════════════════════════
+//   MODOS DE TEMPORADA (Halloween / Navidad)
+// ═══════════════════════════════════════
+// El admin elige el modo en Admin → Sistema. Se guarda en app_settings (clave seasonal_mode:
+// 'halloween' | 'navidad' | 'none'), así que vale para todos los dispositivos. Solo puede haber
+// uno activo. Cada modo vive en su css + js (se cargan solo cuando toca y se quitan al apagarlo).
+// Los demás dispositivos lo recogen al abrir la app, al volver a ella, cada 2 min y al instante si
+// Realtime está activado para app_settings. Sin ajuste guardado todavía = Halloween (como estaba).
+const SEASONS = {
+  halloween: { label: 'Halloween', icon: '🎃', css: 'css/halloween.css', js: 'js/halloween.js', api: 'SeasonHalloween',
+               desc: 'Colores naranja y negro, murciélagos, fantasmas, calaveras, gatos y rayos. Alarma con calavera terrorífica.' },
+  navidad:   { label: 'Navidad', icon: '🎄', css: 'css/navidad.css', js: 'js/navidad.js', api: 'SeasonNavidad',
+               desc: 'Colores rojo, verde y dorado, luces y bolas, nieve cayendo. Alarma con Papá Noel sangriento.' },
+};
+const SEASON_KEY = 'seasonal_mode';
+const SEASON_LS  = 'rubencechef-season';
+let seasonMode = 'none';
+let _seasonToken = 0;
+const _seasonScripts = {};
+
+function cleanSeason(v) { return SEASONS[v] ? v : 'none'; }
+function seasonCached() { try { return localStorage.getItem(SEASON_LS); } catch (e) { return null; } }
+function loadSeasonScript(mode) {
+  if (!_seasonScripts[mode]) {
+    _seasonScripts[mode] = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = SEASONS[mode].js + '?v=' + APP_VERSION;
+      s.onload = resolve;
+      s.onerror = () => { delete _seasonScripts[mode]; reject(new Error('No se pudo cargar el modo ' + mode)); };
+      document.body.appendChild(s);
+    });
+  }
+  return _seasonScripts[mode];
+}
+async function applySeason(mode) {
+  mode = cleanSeason(mode);
+  if (mode === seasonMode) return;
+  const token = ++_seasonToken;
+  const prev = seasonMode;
+  seasonMode = mode;
+  try { localStorage.setItem(SEASON_LS, mode); } catch (e) {}
+  if (prev !== 'none') { const api = window[SEASONS[prev].api]; if (api) api.stop(); }
+  let link = document.getElementById('seasonCss');
+  if (mode === 'none') {
+    if (link) link.remove();
+  } else {
+    // el <head> ya puede haber puesto el css de este modo nada más abrir (evita el parpadeo)
+    if (!link || link.dataset.mode !== mode) {
+      if (link) link.remove();
+      link = document.createElement('link');
+      link.id = 'seasonCss'; link.rel = 'stylesheet'; link.dataset.mode = mode;
+      link.href = SEASONS[mode].css + '?v=' + APP_VERSION;
+      document.head.appendChild(link);
+    }
+    try { await loadSeasonScript(mode); } catch (e) { console.warn(e.message); return; }
+    if (token !== _seasonToken) return; // mientras cargaba se eligió otro modo
+    const api = window[SEASONS[mode].api]; if (api) api.start();
+  }
+  updateThemeIcon(document.body.classList.contains('dark')); // color de la barra de estado del móvil
+  renderSeasonAdmin();
+}
+async function syncSeasonMode() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return; // sin sesión la base no devuelve nada: no se toca el modo
+    const { data, error } = await sb.from('app_settings').select('value').eq('key', SEASON_KEY).maybeSingle();
+    if (error) return;
+    if (data) applySeason(data.value);
+    else if (seasonCached() === null) applySeason('halloween');
+  } catch (e) { /* sin red: se queda como está */ }
+}
+async function setSeasonMode(mode) {
+  if (!isAdmin) return;
+  mode = cleanSeason(mode);
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: SEASON_KEY, value: mode });
+    if (error) throw error;
+    await applySeason(mode);
+    showToast(mode === 'none' ? 'Modo desactivado para todos' : 'Modo ' + SEASONS[mode].label + ' activado para todos');
+  } catch (e) {
+    if (!handleAuthError(e)) showToast('No se pudo guardar el modo de temporada');
+  }
+}
+function renderSeasonAdmin() {
+  const el = document.getElementById('seasonSection');
+  if (!el) return;
+  if (!isAdmin) { el.innerHTML = ''; return; }
+  const row = mode => {
+    const s = SEASONS[mode], on = seasonMode === mode;
+    return `<div class="season-row">
+      <div class="season-ico" aria-hidden="true">${s.icon}</div>
+      <div class="season-txt"><div class="season-name">${s.label}</div><div class="season-desc">${s.desc}</div></div>
+      <button type="button" class="sw${on ? ' on' : ''}" role="switch" aria-checked="${on}" aria-label="Modo ${s.label}" onclick="setSeasonMode('${on ? 'none' : mode}')"><span></span></button>
+    </div>`;
+  };
+  el.innerHTML = `
+    <div class="section-title"><span class="material-symbols-outlined">celebration</span> Modo de temporada</div>
+    <div class="card">
+      <div style="font-size:13px; color:var(--text2);">Cambia el aspecto de la app en <b>todos los dispositivos</b> a la vez. Solo puede haber uno activo: al encender uno se apaga el otro.</div>
+      ${row('halloween')}${row('navidad')}
+    </div>`;
+}
+setInterval(syncSeasonMode, 2 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSeasonMode(); });
+applySeason(seasonCached() || 'none'); // arranca ya con el último modo conocido; syncSeasonMode lo corrige en cuanto hay sesión
 
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 // Cuenta compartida del equipo de cocina (se crea en Supabase → Authentication → Users).
@@ -574,6 +685,7 @@ async function loadData() {
 
     maybeShowDailyBrief();
     setupForceReloadListener();
+    syncSeasonMode();
 
   } catch (err) {
     console.error('Error cargando datos:', err);
@@ -2894,7 +3006,7 @@ function renderAdmin() {
   if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
   if (adminTab === 'tags')   { renderTagsAdmin(); return; }
   if (adminTab === 'sound')  { renderRadioAdmin(); renderMelodyAdmin(); return; }
-  if (adminTab === 'maint')  { renderBackupAdmin(); renderPhotoAdmin(); renderChangelogAdmin(); return; }
+  if (adminTab === 'maint')  { renderSeasonAdmin(); renderBackupAdmin(); renderPhotoAdmin(); renderChangelogAdmin(); return; }
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes
@@ -4997,7 +5109,7 @@ function updateThemeIcon(isDark) {
   if (btn) btn.querySelector('.material-symbols-outlined').textContent = isDark ? 'light_mode' : 'dark_mode';
   // v111 — la barra de estado del móvil acompaña al tema (antes se quedaba verde oscuro en modo claro y oscuro)
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) { const tc = window.HW_THEME_COLORS || { light: '#174C43', dark: '#15181A' }; meta.setAttribute('content', isDark ? tc.dark : tc.light); }
+  if (meta) { const tc = window.MODE_THEME_COLORS || { light: '#174C43', dark: '#15181A' }; meta.setAttribute('content', isDark ? tc.dark : tc.light); }
 }
 
 function initTheme() {
