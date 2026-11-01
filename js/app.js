@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v135';
+const APP_VERSION = 'v136';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -300,6 +300,8 @@ const SEASONS = {
                desc: 'Colores rojo, verde y dorado, luces y bolas, nieve cayendo. Alarma con Papá Noel sangriento.' },
   orgullo:   { label: 'Orgullo', icon: '🏳️‍🌈', css: 'css/orgullo.css', js: 'js/orgullo.js', api: 'SeasonOrgullo',
                desc: 'Colores del arcoíris, banderines, confeti, carroza con bola de discoteca, globos y bailarines, como la fiesta del Orgullo de Madrid. Alarma de fiesta.' },
+  semanasanta: { label: 'Semana Santa', icon: '🕯️', css: 'css/semanasanta.css', js: 'js/semanasanta.js', api: 'SeasonSemanaSanta',
+               desc: 'Colores morado y oro, colgaduras con flecos, velas, incienso y pétalos; nazarenos en procesión, paso de palio, tambor, palomas y torrijas. Alarma con procesión nocturna.' },
 };
 const SEASON_KEY = 'seasonal_mode';
 const SEASON_LS  = 'rubencechef-season';
@@ -386,7 +388,7 @@ function renderSeasonAdmin() {
     <div class="section-title"><span class="material-symbols-outlined">celebration</span> Modo de temporada</div>
     <div class="card">
       <div style="font-size:13px; color:var(--text2);">Cambia el aspecto de la app en <b>todos los dispositivos</b> a la vez. Solo puede haber uno activo: al encender uno se apaga el otro.</div>
-      ${row('halloween')}${row('navidad')}${row('orgullo')}
+      ${row('halloween')}${row('navidad')}${row('orgullo')}${row('semanasanta')}
     </div>`;
 }
 setInterval(syncSeasonMode, 2 * 60 * 1000);

@@ -4,6 +4,17 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v136 — Modo Semana Santa
+
+### Añadido
+- **Nuevo modo de temporada: Semana Santa 🕯️** (Admin → Sistema → Modo de temporada; es exclusivo con los demás y se activa en todos los dispositivos).
+- Colores morado y oro, **colgaduras de terciopelo con flecos y borlas** bajo la barra de arriba y **velas encendidas** sobre el menú de abajo.
+- **Incienso** que sube y **pétalos** de clavel y azahar que caen, sin tapar la app.
+- Por la pantalla: **nazarenos en procesión** con cirios, un **paso de palio** con costaleros que cruza de vez en cuando, un **tambor** de la banda, **palomas** con rama de olivo y una **torrija** saltarina.
+- **Alarma**: procesión nocturna con luna, campanario con campana, paso de palio y nazarenos con velas.
+
+---
+
 ## v135 — Más personajes en el Orgullo
 
 ### Añadido

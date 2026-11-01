@@ -15,6 +15,7 @@ js/midi.js                      → lector de melodías MIDI para los timers
 css/halloween.css + js/halloween.js → modo Halloween
 css/navidad.css + js/navidad.js     → modo Navidad
 css/orgullo.css + js/orgullo.js     → modo Orgullo
+css/semanasanta.css + js/semanasanta.js → modo Semana Santa
                                   (los modos los activa el admin en Admin → Sistema; el elegido se guarda en
                                   `app_settings` (clave `seasonal_mode`) y vale para todos los dispositivos. Cada modo
                                   se carga solo cuando está activo; se puede quitar borrando su css + js y su entrada en `SEASONS` de app.js)
