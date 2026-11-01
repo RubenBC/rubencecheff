@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v137 — Botón para ocultar los muñequitos
+
+### Añadido
+- Con un modo de temporada activo aparece un **botón (ojo) arriba a la derecha** para ocultar o mostrar solo los muñequitos que cruzan la pantalla, sin quitar el modo (colores, velas, nieve, etc. se quedan). Sin modo activo el botón no se ve. Se recuerda en cada dispositivo.
+
+---
+
 ## v136 — Modo Semana Santa
 
 ### Añadido

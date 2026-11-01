@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v136';
+const APP_VERSION = 'v137';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -323,6 +323,24 @@ function loadSeasonScript(mode) {
   }
   return _seasonScripts[mode];
 }
+// v137 — botón de arriba a la derecha (solo con un modo activo) para ocultar/mostrar los muñequitos sin quitar el modo
+const CRITTER_LS = 'rubencechef-critters';
+function crittersOff() { try { return localStorage.getItem(CRITTER_LS) === 'off'; } catch (e) { return false; } }
+function updateCritterBtn() {
+  const btn = document.getElementById('critterBtn');
+  const off = crittersOff();
+  document.body.classList.toggle('no-critters', off && seasonMode !== 'none');
+  if (!btn) return;
+  btn.style.display = seasonMode === 'none' ? 'none' : '';
+  const ic = btn.querySelector('.material-symbols-outlined');
+  if (ic) ic.textContent = off ? 'visibility_off' : 'visibility';
+  const t = off ? 'Mostrar los muñequitos' : 'Ocultar los muñequitos';
+  btn.title = t; btn.setAttribute('aria-label', t);
+}
+function toggleCritters() {
+  try { localStorage.setItem(CRITTER_LS, crittersOff() ? 'on' : 'off'); } catch (e) {}
+  updateCritterBtn();
+}
 async function applySeason(mode) {
   mode = cleanSeason(mode);
   if (mode === seasonMode) return;
@@ -348,6 +366,7 @@ async function applySeason(mode) {
     const api = window[SEASONS[mode].api]; if (api) api.start();
   }
   updateThemeIcon(document.body.classList.contains('dark')); // color de la barra de estado del móvil
+  updateCritterBtn();
   renderSeasonAdmin();
 }
 async function syncSeasonMode() {

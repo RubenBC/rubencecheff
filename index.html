@@ -16,9 +16,9 @@
   <title>RubenceChef</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=136">
+  <link rel="stylesheet" href="css/styles.css?v=137">
   <!-- Modo de temporada: si el último modo conocido está activo, su css se pone ya aquí (sin parpadeo). app.js lo gestiona después. -->
-  <script>try{var m=localStorage.getItem('rubencechef-season');if(m==='halloween'||m==='navidad'||m==='orgullo'||m==='semanasanta'){var l=document.createElement('link');l.id='seasonCss';l.rel='stylesheet';l.dataset.mode=m;l.href='css/'+m+'.css?v=136';document.head.appendChild(l);}}catch(e){}</script>
+  <script>try{var m=localStorage.getItem('rubencechef-season');if(m==='halloween'||m==='navidad'||m==='orgullo'||m==='semanasanta'){var l=document.createElement('link');l.id='seasonCss';l.rel='stylesheet';l.dataset.mode=m;l.href='css/'+m+'.css?v=137';document.head.appendChild(l);}}catch(e){}</script>
 </head>
 <body>
 <!-- ACCESO DEL EQUIPO: sin sesión iniciada no se carga ningún dato -->
@@ -67,6 +67,9 @@
         <span class="events-btn-label">Próximos eventos</span>
         <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
         <span id="eventsBadge" class="events-badge" style="display:none;"></span>
+      </button>
+      <button class="btn-pill ghost" id="critterBtn" onclick="toggleCritters()" style="padding:7px 10px; display:none;" aria-label="Ocultar los muñequitos" title="Ocultar los muñequitos">
+        <span class="material-symbols-outlined" style="font-size:16px;">visibility</span>
       </button>
       <button class="btn-pill ghost" id="refreshBtn" onclick="forceReload()" style="padding:7px 10px;" aria-label="Actualizar la app" title="Actualizar la app">
         <span class="material-symbols-outlined" style="font-size:16px;">refresh</span>
@@ -550,9 +553,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
-<script src="js/app.js?v=136"></script>
-<script src="js/timer.js?v=136"></script>
-<script src="js/radio.js?v=136"></script>
-<script src="js/midi.js?v=136"></script>
+<script src="js/app.js?v=137"></script>
+<script src="js/timer.js?v=137"></script>
+<script src="js/radio.js?v=137"></script>
+<script src="js/midi.js?v=137"></script>
 </body>
 </html>
