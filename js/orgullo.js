@@ -102,6 +102,41 @@
       '<circle cx="46" cy="26" r="11" fill="#8d5524"/><g fill="#1a0f0a"><circle cx="38" cy="19" r="5"/><circle cx="46" cy="15" r="5.5"/><circle cx="54" cy="19" r="5"/><circle cx="36" cy="26" r="3.6"/></g>' +
       '<rect x="40" y="24" width="18" height="6.5" rx="3" fill="#111"/><path d="M42 26 h5" stroke="#ff7ac8" stroke-width="1.4"/><path d="M44 35 C47 38 52 38 55 35" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>',
 
+    cuero: '<svg viewBox="0 -4 84 116">' +
+      '<g class="og-leg-a" style="--ox:33px;--oy:70px"><rect x="27" y="68" width="12" height="32" rx="4.5" fill="#1a1a20"/><path d="M29 72 v24" stroke="#4a4a58" stroke-width="1.4"/><path d="M25 96 h17 l1 11 h-19 z" fill="#0d0d11" stroke="#555" stroke-width="1"/><rect x="27" y="97" width="12" height="2.4" fill="#c9ced8"/></g>' +
+      '<g class="og-leg-b" style="--ox:46px;--oy:70px"><rect x="40" y="68" width="12" height="32" rx="4.5" fill="#24242c"/><path d="M42 72 v24" stroke="#4a4a58" stroke-width="1.4"/><path d="M38 96 h17 l1 11 h-19 z" fill="#0d0d11" stroke="#555" stroke-width="1"/><rect x="40" y="97" width="12" height="2.4" fill="#c9ced8"/></g>' +
+      '<g class="og-swing-b" style="--ox:52px;--oy:42px"><path d="M52 42 L60 62" stroke="#e0a97c" stroke-width="7" stroke-linecap="round"/><rect x="55" y="56" width="9" height="5" rx="2" fill="#15151a" transform="rotate(-20 59 58)"/></g>' +
+      '<rect x="26" y="38" width="28" height="33" rx="10" fill="#f4f4f4" stroke="#d6d6d6" stroke-width="1.2"/>' +
+      '<g stroke="#15151a" stroke-width="4.6" stroke-linecap="round" fill="none"><path d="M32 38 V70"/><path d="M48 38 V70"/><path d="M32 52 H48"/></g><circle cx="40" cy="52" r="3.4" fill="none" stroke="#c9ced8" stroke-width="1.6"/>' +
+      '<g fill="#c9ced8"><circle cx="32" cy="46" r="1"/><circle cx="48" cy="46" r="1"/><circle cx="32" cy="60" r="1"/><circle cx="48" cy="60" r="1"/></g>' +
+      '<rect x="26" y="68" width="28" height="6" fill="#15151a"/><rect x="36" y="67" width="8" height="8" rx="1.5" fill="#c9ced8"/>' +
+      '<g class="og-swing-a" style="--ox:28px;--oy:42px"><path d="M28 42 L22 62" stroke="#e0a97c" stroke-width="7" stroke-linecap="round"/><rect x="17" y="56" width="9" height="5" rx="2" fill="#15151a" transform="rotate(20 21 58)"/></g>' +
+      '<rect x="35" y="33" width="9" height="7" fill="#d09566"/>' +
+      '<circle cx="40" cy="24" r="11.5" fill="#e0a97c"/><path d="M28 22 C28 6 52 6 52 22 Z" fill="#15151a"/><path d="M27 22 H53" stroke="#2a2a33" stroke-width="3.4"/><path d="M45 22 L60 23.5 L58 26.5 L45 25 Z" fill="#15151a"/>' +
+      '<path d="M29 24 Q40 34 51 24" stroke="#c9ced8" stroke-width="1" fill="none" stroke-dasharray="1.6 1.6"/><path d="M40 9 l1.4 3 l3 .4 l-2.2 2.1 l.6 3 l-2.8 -1.5 l-2.8 1.5 l.6 -3 l-2.2 -2.1 l3 -.4z" fill="#c9ced8" transform="translate(0 -1) scale(.85) translate(7 2)"/>' +
+      '<rect x="32" y="22" width="17" height="5.6" rx="2.6" fill="#111"/><path d="M34 24 h4" stroke="#8ab4ff" stroke-width="1.2"/>' +
+      '<path d="M33 31.5 C37 28.6 44 28.6 48 31.5 C44 34.6 37 34.6 33 31.5 Z" fill="#3a2210"/><path d="M36.5 35.5 C39 37 42 37 44.5 35.5" stroke="#8a4a30" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>',
+
+    drag: '<svg viewBox="-4 -30 104 148">' +
+      '<g class="og-sway-body">' +
+      '<g class="og-leg-a" style="--ox:36px;--oy:104px"><path d="M32 104 L33 112 H29 l-3 6 h8 l2 -6z" fill="#ff1744"/></g><g class="og-leg-b" style="--ox:50px;--oy:104px"><path d="M46 104 L47 112 H43 l-3 6 h8 l2 -6z" fill="#ff1744"/></g>' +
+      '<path d="M34 44 C32 64 22 88 14 106 H72 C64 88 54 64 52 44 Z" fill="#d81b8c" stroke="#8a0f5a" stroke-width="1.5"/><path d="M52 62 C60 80 68 94 72 106 H58 C56 90 54 76 50 62Z" fill="#7b1fa2" opacity=".75"/>' +
+      '<g fill="#fff6b0"><circle cx="38" cy="58" r="1.5"/><circle cx="46" cy="70" r="1.5"/><circle cx="32" cy="82" r="1.5"/><circle cx="50" cy="90" r="1.5"/><circle cx="26" cy="96" r="1.5"/><circle cx="40" cy="100" r="1.5"/><circle cx="60" cy="98" r="1.5"/></g>' +
+      '<path d="M34 44 C34 50 52 50 52 44 L50 38 H36 Z" fill="#ff4fa3" stroke="#8a0f5a" stroke-width="1"/><circle cx="43" cy="47" r="2.2" fill="#fff6b0"/>' +
+      '<rect x="39" y="32" width="8" height="8" fill="#e9c4a0"/>' +
+      '<g class="og-armup" style="transform-origin:52px 42px"><path d="M52 42 L68 22" stroke="#f4e6ff" stroke-width="5.4" stroke-linecap="round"/><circle cx="69" cy="20" r="3.4" fill="#e9c4a0"/>' +
+        '<path d="M69 20 L58 2 A26 26 0 0 1 92 8 Z" fill="#ff4fa3" stroke="#a21caf" stroke-width="1.2"/><path d="M69 20 L60 0 M69 20 L68 -3 M69 20 L77 -2 M69 20 L86 0 M69 20 L92 8" stroke="#ffd1ec" stroke-width="1"/></g>' +
+      '<path d="M34 44 L24 60" stroke="#f4e6ff" stroke-width="5.4" stroke-linecap="round"/><circle cx="23" cy="62" r="3.2" fill="#e9c4a0"/>' +
+      '<g fill="#35e0d0"><circle cx="32" cy="38" r="4.6"/><circle cx="38" cy="36" r="5"/><circle cx="46" cy="36" r="5"/><circle cx="53" cy="38" r="4.6"/><circle cx="29" cy="46" r="4.2"/><circle cx="26" cy="55" r="4"/><circle cx="24" cy="64" r="3.8"/><circle cx="23" cy="73" r="3.6"/></g>' +
+      '<path d="M26 28 C16 40 20 52 26 56 C28 48 30 40 32 30 Z" fill="#4fd0ff"/><path d="M60 28 C70 40 66 52 60 56 C58 48 56 40 54 30 Z" fill="#4fd0ff"/>' +
+      '<circle cx="43" cy="28" r="10.5" fill="#f2d0b0"/>' +
+      '<path d="M23 26 C14 4 30 -22 43 -20 C58 -22 74 4 63 26 C60 12 54 6 43 6 C32 6 26 12 23 26 Z" fill="#4fd0ff" stroke="#1f9fd6" stroke-width="1"/><path d="M30 -6 C34 -14 44 -14 48 -8 M38 -16 C44 -20 54 -14 56 -6" stroke="#b8ecff" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M33 -22 L36 -30 L40 -24 L43 -32 L46 -24 L50 -30 L53 -22 Z" fill="#ffd23f" stroke="#b8860b" stroke-width="1"/><circle cx="43" cy="-26" r="1.8" fill="#ff1744"/>' +
+      '<circle cx="31" cy="36" r="2.6" fill="#ffd23f"/><circle cx="55" cy="36" r="2.6" fill="#ffd23f"/>' +
+      '<path d="M35 25 C37 22 41 22 42 25 M46 25 C48 22 52 22 53 25" stroke="#2563eb" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M34 24 l-2 -2 M37 22.5 l-.5 -3 M40 22.4 l1 -3 M47 22.4 l-1 -3 M50 22.5 l.5 -3 M53 24 l2 -2" stroke="#15101f" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<circle cx="38" cy="27" r="1.2" fill="#15101f"/><circle cx="49" cy="27" r="1.2" fill="#15101f"/><circle cx="35" cy="32" r="2.6" fill="#ff7ac8" opacity=".6"/><circle cx="52" cy="32" r="2.6" fill="#ff7ac8" opacity=".6"/>' +
+      '<path d="M38 34 C40 32 42 33 43 33.4 C44 33 46 32 48 34 C46 37.4 40 37.4 38 34 Z" fill="#e0123a"/><circle cx="51" cy="30" r=".8" fill="#15101f"/></g></svg>',
+
     bailarin: '<svg viewBox="0 -4 80 114">' +
       '<g class="og-sway-body">' +
       '<g class="og-leg-a" style="--ox:30px;--oy:70px"><rect x="26" y="68" width="9" height="32" rx="4" fill="#5a2d82"/><path d="M24 98 h13 l-1 8 h-3 l-1 -4 h-8 z" fill="#ff4fa3"/></g>' +
@@ -135,6 +170,8 @@
     critter('balloons', 44, { cls: 'og-item og-balloons', left: '70%', inner: 'og-drift', vars: '--cd:110s;--dl:-60s;' });
     critter('flag', 62, { bottom: '2px', rtl: false, vars: '--d:64s;--dl:-10s;' });
     critter('bailarin', 56, { bottom: '2px', rtl: true, inner: '', vars: '--d:82s;--dl:-46s;' });
+    critter('cuero', 58, { bottom: '2px', rtl: false, vars: '--d:74s;--dl:-30s;' });
+    critter('drag', 70, { bottom: '2px', rtl: true, vars: '--d:90s;--dl:-8s;' });
   }
 
   // ── Confeti: rectángulos que giran, redondos, serpentinas y corazones ──

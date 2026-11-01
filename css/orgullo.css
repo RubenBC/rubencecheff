@@ -95,6 +95,9 @@ body.dark .topbar, body.dark .bottom-nav {
 .og-leg-a, .og-leg-b { transform-box: view-box; transform-origin: var(--ox) var(--oy, 66px); animation: og-step 0.7s ease-in-out infinite alternate; }
 .og-leg-b { animation-direction: alternate-reverse; }
 @keyframes og-step { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+.og-swing-a, .og-swing-b { transform-box: view-box; transform-origin: var(--ox) var(--oy); animation: og-armsw 0.7s ease-in-out infinite alternate; }
+.og-swing-b { animation-direction: alternate-reverse; }
+@keyframes og-armsw { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
 .og-flagwave { transform-box: view-box; animation: og-wave 0.6s ease-in-out infinite alternate; }
 @keyframes og-wave { from { transform: skewY(-7deg) scaleX(1); } to { transform: skewY(7deg) scaleX(0.92); } }
 .og-armup { transform-box: view-box; animation: og-arm 0.55s ease-in-out infinite alternate; }

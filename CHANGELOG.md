@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v135 — Más personajes en el Orgullo
+
+### Añadido
+- **Modo Orgullo: dos personajes más por la pantalla**, como en el desfile: un **chico con arnés y tirantes de cuero** (camiseta blanca, gorra de cuero, bigote, gafas de sol y botas) que camina balanceando los brazos, y una **drag queen** con peluca azul altísima, corona, abanico rosa, boa turquesa, vestido de lentejuelas y tacones, que desfila como en una pasarela.
+
+---
+
 ## v134 — Modo Orgullo
 
 ### Añadido
