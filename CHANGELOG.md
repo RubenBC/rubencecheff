@@ -4,6 +4,18 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v134 — Modo Orgullo
+
+### Añadido
+- **Nuevo modo "Orgullo" 🏳️‍🌈** con su propio interruptor en Admin → Sistema → Modo de temporada, junto a Halloween y Navidad (sigue habiendo solo uno activo a la vez, para todos los dispositivos). Inspirado en la fiesta del Orgullo de Madrid:
+  - Colores violeta noche con **franja arcoíris** arriba y abajo, botones y fichas en degradado rosa-violeta-azul; versión clara y oscura.
+  - **Banderines de colores** colgando bajo la barra de arriba, como en las calles de Chueca, que se mecen.
+  - **Confeti** cayendo (rectángulos que giran, redondos, serpentinas y corazones), sin tapar nada ni bloquear toques.
+  - **Una carroza** con bola de discoteca, altavoces, arco de globos, bandera y tres bailarines, que cruza la pantalla de vez en cuando; **globos** que suben; un **abanderado** que camina con su bandera arcoíris y una **bailarina con boa y abanico**.
+  - **Alarma del timer**: fiesta ante la Puerta de Alcalá iluminada en arcoíris, con bola de discoteca balanceándose, haces de luz de colores, banderas ondeando, confeti y el público bailando con los brazos en alto.
+
+---
+
 ## v133 — Criaturas de Navidad
 
 ### Añadido

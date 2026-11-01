@@ -1,0 +1,131 @@
+/* ═══════════════════════════════════════════════════════════════
+   🏳️‍🌈 MODO ORGULLO
+   Inspirado en la fiesta del Orgullo de Madrid: banderines de colores,
+   confeti, una carroza con bola de discoteca, globos y mucha fiesta.
+   Se carga solo cuando el admin lo activa (Admin → Sistema → Modo de
+   temporada) y se quita al desactivarlo (app.js: applySeason).
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --primary:           #8E24AA;
+  --primary-container: #F6E1FA;
+  --bg:                #FFF8FD;
+  --surface:           #ffffff;
+  --surface2:          #F8EBF9;
+  --text:              #231028;
+  --text2:             #66506E;
+  --outline:           #C2A8CC;
+  --outline-light:     #EBD9F0;
+  --danger:            #C62828;
+  --danger-light:      #FCDCDC;
+  --alert:             #8A5A00;
+  --alert-light:       #FFF0C2;
+}
+body.dark {
+  --primary:           #E58BFF;
+  --primary-container: #3A1745;
+  --bg:                #120A1A;
+  --surface:           #1B1226;
+  --surface2:          #261A33;
+  --text:              #F6EEFA;
+  --text2:             #BBA6C6;
+  --outline:           #5D4670;
+  --outline-light:     #34244A;
+  --danger:            #FF8A80;
+  --danger-light:      #4A1712;
+  --alert:             #FFD166;
+  --alert-light:       #4A3A12;
+}
+
+/* Barras de arriba y abajo: violeta noche con la franja arcoíris (en claro y en oscuro) */
+.topbar, .bottom-nav,
+body.dark .topbar, body.dark .bottom-nav {
+  --text: #FFF4FF; --text2: #DCC7E6; --surface2: #34175a; --outline: #7a56a3;
+  --outline-light: #4d2a78; --primary: #FF9AE0; --primary-container: #3b1d5a;
+  color: var(--text);
+}
+.topbar, body.dark .topbar {
+  border-bottom: 0;
+  background: linear-gradient(90deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787) bottom / 100% 4px no-repeat, rgba(24,10,44,0.97);
+}
+.bottom-nav, body.dark .bottom-nav {
+  border-top: 0;
+  background: linear-gradient(90deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787) top / 100% 4px no-repeat, rgba(24,10,44,0.97);
+}
+.topbar .badge, .topbar .notif-badge { background: #ff3d9a; color: #fff; }
+
+/* Botones y fichas: degradado rosa → violeta → azul */
+.btn-action, .btn-pill.filled { background: linear-gradient(135deg, #ff3d9a, #8e24aa 55%, #3f51d1); color: #fff; }
+.seg-btn.active { color: var(--primary); }
+.chip.active { background: linear-gradient(135deg, #ff3d9a, #8e24aa); border-color: transparent; color: #fff; }
+.float-back-btn, body.dark .float-back-btn { background: rgba(24,10,44,0.9); color: #FF9AE0; }
+
+/* ─── Decoración ─── */
+#ogLayer {
+  position: fixed; left: 0; right: 0; top: var(--og-top, 70px); bottom: var(--og-bottom, 64px);
+  overflow: hidden; pointer-events: none; z-index: 90;
+}
+#ogLayer canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#ogBunting { position: fixed; left: 0; right: 0; top: var(--og-top, 70px); height: 40px; pointer-events: none; z-index: 91; }
+#ogBunting svg { width: 100%; height: 40px; display: block; overflow: visible; }
+.og-sway { transform-box: view-box; animation: og-sway 2.2s ease-in-out infinite alternate; }
+@keyframes og-sway { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+
+/* ─── Criaturas ─── */
+.og-item { position: absolute; left: 0; will-change: transform; }
+.og-item svg { display: block; width: 100%; height: auto; overflow: visible; }
+.og-walk-ltr { animation: og-ltr var(--d, 60s) linear infinite; animation-delay: var(--dl, 0s); }
+.og-walk-rtl { animation: og-rtl var(--d, 60s) linear infinite; animation-delay: var(--dl, 0s); }
+@keyframes og-ltr { from { transform: translateX(-200px); } to { transform: translateX(calc(100vw + 200px)); } }
+@keyframes og-rtl { from { transform: translateX(calc(100vw + 200px)); } to { transform: translateX(-200px); } }
+.og-flip { transform: scaleX(-1); }
+/* carroza: cruza (33 s) y espera */
+.og-float { animation: og-float var(--cd, 120s) linear infinite; animation-delay: var(--dl, 0s); }
+@keyframes og-float { 0% { transform: translateX(-340px); } 28% { transform: translateX(calc(100vw + 340px)); } 100% { transform: translateX(calc(100vw + 340px)); } }
+.og-rumble { animation: og-rumble 0.28s ease-in-out infinite alternate; }
+@keyframes og-rumble { from { transform: translateY(0); } to { transform: translateY(-1.6px); } }
+/* globos que suben */
+.og-balloons { bottom: -140px; animation: og-rise var(--cd, 90s) linear infinite; animation-delay: var(--dl, 0s); }
+@keyframes og-rise { 0% { transform: translateY(0); } 40% { transform: translateY(calc(-100vh - 80px)); } 100% { transform: translateY(calc(-100vh - 80px)); } }
+.og-drift { animation: og-drift 2.6s ease-in-out infinite alternate; }
+@keyframes og-drift { from { transform: translateX(-16px) rotate(-3deg); } to { transform: translateX(16px) rotate(3deg); } }
+.og-bounce { animation: og-bounce 0.5s ease-in-out infinite alternate; }
+@keyframes og-bounce { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+.og-sway-body { transform-origin: 50% 100%; animation: og-bodysway 0.7s ease-in-out infinite alternate; }
+@keyframes og-bodysway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.og-leg-a, .og-leg-b { transform-box: view-box; transform-origin: var(--ox) var(--oy, 66px); animation: og-step 0.7s ease-in-out infinite alternate; }
+.og-leg-b { animation-direction: alternate-reverse; }
+@keyframes og-step { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+.og-flagwave { transform-box: view-box; animation: og-wave 0.6s ease-in-out infinite alternate; }
+@keyframes og-wave { from { transform: skewY(-7deg) scaleX(1); } to { transform: skewY(7deg) scaleX(0.92); } }
+.og-armup { transform-box: view-box; animation: og-arm 0.55s ease-in-out infinite alternate; }
+@keyframes og-arm { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+.og-tw { transform-box: fill-box; transform-origin: center; animation: og-tw 0.8s ease-in-out infinite alternate; }
+@keyframes og-tw { from { opacity: .25; transform: scale(.4); } to { opacity: 1; transform: scale(1.25); } }
+body.dark #ogLayer .og-item svg { filter: drop-shadow(0 0 2px rgba(255,255,255,0.35)); }
+
+/* ─── 🪩 Ventana del timer/alarma al sonar: fiesta en la Puerta de Alcalá ─── */
+.og-ring-bg { display: none; position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: 0; pointer-events: none; background: linear-gradient(#14072b, #3a0f4f 60%, #7a1a5e); }
+.og-ring-bg svg { width: 100%; height: 100%; display: block; }
+.timer-sheet.ringing { position: relative; background: #14072b !important; }
+.timer-sheet.ringing .og-ring-bg { display: block; }
+.timer-sheet.ringing > :not(.og-ring-bg) { position: relative; z-index: 1; }
+.timer-sheet.ringing .timer-title,
+.timer-sheet.ringing .timer-display,
+.timer-sheet.ringing .timer-sub.big { color: #fff !important; text-shadow: 0 0 10px #ff3d9a, 0 0 22px #8e24aa, 0 2px 4px #000; }
+.timer-sheet.ringing .timer-display { -webkit-text-stroke: 2px #14072b; paint-order: stroke fill; }
+.timer-sheet.ringing .timer-btn.stop { background: linear-gradient(135deg, #ff3d9a, #8e24aa); color: #fff; box-shadow: 0 0 18px rgba(255,61,154,.7); }
+.ogr-ball { transform-box: view-box; transform-origin: 200px 0px; animation: ogr-swing 2.4s ease-in-out infinite alternate; }
+@keyframes ogr-swing { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.ogr-beams { transform-box: view-box; transform-origin: 200px 66px; animation: ogr-beams 5s ease-in-out infinite alternate; }
+@keyframes ogr-beams { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+.ogr-crowd { animation: ogr-crowd 0.5s ease-in-out infinite alternate; }
+.ogr-crowd.c2 { animation-delay: -.2s; animation-duration: .42s; } .ogr-crowd.c3 { animation-delay: -.35s; animation-duration: .6s; }
+@keyframes ogr-crowd { from { transform: translateY(0); } to { transform: translateY(-9px); } }
+.ogr-glow { animation: ogr-glow 1.2s ease-in-out infinite alternate; }
+@keyframes ogr-glow { from { opacity: .35; } to { opacity: .9; } }
+.ogr-conf { animation: ogr-conf 4s linear infinite; }
+.ogr-conf.c2 { animation-delay: -1.3s; animation-duration: 5s; } .ogr-conf.c3 { animation-delay: -2.6s; animation-duration: 3.5s; }
+@keyframes ogr-conf { from { transform: translateY(-30px) rotate(0deg); } to { transform: translateY(620px) rotate(300deg); } }
+.ogr-flag { transform-box: view-box; animation: og-wave 0.9s ease-in-out infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) { .timer-sheet.ringing .og-ring-bg * { animation-duration: 3s; } }
