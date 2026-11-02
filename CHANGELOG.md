@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v140 — Spotify quitado
+
+### Eliminado
+- Se quita por completo la lista de Spotify (v138–v139): campo de Admin, tarjeta en Radio, estilos y sincronización. No queda nada en la app.
+
+---
+
 ## v139 — Spotify más claro
 
 ### Cambiado
