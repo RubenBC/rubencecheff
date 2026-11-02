@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v138';
+const APP_VERSION = 'v139';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -433,6 +433,7 @@ function renderSpotify() {
   box.innerHTML = `<details class="spotify-card"${wasOpen ? ' open' : ''}>
     <summary><span class="material-symbols-outlined">queue_music</span> Lista de Spotify <span class="material-symbols-outlined spotify-chev">expand_more</span></summary>
     <div class="spotify-body"></div>
+    <div class="spotify-hint">¿Suena solo 30 s? Pulsa «Iniciar sesión» dentro del reproductor (o «Log in») y entra en Spotify; se recuerda en este dispositivo.</div>
     <a class="spotify-open" href="https://open.spotify.com/playlist/${id}" target="_blank" rel="noopener">Abrir en Spotify</a>
   </details>`;
   const d = box.querySelector('details'), body = box.querySelector('.spotify-body');

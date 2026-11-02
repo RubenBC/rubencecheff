@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v139 — Spotify más claro
+
+### Cambiado
+- La tarjeta de Spotify explica qué hacer si solo suena 30 s (iniciar sesión dentro del reproductor) y el botón «Abrir en Spotify» es ahora verde y más visible.
+
+---
+
 ## v138 — Lista de Spotify
 
 ### Añadido
