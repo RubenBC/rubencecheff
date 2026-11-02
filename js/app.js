@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v137';
+const APP_VERSION = 'v138';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -265,6 +265,7 @@ function setupForceReloadListener() {
         const v = payload && payload.new && payload.new.value;
         if (v != null && payload.eventType !== 'DELETE') applySeason(v); else syncSeasonMode();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.' + SPOTIFY_KEY }, () => syncSpotify())
       .subscribe();
   } catch (e) { console.warn('No se pudo activar el aviso en tiempo real:', e?.message || e); }
 }
@@ -413,6 +414,85 @@ function renderSeasonAdmin() {
 setInterval(syncSeasonMode, 2 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSeasonMode(); });
 applySeason(seasonCached() || 'none'); // arranca ya con el último modo conocido; syncSeasonMode lo corrige en cuanto hay sesión
+
+// ─── v138 — Lista de Spotify (la pone el admin; se ve en la pestaña Radio) ───
+const SPOTIFY_KEY = 'spotify_playlist', SPOTIFY_LS = 'rubencechef-spotify';
+let spotifyUrl = '';
+function parseSpotifyPlaylist(txt) {
+  txt = (txt || '').trim();
+  const m = txt.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?playlist\/([A-Za-z0-9]{22})/i) || txt.match(/^spotify:playlist:([A-Za-z0-9]{22})$/i) || txt.match(/^([A-Za-z0-9]{22})$/);
+  return m ? m[1] : null;
+}
+function renderSpotify() {
+  const box = document.getElementById('spotifySection');
+  if (!box) return;
+  const id = parseSpotifyPlaylist(spotifyUrl);
+  if (!id) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const wasOpen = box.querySelector('details')?.open;
+  box.style.display = '';
+  box.innerHTML = `<details class="spotify-card"${wasOpen ? ' open' : ''}>
+    <summary><span class="material-symbols-outlined">queue_music</span> Lista de Spotify <span class="material-symbols-outlined spotify-chev">expand_more</span></summary>
+    <div class="spotify-body"></div>
+    <a class="spotify-open" href="https://open.spotify.com/playlist/${id}" target="_blank" rel="noopener">Abrir en Spotify</a>
+  </details>`;
+  const d = box.querySelector('details'), body = box.querySelector('.spotify-body');
+  const load = () => { if (d.open && !body.firstChild) body.innerHTML = `<iframe src="https://open.spotify.com/embed/playlist/${id}?utm_source=generator" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title="Lista de Spotify"></iframe>`; };
+  d.addEventListener('toggle', load); load();
+}
+function setSpotifyLocal(v) {
+  v = v || '';
+  if (v === spotifyUrl) return;
+  spotifyUrl = v;
+  try { localStorage.setItem(SPOTIFY_LS, v); } catch (e) {}
+  renderSpotify(); renderSpotifyAdmin();
+}
+async function syncSpotify() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const { data, error } = await sb.from('app_settings').select('value').eq('key', SPOTIFY_KEY).maybeSingle();
+    if (error) return;
+    setSpotifyLocal(data ? data.value : '');
+  } catch (e) {}
+}
+async function saveSpotify(clear) {
+  if (!isAdmin) return;
+  const inp = document.getElementById('spotifyInput');
+  let val = '';
+  if (!clear) {
+    const id = parseSpotifyPlaylist(inp && inp.value);
+    if (!id) { showToast('Enlace no válido: pega el de una lista de Spotify'); return; }
+    val = 'https://open.spotify.com/playlist/' + id;
+  }
+  try {
+    const { error } = await sb.from('app_settings').upsert({ key: SPOTIFY_KEY, value: val });
+    if (error) throw error;
+    setSpotifyLocal(val);
+    showToast(clear ? 'Lista de Spotify quitada' : 'Lista de Spotify guardada para todos');
+  } catch (e) {
+    if (!handleAuthError(e)) showToast('No se pudo guardar la lista');
+  }
+}
+function renderSpotifyAdmin() {
+  const el = document.getElementById('spotifyAdminSection');
+  if (!el) return;
+  if (!isAdmin) { el.innerHTML = ''; return; }
+  const cur = parseSpotifyPlaylist(spotifyUrl);
+  el.innerHTML = `
+    <div class="section-title"><span class="material-symbols-outlined">queue_music</span> Lista de Spotify</div>
+    <div class="card">
+      <div style="font-size:13px; color:var(--text2);">Pega el enlace de una lista de Spotify (Spotify → lista → Compartir → Copiar enlace). Aparece en la pestaña <b>Radio</b> de todos los dispositivos.</div>
+      <input type="url" id="spotifyInput" class="form-input" style="margin-top:10px;" placeholder="https://open.spotify.com/playlist/…" value="${cur ? 'https://open.spotify.com/playlist/' + cur : ''}" aria-label="Enlace de la lista de Spotify">
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn-pill filled" onclick="saveSpotify(false)">Guardar</button>
+        ${cur ? '<button class="btn-pill ghost" onclick="saveSpotify(true)">Quitar</button>' : ''}
+      </div>
+    </div>`;
+}
+try { spotifyUrl = localStorage.getItem(SPOTIFY_LS) || ''; } catch (e) {}
+document.addEventListener('DOMContentLoaded', renderSpotify);
+setInterval(syncSpotify, 2 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSpotify(); });
 
 const ADMIN_EMAIL = 'rbcheca@gmail.com';
 // Cuenta compartida del equipo de cocina (se crea en Supabase → Authentication → Users).
@@ -709,6 +789,7 @@ async function loadData() {
     maybeShowDailyBrief();
     setupForceReloadListener();
     syncSeasonMode();
+    syncSpotify();
 
   } catch (err) {
     console.error('Error cargando datos:', err);
@@ -3029,7 +3110,7 @@ function renderAdmin() {
   if (adminTab === 'events') { renderImportantDatesAdmin(); return; }
   if (adminTab === 'tags')   { renderTagsAdmin(); return; }
   if (adminTab === 'sound')  { renderRadioAdmin(); renderMelodyAdmin(); return; }
-  if (adminTab === 'maint')  { renderSeasonAdmin(); renderBackupAdmin(); renderPhotoAdmin(); renderChangelogAdmin(); return; }
+  if (adminTab === 'maint')  { renderSeasonAdmin(); renderSpotifyAdmin(); renderBackupAdmin(); renderPhotoAdmin(); renderChangelogAdmin(); return; }
 
   document.getElementById('pendingTitle').innerHTML =
     `<span class="material-symbols-outlined">inbox</span> Comentarios pendientes

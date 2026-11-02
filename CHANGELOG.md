@@ -4,6 +4,15 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v138 — Lista de Spotify
+
+### Añadido
+- **Admin → Sistema → Lista de Spotify**: el admin pega el enlace de una lista y se guarda para todos los dispositivos (`app_settings.spotify_playlist`, sin SQL). Se puede quitar.
+- En la pestaña **Radio** aparece una tarjeta desplegable "Lista de Spotify" con el reproductor de Spotify y un botón "Abrir en Spotify". Si no hay lista, no se ve nada.
+- Nota: Spotify solo reproduce 30 s por canción en el reproductor incrustado si no hay sesión de Spotify iniciada en ese navegador.
+
+---
+
 ## v137 — Botón para ocultar los muñequitos
 
 ### Añadido
