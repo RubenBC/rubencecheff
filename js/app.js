@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v140';
+const APP_VERSION = 'v141';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -331,7 +331,7 @@ function updateCritterBtn() {
   const off = crittersOff();
   document.body.classList.toggle('no-critters', off && seasonMode !== 'none');
   if (!btn) return;
-  btn.style.display = seasonMode === 'none' ? 'none' : '';
+  btn.style.display = (seasonMode === 'none' || seasonMode === 'navidad') ? 'none' : ''; // Navidad ya no lleva muñequitos
   const ic = btn.querySelector('.material-symbols-outlined');
   if (ic) ic.textContent = off ? 'visibility_off' : 'visibility';
   const t = off ? 'Mostrar los muñequitos' : 'Ocultar los muñequitos';

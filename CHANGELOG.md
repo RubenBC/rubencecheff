@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v141 — Navidad más tranquila
+
+### Cambiado
+- El modo Navidad ya no lleva muñequitos (trineo, reno, muñeco de nieve, hombre de jengibre). Se queda con la nieve, la guirnalda de luces, las bolas colgando, la nieve acumulada abajo y el Papá Noel de la alarma.
+- En Navidad el botón del ojo no se muestra, porque ya no hay muñequitos que ocultar.
+
+---
+
 ## v140 — Spotify quitado
 
 ### Eliminado
