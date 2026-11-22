@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v142 — Menos nieve en Navidad
+
+### Cambiado
+- El modo Navidad lleva un 20 % menos de copos (mínimo 22, máximo 56 a la vez).
+
+---
+
 ## v141 — Navidad más tranquila
 
 ### Cambiado

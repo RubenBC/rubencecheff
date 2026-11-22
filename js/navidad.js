@@ -84,7 +84,7 @@
              vy: rnd(14, 24) + s * 2.2, amp: rnd(6, 24), fr: rnd(0.5, 1.2), ph: rnd(0, 6.28),
              rot: rnd(0, 6.28), vr: rnd(-0.7, 0.7), a: rnd(0.7, 1) };
   }
-  function target() { return Math.max(28, Math.min(70, Math.round(W * H / 15000))); }
+  function target() { return Math.max(22, Math.min(56, Math.round(W * H / 18750))); } // v142: 20 % menos nieve
   function resize() {
     if (!canvas) return;
     var w = layer.clientWidth, h = layer.clientHeight;
