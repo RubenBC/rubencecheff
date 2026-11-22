@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v143 — Adorno de abajo en Navidad
+
+### Cambiado
+- En Navidad, los circulitos blancos sobre el menú de abajo se cambian por una **ramita de acebo con bayas rojas y bolitas**, fina y sin estorbar.
+
+---
+
 ## v142 — Menos nieve en Navidad
 
 ### Cambiado
