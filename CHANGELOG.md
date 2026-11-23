@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v145 — Gorro de Papá Noel en la radio
+
+### Añadido
+- Con el modo Navidad activo, el disco del reproductor de la radio lleva un **gorro de Papá Noel**. El gorro se queda quieto mientras el disco gira, y desaparece al quitar el modo.
+
+---
+
 ## v144 — Un poco menos de nieve
 
 ### Cambiado

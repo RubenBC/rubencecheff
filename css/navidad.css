@@ -105,3 +105,8 @@ body.dark .topbar, body.dark .bottom-nav {
 @media (prefers-reduced-motion: reduce) {
   .timer-sheet.ringing .xm-ring-bg { animation: none; }
 }
+
+/* 🎅 gorro de Papá Noel sobre el disco de la radio */
+.xm-hat { position: absolute; left: 14px; top: -8px; width: 62px; height: 52px; transform: rotate(-16deg); pointer-events: none; z-index: 3;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+.xm-hat svg { display: block; width: 100%; height: 100%; overflow: visible; }

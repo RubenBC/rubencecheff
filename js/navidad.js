@@ -197,9 +197,18 @@
   }
   function onResize() { clearTimeout(resizeT); resizeT = setTimeout(function () { place(); buildLights(); }, 120); }
 
+  // Gorro de Papá Noel sobre el disco de la radio (no gira: va en el contenedor, no en el disco)
+  var HAT = '<svg viewBox="0 0 64 54"><path d="M8 40 C8 22 20 8 40 6 C50 5 56 12 58 20 C54 16 50 16 46 19 C36 17 26 24 24 40 Z" fill="#d62839" stroke="#8f1020" stroke-width="1.4" stroke-linejoin="round"/><path d="M40 6 C48 4 55 10 58 20" stroke="#ef5a68" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/><rect x="3" y="36" width="50" height="13" rx="6.5" fill="#fff" stroke="#d9dde3" stroke-width="1.2"/><circle cx="58" cy="20" r="6.2" fill="#fff" stroke="#d9dde3" stroke-width="1.2"/></svg>';
+  function addHat() {
+    var wrap = document.querySelector('.vinyl-wrap');
+    if (!wrap || wrap.querySelector('.xm-hat')) return;
+    var h = document.createElement('div'); h.className = 'xm-hat'; h.setAttribute('aria-hidden', 'true'); h.innerHTML = HAT;
+    wrap.appendChild(h);
+  }
   function start() {
     if (running) return;
     running = true;
+    addHat();
     window.MODE_THEME_COLORS = COLORS;
     addRingBg();
     layer = document.createElement('div'); layer.id = 'xmLayer'; layer.setAttribute('aria-hidden', 'true');
@@ -225,6 +234,7 @@
     window.removeEventListener('resize', onResize);
     if (ro) { ro.disconnect(); ro = null; }
     [layer, lights, drift].forEach(function (e) { if (e) e.remove(); });
+    document.querySelectorAll('.xm-hat').forEach(function (e) { e.remove(); });
     layer = lights = drift = canvas = ctx = null; flakes = []; W = H = 0;
     var bg = document.querySelector('.xm-ring-bg'); if (bg) bg.remove();
     var root = document.documentElement.style; root.removeProperty('--xm-top'); root.removeProperty('--xm-bottom'); root.removeProperty('--xm-nl'); root.removeProperty('--xm-nw');
