@@ -156,6 +156,9 @@
   // fallar, mientras que las de serie están siempre listas al instante.
   let customMelodyIds = new Set();
   let defaultMelodyId = '1';
+  // Con un modo de temporada que traiga melodía propia (Navidad → Jingle Bells), esa es la predeterminada de los timers nuevos.
+  const effDefault = () => (window.SEASON_MELODY && TONES[window.SEASON_MELODY]) ? window.SEASON_MELODY : defaultMelodyId;
+  let _lastCustom = [], _lastDefId = '1';
   // El desplegable arranca ya con las 3 de serie (sin esperar a app.js), para que nunca se
   // quede vacío aunque la llamada de más abajo llegue antes de que este archivo esté listo.
   { const sel0 = document.getElementById('timerMelodySelect'); if (sel0 && !sel0.innerHTML) sel0.innerHTML = BUILTIN_MELODIES.map(m => `<option value="${m.id}">${m.id === '1' ? '★ ' : ''}${m.name}</option>`).join(''); }
@@ -164,6 +167,7 @@
   // haya guardadas) y cuál es la predeterminada para un timer/alarma nuevos.
   let _melodyOptionsReady = false; // false = lo que hay en el <select> es solo el arranque de emergencia, no una elección real
   window.setMelodyOptions = function (customList, defaultId) {
+    _lastCustom = customList || []; _lastDefId = defaultId;
     customMelodyIds = new Set((customList || []).map(m => m.id));
     defaultMelodyId = (defaultId && (TONES[defaultId] || customMelodyIds.has(defaultId))) ? defaultId : '1';
     const sel = $('timerMelodySelect');
@@ -172,11 +176,13 @@
       // (si no, lo que hay es el "1" del arranque de emergencia, no una elección)
       const keep = _melodyOptionsReady ? sel.value : null;
       sel.innerHTML = BUILTIN_MELODIES.concat(customList || [])
-        .map(m => `<option value="${esc(m.id)}">${m.id === defaultMelodyId ? '★ ' : ''}${esc(m.name)}</option>`).join('');
-      sel.value = (keep && [...sel.options].some(o => o.value === keep)) ? keep : defaultMelodyId;
+        .map(m => `<option value="${esc(m.id)}">${m.id === effDefault() ? '★ ' : ''}${esc(m.name)}</option>`).join('');
+      sel.value = (keep && [...sel.options].some(o => o.value === keep)) ? keep : effDefault();
       _melodyOptionsReady = true;
     }
   };
+  // Al activar/quitar un modo con melodía propia: vuelve a marcar la predeterminada en el desplegable.
+  window.refreshMelodyDefault = function () { _melodyOptionsReady = false; window.setMelodyOptions(_lastCustom, _lastDefId); };
   // La melodía subida por el admin (a diferencia de las de serie) llega en un
   // segundo paso, cuando termina de descargarse: aquí se le añaden sus notas.
   window.setMelodyTone = function (id, notes) {
@@ -185,7 +191,7 @@
 
   // Tono con el que suena un timer/alarma: el que se eligió al crearlo, o la
   // melodía predeterminada si no se guardó ninguno (timers de antes de este cambio).
-  const ringToneOf = r => (r && r.tone && (TONES[r.tone] || customMelodyIds.has(r.tone))) ? r.tone : defaultMelodyId;
+  const ringToneOf = r => (r && r.tone && (TONES[r.tone] || customMelodyIds.has(r.tone))) ? r.tone : effDefault();
   // Cualquier id desconocido (una melodía subida que se ha borrado, o un "Tono 2"
   // de versiones muy antiguas) usa el tono clásico en vez de romper la melodía.
   const toneOf = n => (TONES[n] ? n : 1);
@@ -466,7 +472,7 @@
     if (nm && !r.name) r.name = nm;   // el nombre del atajo (p. ej. Patatas) manda; sin nombre no se guarda nada
     if (nameEl) nameEl.value = '';
     const melSel = $('timerMelodySelect');
-    r.tone = (melSel && melSel.value) || defaultMelodyId;
+    r.tone = (melSel && melSel.value) || effDefault();
     if (clockEnabled()) r.clock = true;
     runs.push(r);
     tab = 'list';

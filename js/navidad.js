@@ -213,6 +213,7 @@
   function start() {
     if (running) return;
     running = true;
+    window.SEASON_MELODY = 'jingle'; if (window.refreshMelodyDefault) window.refreshMelodyDefault(); // alarma por defecto: Jingle Bells
     addHat();
     window.MODE_THEME_COLORS = COLORS;
     addRingBg();
@@ -235,6 +236,7 @@
   function stop() {
     if (!running) return;
     running = false;
+    if (window.SEASON_MELODY === 'jingle') { window.SEASON_MELODY = null; if (window.refreshMelodyDefault) window.refreshMelodyDefault(); }
     cancelAnimationFrame(raf); clearTimeout(resizeT); placeTimers.forEach(clearTimeout); placeTimers = [];
     window.removeEventListener('resize', onResize);
     if (ro) { ro.disconnect(); ro = null; }

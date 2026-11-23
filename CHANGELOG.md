@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v147 — Villancico en el modo Navidad
+
+### Añadido
+- Con el modo Navidad activo, la melodía predeterminada de los timers y alarmas nuevos pasa a ser **«Jingle Bells»** (el villancico de serie). Al quitar el modo vuelve la predeterminada de siempre. Los timers ya creados y la melodía que elijas a mano no cambian.
+
+---
+
 ## v146 — Gorro de Papá Noel rediseñado
 
 ### Cambiado
