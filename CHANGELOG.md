@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v144 — Un poco menos de nieve
+
+### Cambiado
+- Navidad: otro cuarto menos de copos (mínimo 16, máximo 42 a la vez).
+
+---
+
 ## v143 — Adorno de abajo en Navidad
 
 ### Cambiado
