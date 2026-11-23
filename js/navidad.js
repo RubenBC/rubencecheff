@@ -198,7 +198,12 @@
   function onResize() { clearTimeout(resizeT); resizeT = setTimeout(function () { place(); buildLights(); }, 120); }
 
   // Gorro de Papá Noel sobre el disco de la radio (no gira: va en el contenedor, no en el disco)
-  var HAT = '<svg viewBox="0 0 64 54"><path d="M8 40 C8 22 20 8 40 6 C50 5 56 12 58 20 C54 16 50 16 46 19 C36 17 26 24 24 40 Z" fill="#d62839" stroke="#8f1020" stroke-width="1.4" stroke-linejoin="round"/><path d="M40 6 C48 4 55 10 58 20" stroke="#ef5a68" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/><rect x="3" y="36" width="50" height="13" rx="6.5" fill="#fff" stroke="#d9dde3" stroke-width="1.2"/><circle cx="58" cy="20" r="6.2" fill="#fff" stroke="#d9dde3" stroke-width="1.2"/></svg>';
+  var HAT = '<svg viewBox="0 0 80 64"><defs><linearGradient id="xmHatG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0485a"/><stop offset="1" stop-color="#b3142a"/></linearGradient></defs>' +
+    '<path d="M9 46 C10 26 22 10 40 7 C57 4 70 14 73 33 C66 27 56 27 50 33 C44 39 44 45 46 48 Z" fill="url(#xmHatG)" stroke="#7d0e1f" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<path d="M18 38 C21 24 30 14 42 11" stroke="#ff8a96" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".7"/>' +
+    '<path d="M56 29 C52 33 50 38 51 44" stroke="#8f1020" stroke-width="1.4" fill="none" stroke-linecap="round" opacity=".6"/>' +
+    '<g fill="#fff" stroke="#cfd5de" stroke-width="1.2"><rect x="3" y="39" width="52" height="16" rx="8"/><circle cx="73" cy="36" r="7.5"/></g>' +
+    '<g fill="none" stroke="#e3e7ee" stroke-width="1.2" stroke-linecap="round"><path d="M13 47 h8 M28 49 h10 M43 47 h6"/></g></svg>';
   function addHat() {
     var wrap = document.querySelector('.vinyl-wrap');
     if (!wrap || wrap.querySelector('.xm-hat')) return;

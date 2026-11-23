@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v146 — Gorro de Papá Noel rediseñado
+
+### Cambiado
+- Nuevo gorro de Papá Noel para el disco de la radio (Navidad): con volumen, brillo, pliegue y pompón, y colocado **encima del borde del disco**, inclinado, para que parezca puesto y no flotando.
+
+---
+
 ## v145 — Gorro de Papá Noel en la radio
 
 ### Añadido
