@@ -197,8 +197,31 @@
   const toneOf = n => (TONES[n] ? n : 1);
   const toneLoopS = n => Math.max.apply(null, TONES[toneOf(n)].map(x => x[1] + x[2])) + PAUSE_S;
 
-  function scheduleLoop(t0) {
-    TONES[toneOf(sched.tone)].forEach(([f, off, dur]) => beep(f, t0 + off, dur, sched.bus, sched.oscs));
+  // v149 — Las melodías de serie se "pintan" UNA vez en un buffer de audio (nota a nota, con la
+  // misma envolvente y la misma mezcla cuadrada+triangular de antes) y se reproducen en bucle con
+  // un único nodo. Antes se programaban cientos de osciladores por adelantado (Jingle Bells: ~60
+  // por vuelta × 10 vueltas), lo que en un PC flojo podía hacer que el audio se cortara o fallara.
+  const loopBuffers = {};
+  function getLoopBuffer(tone) {
+    const ctx = audioCtx, key = toneOf(tone) + '@' + ctx.sampleRate;
+    if (loopBuffers[key]) return loopBuffers[key];
+    const sr = ctx.sampleRate, notes = TONES[toneOf(tone)];
+    const len = Math.round(toneLoopS(tone) * sr);
+    const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    notes.forEach(([f, off, dur]) => {
+      const i0 = Math.round(off * sr), n = Math.min(len - i0, Math.round((dur + 0.02) * sr)), A = 0.012;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        const g = t < A ? 0.0001 * Math.pow(0.9 / 0.0001, t / A)
+                : t < dur ? 0.9 * Math.pow(0.0001 / 0.9, (t - A) / (dur - A)) : 0;
+        if (g <= 0) continue;
+        const ph = 2 * Math.PI * f * t;
+        let sq = 0; // cuadrada sin armónicos por encima de Nyquist (como el oscilador del navegador)
+        for (let k = 1; k * f < sr / 2; k += 2) sq += Math.sin(k * ph) / k;
+        d[i0 + i] += g * (0.45 * (4 / Math.PI) * sq + (2 / Math.PI) * Math.asin(Math.sin(ph)));
+      }
+    });
+    return (loopBuffers[key] = buf);
   }
 
   // Una melodía subida por el admin (a diferencia de las 3 de serie) se
@@ -242,25 +265,19 @@
     cancelScheduled();
     const bus = audioCtx.createGain();
     bus.connect(master);
-    sched = { bus, oscs: [], base, n: 0, min: minLoops, forEnd: forEnd || 0, tone: tone, loopS: toneLoopS(tone) };
-    topUp();
+    const src = audioCtx.createBufferSource();
+    src.buffer = getLoopBuffer(tone); src.loop = true;
+    src.connect(bus); src.start(base);
+    sched = { bus, src, base, forEnd: forEnd || 0, tone: tone, loopS: toneLoopS(tone) };
   }
 
-  // Mantiene programados ≥ 60 s de melodía por delante (y los primeros 'min' ciclos)
-  function topUp() {
-    if (!sched || !audioCtx) return;
-    const now = audioCtx.currentTime, horizon = now + 60;
-    while ((sched.n < sched.min || sched.base + sched.n * sched.loopS < horizon) && sched.n < 5000) {
-      scheduleLoop(sched.base + sched.n * sched.loopS);
-      sched.n++;
-    }
-    sched.oscs = sched.oscs.filter(x => x.end > now - 1); // limpia los ya terminados
-  }
+  // (antes mantenía programados 60 s de osciladores; con el bucle de buffer ya no hace falta, se deja por compatibilidad)
+  function topUp() {}
 
   function cancelScheduled() {
     if (!sched) return;
+    try { sched.src.stop(); } catch (e) {}
     try { sched.bus.disconnect(); } catch (e) {}
-    sched.oscs.forEach(x => { try { x.o.stop(); } catch (e) {} });
     sched = null;
   }
 

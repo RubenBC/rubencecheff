@@ -4,6 +4,14 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v149 — Sonido de los temporizadores más fiable
+
+### Cambiado
+- Las melodías de serie (tono clásico, Jingle Bells, Dies Irae) ya no se programan como cientos de osciladores por adelantado; se preparan una vez en un buffer de audio y suenan en bucle con un único nodo. Misma melodía y timbre casi idéntico, pero mucho menos carga para el PC, sin dependencia de que la pestaña esté dormida y sin cortes por saturación.
+- Motivo: desde v147 Jingle Bells es la melodía predeterminada en Navidad y es bastante más pesada que el tono clásico (unos 60 osciladores por vuelta × 10 vueltas programadas).
+
+---
+
 ## v148 — Alarma de Navidad más amable
 
 ### Cambiado
