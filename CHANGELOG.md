@@ -4,6 +4,13 @@ Todas las versiones notables de la app, de más reciente a más antigua.
 
 ---
 
+## v148 — Alarma de Navidad más amable
+
+### Cambiado
+- El fondo de la alarma/temporizador en Navidad deja de ser el Papá Noel sangriento y pasa a ser una **ilustración nocturna**: el trineo con renos cruzando una luna llena sobre un pueblo nevado con casas encendidas, abetos con lucecitas, estrellas que titilan y nieve suave. El botón de parar es ahora verde y sin parpadeos fuertes.
+
+---
+
 ## v147 — Villancico en el modo Navidad
 
 ### Añadido

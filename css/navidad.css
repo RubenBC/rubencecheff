@@ -76,35 +76,29 @@ body.dark .topbar, body.dark .bottom-nav {
 .xm-swing { transform-box: view-box; animation: xm-swing 3.6s ease-in-out infinite alternate; }
 @keyframes xm-swing { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
 
-/* ─── 🎅 Ventana del timer/alarma al sonar: Papá Noel sangriento ─── */
-.xm-ring-bg { display: none; position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 20%, #5a0a12 0%, #1a0508 45%, #050101 100%); }
+/* ─── 🎅 Ventana del timer/alarma al sonar: noche de Navidad (el trineo cruza la luna sobre un pueblo nevado) ─── */
+.xm-ring-bg { display: none; position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: 0; pointer-events: none; background: linear-gradient(#0a1230, #22377a 55%, #6b4a8e); }
 .xm-ring-bg svg { width: 100%; height: 100%; display: block; }
-.timer-sheet.ringing { position: relative; background: #050101 !important; }
-.timer-sheet.ringing .xm-ring-bg { display: block; animation: xmr-flicker 5s steps(1) infinite; }
+.timer-sheet.ringing { position: relative; background: #0a1230 !important; }
+.timer-sheet.ringing .xm-ring-bg { display: block; }
 .timer-sheet.ringing > :not(.xm-ring-bg) { position: relative; z-index: 1; }
 .timer-sheet.ringing .timer-title,
 .timer-sheet.ringing .timer-display,
-.timer-sheet.ringing .timer-sub.big { color: #fff !important; text-shadow: 0 0 10px #ff1a1a, 0 0 22px #b00000, 0 2px 4px #000; }
-.timer-sheet.ringing .timer-display { -webkit-text-stroke: 2px #000; paint-order: stroke fill; }
-.timer-sheet.ringing .timer-btn.stop { background: #b3141b; color: #fff; box-shadow: 0 0 18px rgba(255,30,30,.7); }
-.xmr-santa { transform-box: view-box; transform-origin: 200px 600px; animation: xmr-breathe 3s ease-in-out infinite alternate; }
-@keyframes xmr-breathe { from { transform: scale(1); } to { transform: scale(1.035); } }
-.xmr-knife { transform-box: view-box; transform-origin: 78px 330px; animation: xmr-knife 2.2s ease-in-out infinite alternate; }
-@keyframes xmr-knife { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
-.xmr-eye { animation: xmr-eye 1s ease-in-out infinite alternate; }
-@keyframes xmr-eye { from { opacity: .45; } to { opacity: 1; } }
-.xmr-drip { animation: xmr-drip 1.8s ease-in infinite; }
-.xmr-drip.d2 { animation-delay: -.6s; animation-duration: 2.2s; } .xmr-drip.d3 { animation-delay: -1.2s; animation-duration: 1.6s; }
-@keyframes xmr-drip { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 100% { transform: translateY(60px); opacity: 0; } }
-.xmr-snow { animation: xmr-snow 7s linear infinite; }
-@keyframes xmr-snow { from { transform: translateY(-20px); } to { transform: translateY(40px); } }
-@keyframes xmr-flicker { 0%, 88%, 92%, 100% { filter: none; } 89%, 91% { filter: brightness(1.7) contrast(1.15); } 90% { filter: brightness(.55); } }
-
-/* "Reducir movimiento": la nieve y las luces se siguen moviendo (muchos PC con Windows lo traen
-   activado y por eso no se movía nada); solo se quita el parpadeo fuerte de la alarma. */
-@media (prefers-reduced-motion: reduce) {
-  .timer-sheet.ringing .xm-ring-bg { animation: none; }
-}
+.timer-sheet.ringing .timer-sub.big { color: #fff !important; text-shadow: 0 2px 8px rgba(5,10,40,.85), 0 0 18px rgba(255,216,107,.35); }
+.timer-sheet.ringing .timer-display { -webkit-text-stroke: 2px #0a1230; paint-order: stroke fill; }
+.timer-sheet.ringing .timer-btn.stop { background: #2e8b57; color: #fff; box-shadow: 0 0 16px rgba(255,216,107,.5); }
+.xmr-fly { transform-box: view-box; animation: xmr-fly 4.5s ease-in-out infinite alternate; }
+@keyframes xmr-fly { from { transform: translate(-6px, 4px) rotate(-1deg); } to { transform: translate(8px, -6px) rotate(1.2deg); } }
+.xmr-trail { animation: xmr-twinkle 1.6s ease-in-out infinite alternate; }
+.xmr-star { animation: xmr-twinkle 3s ease-in-out infinite alternate; }
+.xmr-light { animation: xmr-twinkle 1.8s ease-in-out infinite alternate; }
+.xmr-win { animation: xmr-win 3.5s ease-in-out infinite alternate; }
+@keyframes xmr-twinkle { from { opacity: .25; } to { opacity: 1; } }
+@keyframes xmr-win { from { opacity: .7; } to { opacity: 1; } }
+.xmr-smoke { opacity: .45; transform-box: fill-box; animation: xmr-smoke 5s ease-out infinite; }
+@keyframes xmr-smoke { 0% { transform: translate(0, 0) scale(.6); opacity: .5; } 100% { transform: translate(10px, -26px) scale(1.7); opacity: 0; } }
+.xmr-snow { animation: xmr-snow 9s linear infinite; }
+@keyframes xmr-snow { from { transform: translateY(-20px); } to { transform: translateY(60px); } }
 
 /* 🎅 gorro de Papá Noel sentado sobre el borde del disco de la radio (el disco mide 128 px; el gorro va inclinado sobre su borde superior izquierdo) */
 .xm-hat { position: absolute; left: 8px; top: -17px; width: 80px; height: 64px; transform: rotate(-24deg); transform-origin: 29px 47px; pointer-events: none; z-index: 3;

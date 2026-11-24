@@ -10,7 +10,7 @@ const sb = createClient(
 // ═══════════════════════════════════════
 //   CONSTANTES
 // ═══════════════════════════════════════
-const APP_VERSION = 'v147';
+const APP_VERSION = 'v148';
 // ¿index.html pide una versión de app.js distinta de esta? (pasa si en GitHub
 // se sube uno de los dos archivos y el otro no, o aún no se ha publicado)
 function versionMismatch() {
@@ -297,7 +297,7 @@ const SEASONS = {
   halloween: { label: 'Halloween', icon: '🎃', css: 'css/halloween.css', js: 'js/halloween.js', api: 'SeasonHalloween',
                desc: 'Colores naranja y negro, murciélagos, fantasmas, calaveras, gatos y rayos. Alarma con calavera terrorífica.' },
   navidad:   { label: 'Navidad', icon: '🎄', css: 'css/navidad.css', js: 'js/navidad.js', api: 'SeasonNavidad',
-               desc: 'Colores rojo, verde y dorado, luces y bolas, nieve cayendo. Alarma con Papá Noel sangriento.' },
+               desc: 'Colores rojo, verde y dorado, luces y bolas, nieve cayendo. Alarma con el trineo de Papá Noel sobre un pueblo nevado.' },
   orgullo:   { label: 'Orgullo', icon: '🏳️‍🌈', css: 'css/orgullo.css', js: 'js/orgullo.js', api: 'SeasonOrgullo',
                desc: 'Colores del arcoíris, banderines, confeti, carroza con bola de discoteca, globos y bailarines, como la fiesta del Orgullo de Madrid. Alarma de fiesta.' },
   semanasanta: { label: 'Semana Santa', icon: '🕯️', css: 'css/semanasanta.css', js: 'js/semanasanta.js', api: 'SeasonSemanaSanta',
